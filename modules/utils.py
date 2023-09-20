@@ -1,4 +1,5 @@
 from playwright.sync_api import sync_playwright
+from json import load
 
 
 def initialize_puppet():
@@ -36,3 +37,18 @@ def query_selector(elemento, selector):
 
 def query_selector_all(elemento, selector):
     return elemento.locator(f'css={selector}').all()
+
+
+def filtrar_vaga(titulo, local, tipo):
+    filtros = load(open('filtros.json', 'r', encoding='utf-8'))
+    if tipo == 1:
+        if not any(map(lambda x: x in local, filtros['locais'])):
+            return False
+        
+        if any(map(lambda x: x in titulo.split(), filtros['excludeWords'])):
+            return False
+        
+        if any(map(lambda x: x in titulo, filtros['excludeTerms'])):
+            return False
+        
+        return True

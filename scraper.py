@@ -7,9 +7,8 @@ from modules.utils import initialize_puppet
 
 
 def main():
-    with initialize_puppet() as driver:
-        env = load(open('config.json', 'r', encoding='utf-8'))
-        linkedin.get_jobs(driver, env)
+    env = load(open('config.json', 'r', encoding='utf-8'))
+    linkedin.get_jobs(env)
     # linkedin = puppet
     # glassdoor = puppet
     # indeed = puppet
