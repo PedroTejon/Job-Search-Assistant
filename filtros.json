@@ -1,5 +1,5 @@
 {
-    "empresas": [],
-    "termosI": [],
-    "termosE": []
+    "excludeWords": [],
+    "excludeTerms": [],
+    "locais": []
 }
