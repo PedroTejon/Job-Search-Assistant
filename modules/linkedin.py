@@ -5,6 +5,7 @@ from time import sleep
 from requests import get
 from bs4 import BeautifulSoup
 from unidecode import unidecode
+from numpy import split, arange
 
 
 def get_followed_companies(url: str) -> set:
@@ -39,33 +40,39 @@ def get_jobs(env: dict, update_followed=False):
         with open('data/linkedin_followed.txt', 'r', encoding='utf-8') as file:
             lista_empresas = file.read().split('\n')
 
-
     vagas = []
-    empresas_code = '%2C'.join(lista_empresas)
-    page = 0
-    while True:
-        request = get(f'https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?f_C={empresas_code}&f_CR=106057199&geoId=92000000&start={page * 25}&f_WT=1%2C3')
-        if request.status_code == 400:
-            break
-        html = request.content
-        soup = BeautifulSoup(html, 'html.parser')
-        
-        for vaga in soup.find_all('li'):
-            titulo = vaga.find('h3', {'class': 'base-search-card__title'}).get_text().strip()
-            local = vaga.find('span', {'class': 'job-search-card__location'}).get_text().strip()
-            if filtrar_vaga(unidecode(titulo).lower().replace('(', ' ').replace(')', ' '), local, 1):
-                codigo = vaga.find('div', {'class': 'base-card'})['data-entity-urn'].replace('urn:li:jobPosting:', '')
-                vagas.append([titulo, local, codigo])
+    for lista in split(lista_empresas, arange(10, len(lista_empresas), 10)):    
+        empresas_code = '%2C'.join(lista)
+        page = 0
+        while True:
+            request = get(f'https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?f_C={empresas_code}&f_CR=106057199&geoId=92000000&start={page * 25}&f_WT=1%2C3')
+            if request.status_code == 400:
+                break
+            elif request.status_code == 429:
+                sleep(1)
+                continue
+            html = request.content
+            soup = BeautifulSoup(html, 'html.parser')
             
-        sleep(1)
-        page += 1
+            itens = soup.find_all('li')
+            if not itens:
+                break
+            for vaga in itens:
+                titulo = vaga.find('h3', {'class': 'base-search-card__title'}).get_text().strip()
+                local = vaga.find('span', {'class': 'job-search-card__location'}).get_text().strip()
+                if filtrar_vaga(unidecode(titulo).lower().replace('(', ' ').replace(')', ' '), local, 1):
+                    codigo = vaga.find('div', {'class': 'base-card'})['data-entity-urn'].replace('urn:li:jobPosting:', '')
+                    vagas.append([titulo, local, codigo])
+                
+            sleep(1)
+            page += 1
 
-        with open('vagas.txt', 'w', encoding='utf-8') as file:
-            file.write('\n'.join(['|||||'.join(vaga) for vaga in vagas]))
-    
+            with open('vagas.txt', 'w', encoding='utf-8') as file:
+                file.write('\n'.join(['|||||'.join(vaga) for vaga in vagas]))
+
 
 
     # pegar info das vagas por requests
-    #f'https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/[id_vaga]'
+    #f'https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/3693085925'
     
     
