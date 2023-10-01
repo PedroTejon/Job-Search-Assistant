@@ -1,8 +1,11 @@
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright, Page
 from json import load
+from os import listdir
+
+filtros = load(open('filtros.json', 'r', encoding='utf-8'))
 
 
-def initialize_puppet():
+def initialize_puppet() -> Page:
     playwright =  sync_playwright().start()
     browser = playwright.chromium.launch(args=['--no-sandbox', '--disable-dev-shm-usage', '--incognito', '--disable-blink-features=AutomationControlled', '--disable-gpu', '--disable-extensions', '--ignore-certificate-errors-spki-list', '--no-default-browser-check', '--window-size=1200,920'],
                                 ignore_default_args=['--enable-automation'], 
@@ -10,6 +13,9 @@ def initialize_puppet():
     context = browser.new_context(viewport=None)
     context.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
     driver = context.new_page()
+    if 'cookies.json' in listdir('data'):
+        cookies = load(open('data/cookies.json', 'r', encoding='utf-8'))
+        driver.context.add_cookies(cookies)
     
     return driver
 
@@ -40,15 +46,15 @@ def query_selector_all(elemento, selector):
 
 
 def filtrar_vaga(titulo, local, tipo):
-    filtros = load(open('filtros.json', 'r', encoding='utf-8'))
     if tipo == 1:
         if not any(map(lambda x: x in local, filtros['locais'])):
             return False
         
-        if any(map(lambda x: x in titulo.split(), filtros['excludeWords'])):
-            return False
-        
-        if any(map(lambda x: x in titulo, filtros['excludeTerms'])):
-            return False
-        
-        return True
+    if any(map(lambda x: x in titulo.split(), filtros['excludeWords'])):
+        return False
+    
+    if any(map(lambda x: x in titulo, filtros['excludeTerms'])):
+        return False
+    
+    return True
+    
