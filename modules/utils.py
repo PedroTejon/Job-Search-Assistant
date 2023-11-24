@@ -13,9 +13,6 @@ def initialize_puppet() -> Page:
     context = browser.new_context(viewport=None)
     context.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
     driver = context.new_page()
-    if 'cookies.json' in listdir('data'):
-        cookies = load(open('data/cookies.json', 'r', encoding='utf-8'))
-        driver.context.add_cookies(cookies)
     
     return driver
 
