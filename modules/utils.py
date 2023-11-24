@@ -46,8 +46,20 @@ def query_selector_all(elemento, selector):
 
 
 def filtrar_vaga(titulo, local, tipo):
-    if tipo == 1:
-        if not any(map(lambda x: x in local, filtros['locais'])):
+    if local.count(',') == 2:
+        cidade, estado, pais = local.split(', ')
+    elif local.count(',') == 1:
+        estado, pais = local.split(', ')
+    elif local.count(',') == 0:
+        cidade = local.split(', ')
+
+
+    if tipo == 'Presencial/Hibrido':
+        if 'cidade' in locals() and not any(map(lambda x: x == cidade, filtros['cidades'])):
+            return False
+        if 'estado' in locals() and not any(map(lambda x: x == estado, filtros['estados'])):
+            return False
+        if 'pais' in locals() and not any(map(lambda x: x == pais, filtros['paises'])):
             return False
         
     if any(map(lambda x: x in titulo.split(), filtros['excludeWords'])):
