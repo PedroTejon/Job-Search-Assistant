@@ -1,5 +1,7 @@
 {
     "excludeWords": [],
     "excludeTerms": [],
-    "locais": []
+    "cidades": [],
+    "estados": [],
+    "paises": []
 }
