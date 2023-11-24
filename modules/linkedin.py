@@ -8,7 +8,7 @@ from unidecode import unidecode
 from numpy import split, arange
 from re import sub
 from base64 import b64encode
-
+from urllib.parse import unquote
 from playwright.sync_api import Response, Route
 
 
@@ -61,12 +61,13 @@ def scrape_vagas_empresas(lista_empresas: dict) -> [dict, set]:
     vagas = {}
     vagas_recusadas = set()
 
-    for lista in split(list(lista_empresas.keys()), arange(10, len(list(lista_empresas.keys())), 10)):
+    for lista in split(list(lista_empresas), arange(10, len(list(lista_empresas)), 10)):
         empresas_code = '%2C'.join([lista_empresas[empresa]['id'] for empresa in lista])
 
         page = 0
         while True:
             request = get(f'https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?f_C={empresas_code}&f_CR=106057199&geoId=92000000&start={page * 25}')
+            
             if request.status_code == 400:
                 break
             elif request.status_code == 429:
@@ -141,69 +142,86 @@ def scrape_vagas_remotos() -> [dict, set]:
     return [vagas, vagas_recusadas]
 
 
+# def scrape_detalhes_vagas(vagas: dict) -> [dict]:        
+#     cookies = load(open('data/cookies.json', 'r', encoding='utf-8'))
+#     cookies_simplificados = {cookie['name']: cookie['value'].replace('\"', '') for cookie in cookies}
+
+#     sessao = Session()
+    
+#     for vaga in vagas:
+#         detalhes_vaga = sessao.get(f'https://www.linkedin.com/jobs/view/{vaga}/', cookies=cookies_simplificados)
+#         if detalhes_vaga.status_code in [400, 429]:
+#             sleep(1)
+#             continue
+#         detalhes_soup = BeautifulSoup(detalhes_vaga.content, 'html.parser')
+
+#         vagas[vaga]['lin_inscricao'] = unquote(detalhes_soup.select_one('.sign-up-modal__direct-apply-on-company-site > a')['href'] \
+#             .replace(f'https://www.linkedin.com/jobs/view/externalApply/{vaga}?url=', '') \
+#             .split('&')[0])    
+
+
 def save_company_images(response: Response):
     global imagens
     if response.header_value('content-type') == 'image/jpeg' and 'company-logo' in response.url:
         imagens[response.url] = b64encode(response.body()).decode('ascii')
 
 
-def block_unwanted_requests(route: Route):
-    if route.request.resource_type in ['image'] and 'company-logo' not in route.request.url:
-        route.abort()
-    elif 'graphql' in route.request.url and not 'interests' in route.request.url.lower() :
-        route.abort()
-    else:
-        route.continue_(headers=route.request.headers)
+def get_followed_companies() -> dict:
+    empresas = {}
+    cookies = load(open('data/cookies.json', 'r', encoding='utf-8'))
+    cookies_simplificados = {cookie['name']: cookie['value'].replace('\"', '') for cookie in cookies}
 
+    sessao = Session()
+    
+    detalhes_empresas_iniciais = sessao.get(f'https://www.linkedin.com/voyager/api/graphql?variables=(start:0,count:100,paginationToken:null,pagedListComponent:urn%3Ali%3Afsd_profilePagedListComponent%3A%28ACoAADNkf4EBpG80N1CmufGBMrJ8O3nrwFhhedY%2CINTERESTS_VIEW_DETAILS%2Curn%3Ali%3Afsd_profileTabSection%3ACOMPANIES_INTERESTS%2CNONE%2Cpt_BR%29)&queryId=voyagerIdentityDashProfileComponents.3efef764c5f936e8a825b8674c814b0c', cookies=cookies_simplificados, headers={'csrf-token': cookies_simplificados['JSESSIONID']})
+    data = loads(detalhes_empresas_iniciais.content.decode('utf-8'))
+    for elemento in data['data']['identityDashProfileComponentsByPagedListComponent']['elements']:
+        entity = elemento['components']['entityComponent']
 
-def get_followed_companies(url: str) -> dict:
-    global imagens
-    with initialize_puppet() as driver:
-        imagens = {}
-
-        driver.on('response', save_company_images)
-        driver.route('**/*', block_unwanted_requests)
-
-        # Espera a request do banco de dados que informa quantas empresas você segue
-        with driver.expect_response(lambda x: 'interests' in x.url.lower() and 'graphql' in x.url) as response:
-            driver.goto(url + 'details/interests/' if url[-1] == '/' else url + '/details/interests/')
-
-        painel_lista = query_selector(driver, '.pvs-list')
-        painel_lista.wait_for()
-
-        botao = query_selector(driver, 'button.scaffold-finite-scroll__load-button')
-        botao.wait_for(state='attached')
-        while driver.evaluate('document.querySelector("button.scaffold-finite-scroll__load-button")'):
-            with driver.expect_response(lambda x: 'interests' in x.url.lower() and 'graphql' in x.url) as response:
-                botao.click()
-            sleep(1)
-
-        sleep(1)
+        id = entity['textActionTarget'].replace('https://www.linkedin.com/company/', '').rstrip('/')
+        follow_count = entity['subComponents']['components'][0]['components']['actionComponent']['action']['followingStateAction']['followingState']['followerCount']
+        nome_empresa = entity['titleV2']['text']['text']
+        logo = entity['image']['attributes'][0]['detailData']['companyLogo']['logoResolutionResult']
+        logo_url = None
+        if logo:
+            logo_url = logo['vectorImage']['rootUrl'] + \
+                logo['vectorImage']['artifacts'][2]['fileIdentifyingUrlPathSegment']
         
-        # Pega os links dos elementos <a> dentro da lista e escreve num arquivo de texto, com cada entrada em uma linha
-        empresas = {}
-        for secao in query_selector_all(painel_lista, '.pvs-list__paged-list-item.artdeco-list__item.pvs-list__item--line-separated.pvs-list__item--one-column'):
-            id = query_selector(secao, 'a.optional-action-target-wrapper').get_attribute('href').split('/')[4]
-            nome = query_selector(secao, 'div.mr1 span').text_content().strip()
+        empresas[nome_empresa] = {
+            'id': id,
+            'imagem': logo_url,
+            'seguidores': follow_count
+        }
+        
+    total = data['data']['identityDashProfileComponentsByPagedListComponent']['paging']['total']
 
-            if elemento_existe(secao, 'img.evi-image'):
-                imagem = 'data:image/png;base64,' + imagens[query_selector(secao, 'img.evi-image').get_attribute('src')]
-            else:
-                imagem = None
+    for i in range(100, total, 100):
+        detalhes_empresas_restantes = sessao.get(f'https://www.linkedin.com/voyager/api/graphql?variables=(start:{i},count:100,paginationToken:null,pagedListComponent:urn%3Ali%3Afsd_profilePagedListComponent%3A%28ACoAADNkf4EBpG80N1CmufGBMrJ8O3nrwFhhedY%2CINTERESTS_VIEW_DETAILS%2Curn%3Ali%3Afsd_profileTabSection%3ACOMPANIES_INTERESTS%2CNONE%2Cpt_BR%29)&queryId=voyagerIdentityDashProfileComponents.3efef764c5f936e8a825b8674c814b0c', cookies=cookies_simplificados, headers={'csrf-token': cookies_simplificados['JSESSIONID']})
+        data = loads(detalhes_empresas_restantes.content.decode('utf-8'))
 
-            empresas[nome] = {
+        for elemento in data['data']['identityDashProfileComponentsByPagedListComponent']['elements']:
+            entity = elemento['components']['entityComponent']
+
+            id = entity['textActionTarget'].replace('https://www.linkedin.com/company/', '').rstrip('/')
+            follow_count = entity['subComponents']['components'][0]['components']['actionComponent']['action']['followingStateAction']['followingState']['followerCount']
+            nome_empresa = entity['titleV2']['text']['text']
+            logo = entity['image']['attributes'][0]['detailData']['companyLogo']['logoResolutionResult']
+            logo_url = None
+            if logo:
+                logo_url = logo['vectorImage']['rootUrl'] + logo['vectorImage']['artifacts'][2]['fileIdentifyingUrlPathSegment']
+            
+            empresas[nome_empresa] = {
                 'id': id,
-                'imagem': imagem
+                'imagem': logo_url,
+                'seguidores': follow_count
             }
 
-        dump(empresas, open('data/linkedin_followed.json', 'w', encoding='utf-8'))
-
-        return empresas
+    dump(empresas, open('data/linkedin_followed.json', 'w', encoding='utf-8'), ensure_ascii=False)
 
 
 def get_jobs(env: dict, update_followed: bool = False):
     if 'linkedin_followed.json' not in listdir('data') or update_followed:
-        lista_empresas = get_followed_companies(env['lnProfile'])
+        lista_empresas = get_followed_companies()
     else:
         lista_empresas = load(open('data/linkedin_followed.json', 'r', encoding='utf-8'))
 
@@ -221,6 +239,8 @@ def get_jobs(env: dict, update_followed: bool = False):
     res_vagas_recentes_remo = scrape_vagas_remotos()
     vagas |= res_vagas_recentes_remo[0]
     vagas_recusadas.update(res_vagas_recentes_remo[1])
+
+
 
     dump(vagas, open('data/vagas_accepted.json', 'w', encoding='utf-8'), ensure_ascii=False)
     with open('data/vagas_refused.txt', 'w', encoding='utf-8') as file:
