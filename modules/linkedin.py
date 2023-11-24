@@ -1,5 +1,6 @@
 from os import listdir
 from json import load, dump, loads
+from urllib.parse import unquote
 from modules.utils import filtrar_vaga
 from time import sleep
 from requests import get, Session
@@ -47,7 +48,7 @@ def scrape_vagas_recomendadas() -> [set, set]:
         if conta_atual >= len(vagas) + vagas_recusadas:
             break
 
-        sleep(1)
+        sleep(.5)
         page += 1
 
     return vagas
@@ -98,7 +99,7 @@ def scrape_vagas_empresas(lista_empresas: dict) -> [dict, set]:
 
             vagas |= extrair_vagas(itens)
 
-            sleep(1)
+            sleep(.5)
             page += 1
 
     return vagas
@@ -126,27 +127,47 @@ def scrape_vagas_remotos() -> [dict, set]:
 
         vagas |= extrair_vagas(itens)
             
-        sleep(1)
+        sleep(.5)
         page += 1
 
     return vagas
 
 
-# def scrape_detalhes_vagas(vagas: dict) -> [dict]:        
-#     cookies = load(open('data/cookies.json', 'r', encoding='utf-8'))
+def scrape_detalhes_vagas(vagas: dict) -> [dict]:        
+    cookies = load(open('data/cookies.json', 'r', encoding='utf-8'))
 
-#     sessao = Session()
+    sessao = Session()
     
-#     for vaga in vagas:
-#         detalhes_vaga = sessao.get(f'https://www.linkedin.com/jobs/view/{vaga}/', cookies=cookies)
-#         if detalhes_vaga.status_code in [400, 429]:
-#             sleep(1)
-#             continue
-#         detalhes_soup = BeautifulSoup(detalhes_vaga.content, 'html.parser')
+    for vaga in vagas:
+        detalhes_vaga = sessao.get(f'https://www.linkedin.com/jobs/view/{vaga}/')
 
-#         vagas[vaga]['lin_inscricao'] = unquote(detalhes_soup.select_one('.sign-up-modal__direct-apply-on-company-site > a')['href'] \
-#             .replace(f'https://www.linkedin.com/jobs/view/externalApply/{vaga}?url=', '') \
-#             .split('&')[0])    
+        if detalhes_vaga.status_code in [400, 429]:
+            sleep(1)
+            continue
+        detalhes_soup = BeautifulSoup(detalhes_vaga.content, 'html.parser')
+
+        link_el = detalhes_soup.select_one('a.sign-up-modal__company_webiste')
+        if link_el:
+            vagas[vaga]['link_inscricao'] = unquote(detalhes_soup.select_one('a.sign-up-modal__company_webiste')['href'] \
+                .replace(f'https://www.linkedin.com/jobs/view/externalApply/{vaga}?url=', '') \
+                .split('&')[0])
+        else:
+            vagas[vaga]['link_inscricao'] = f'https://www.linkedin.com/jobs/view/{vaga}/'
+        
+        
+        desc_el = detalhes_soup.find('div', {'class': 'description__text description__text--rich'})
+        for line_break in desc_el.find_all('br'):
+            line_break.replace_with('\n')
+        vagas[vaga]['descricao'] = desc_el.get_text().replace('Show more', '').replace('Show less', '').strip()
+
+        vagas[vaga]['n_candidaturas'] =  detalhes_soup.select_one('.num-applicants__caption').get_text().strip()
+
+        vagas[vaga]['tempo_publicado'] = detalhes_soup.select_one('span.posted-time-ago__text').get_text().strip()
+
+
+        sleep(0.1)
+
+    return vagas
 
 
 def get_followed_companies() -> dict:
@@ -220,6 +241,10 @@ def get_jobs(env: dict, update_followed: bool = False):
 
     res_vagas_recentes_remo = scrape_vagas_remotos()
     vagas |= res_vagas_recentes_remo
+
+    dump(vagas, open('data/vagas_accepted.json', 'w', encoding='utf-8'), ensure_ascii=False)
+
+    vagas = scrape_detalhes_vagas(vagas)
 
     dump(vagas, open('data/vagas_accepted.json', 'w', encoding='utf-8'), ensure_ascii=False)
 
