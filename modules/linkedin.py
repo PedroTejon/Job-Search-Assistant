@@ -11,7 +11,7 @@ from re import sub
 
 
 def scrape_vagas_recomendadas() -> [set, set]:
-    cookies = load(open('data/cookies.json', 'r', encoding='utf-8'))
+    cookies = {cookie['name']: cookie['value'].replace('\"', '') for cookie in load(open('data/cookies.json', 'r', encoding='utf-8'))}
 
     sessao = Session()
     
@@ -133,13 +133,9 @@ def scrape_vagas_remotos() -> [dict, set]:
     return vagas
 
 
-def scrape_detalhes_vagas(vagas: dict) -> [dict]:        
-    cookies = load(open('data/cookies.json', 'r', encoding='utf-8'))
-
-    sessao = Session()
-    
+def scrape_detalhes_vagas(vagas: dict) -> [dict]:            
     for vaga in vagas:
-        detalhes_vaga = sessao.get(f'https://www.linkedin.com/jobs/view/{vaga}/')
+        detalhes_vaga = get(f'https://www.linkedin.com/jobs/view/{vaga}/')
 
         if detalhes_vaga.status_code in [400, 429]:
             sleep(1)
@@ -154,25 +150,21 @@ def scrape_detalhes_vagas(vagas: dict) -> [dict]:
         else:
             vagas[vaga]['link_inscricao'] = f'https://www.linkedin.com/jobs/view/{vaga}/'
         
-        
-        desc_el = detalhes_soup.find('div', {'class': 'description__text description__text--rich'})
-        for line_break in desc_el.find_all('br'):
-            line_break.replace_with('\n')
-        vagas[vaga]['descricao'] = desc_el.get_text().replace('Show more', '').replace('Show less', '').strip()
+        vagas[vaga]['descricao'] = detalhes_soup.find('div', {'class': 'description__text description__text--rich'}).find('div', {'class': 'show-more-less-html__markup'}).decode_contents().strip()
 
         vagas[vaga]['n_candidaturas'] =  detalhes_soup.select_one('.num-applicants__caption').get_text().strip()
 
         vagas[vaga]['tempo_publicado'] = detalhes_soup.select_one('span.posted-time-ago__text').get_text().strip()
 
 
-        sleep(0.1)
+        sleep(0.2)
 
     return vagas
 
 
 def get_followed_companies() -> dict:
     empresas = {}
-    cookies = load(open('data/cookies.json', 'r', encoding='utf-8'))
+    cookies = {cookie['name']: cookie['value'].replace('\"', '') for cookie in load(open('data/cookies.json', 'r', encoding='utf-8'))}
     armazenamento_local = load(open('data/armazenamento_local.json', 'r', encoding='utf-8'))
 
     sessao = Session()
