@@ -6,8 +6,9 @@ import modules.indeed as indeed
 
 
 def main():
-    env = load(open('config.json', 'r', encoding='utf-8'))
-    linkedin.get_jobs(env)
+    configs = load(open('config.json', 'r', encoding='utf-8'))
+    vagas = linkedin.get_jobs()
+    glassdoor.get_jobs(vagas)
     # glassdoor = puppet
     # indeed = puppet
     # burh = https://api-v2.burh.com.br/api/company/career/[empresa]/jobs?page=[pagina]

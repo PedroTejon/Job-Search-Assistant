@@ -5,11 +5,11 @@ from os import listdir
 filtros = load(open('filtros.json', 'r', encoding='utf-8'))
 
 
-def initialize_puppet(load_cookies=False) -> Page:
+def initialize_puppet(load_cookies=False, headless=False) -> Page:
     playwright =  sync_playwright().start()
     browser = playwright.chromium.launch(args=['--no-sandbox', '--disable-dev-shm-usage', '--incognito', '--disable-blink-features=AutomationControlled', '--disable-gpu', '--disable-extensions', '--ignore-certificate-errors-spki-list', '--no-default-browser-check', '--window-size=1280,720'],
                                 ignore_default_args=['--enable-automation'], 
-                                headless=False)
+                                headless=headless)
     context = browser.new_context(viewport=None, user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36 Edg/114.0.1823.79')
     context.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
     driver: Page = context.new_page()
@@ -57,7 +57,7 @@ def filtrar_vaga(titulo, local, tipo):
     elif local.count(',') == 1:
         estado, pais = local.split(', ')
     elif local.count(',') == 0:
-        cidade = local.split(', ')
+        cidade = local.split(', ')[0]
 
 
     if tipo == 'Presencial/Hibrido':

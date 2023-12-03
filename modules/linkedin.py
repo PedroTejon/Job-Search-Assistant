@@ -10,7 +10,7 @@ from numpy import split, arange
 from re import sub
 
 
-def scrape_vagas_recomendadas() -> [set, set]:
+def scrape_vagas_recomendadas() -> dict:
     cookies = {cookie['name']: cookie['value'].replace('\"', '') for cookie in load(open('data/cookies.json', 'r', encoding='utf-8'))}
 
     sessao = Session()
@@ -41,7 +41,7 @@ def scrape_vagas_recomendadas() -> [set, set]:
                     if filtrar_vaga(sub(r'[\[\]\(\),./\\| ]+', ' ', unidecode(titulo).lower()), local, modalidade):
                         empresa = elemento['primaryDescription']['text']
                         
-                        vagas[codigo] = {'titulo': titulo, 'local': local, 'empresa': empresa, 'modalidade': modalidade}
+                        vagas[codigo] = {'titulo': titulo, 'local': local, 'empresa': empresa, 'modalidade': modalidade, 'plataforma': 'LinkedIn'}
                     else:
                         vagas_recusadas += 1
         
@@ -71,16 +71,16 @@ def extrair_vagas(itens: list) -> dict:
             if filtrar_vaga(sub(r'[\[\]\(\),./\\| ]+', ' ', unidecode(titulo).lower()), local, modalidade):
                 empresa = vaga.find('a', {'class': 'hidden-nested-link'}).get_text().strip()
                 
-                vagas[codigo] = {'titulo': titulo, 'local': local, 'empresa': empresa, 'modalidade': modalidade}
+                vagas[codigo] = {'titulo': titulo, 'local': local, 'empresa': empresa, 'modalidade': modalidade, 'plataforma': 'LinkedIn'}
     
     return vagas
 
 
-def scrape_vagas_empresas(lista_empresas: dict) -> [dict, set]:
+def scrape_vagas_empresas(lista_empresas: dict) -> dict:
     vagas = {}
 
     for lista in split(list(lista_empresas), arange(10, len(list(lista_empresas)), 10)):
-        empresas_code = '%2C'.join([lista_empresas[empresa]['id'] for empresa in lista])
+        empresas_code = '%2C'.join([lista_empresas[empresa]['linkedin_id'] for empresa in lista])
 
         page = 0
         while True:
@@ -105,7 +105,7 @@ def scrape_vagas_empresas(lista_empresas: dict) -> [dict, set]:
     return vagas
 
 
-def scrape_vagas_remotos() -> [dict, set]:
+def scrape_vagas_remotos() -> dict:
     vagas = {}
 
     page = 0
@@ -133,8 +133,8 @@ def scrape_vagas_remotos() -> [dict, set]:
     return vagas
 
 
-def scrape_detalhes_vagas(vagas: dict) -> [dict]:            
-    for vaga in vagas:
+def scrape_detalhes_vagas(vagas: dict) -> dict:
+    for vaga in filter(lambda x: vagas[x]['plataforma'] == 'LinkedIn', vagas):
         detalhes_vaga = get(f'https://www.linkedin.com/jobs/view/{vaga}/')
 
         if detalhes_vaga.status_code in [400, 429]:
@@ -169,7 +169,7 @@ def get_followed_companies() -> dict:
 
     sessao = Session()
     
-    profile_id = loads(armazenamento_local["voyager-web:badges"])[0]["_id"]
+    profile_id = armazenamento_local['profile_id']
     detalhes_empresas_iniciais = sessao.get(f'https://www.linkedin.com/voyager/api/graphql?variables=(start:0,count:100,paginationToken:null,pagedListComponent:urn%3Ali%3Afsd_profilePagedListComponent%3A%28{profile_id}%2CINTERESTS_VIEW_DETAILS%2Curn%3Ali%3Afsd_profileTabSection%3ACOMPANIES_INTERESTS%2CNONE%2Cpt_BR%29)&queryId=voyagerIdentityDashProfileComponents.3efef764c5f936e8a825b8674c814b0c', cookies=cookies, headers={'csrf-token': cookies['JSESSIONID']})
     data = loads(detalhes_empresas_iniciais.content.decode('utf-8'))
     for elemento in data['data']['identityDashProfileComponentsByPagedListComponent']['elements']:
@@ -185,9 +185,9 @@ def get_followed_companies() -> dict:
                 logo['vectorImage']['artifacts'][2]['fileIdentifyingUrlPathSegment']
         
         empresas[nome_empresa] = {
-            'id': id,
+            'linkedin_id': id,
             'imagem': logo_url,
-            'seguidores': follow_count
+            'linkedin_seguidores': follow_count
         }
         
     total = data['data']['identityDashProfileComponentsByPagedListComponent']['paging']['total']
@@ -208,20 +208,20 @@ def get_followed_companies() -> dict:
                 logo_url = logo['vectorImage']['rootUrl'] + logo['vectorImage']['artifacts'][2]['fileIdentifyingUrlPathSegment']
             
             empresas[nome_empresa] = {
-                'id': id,
+                'linkedin_id': id,
                 'imagem': logo_url,
-                'seguidores': follow_count
+                'linkedin_seguidores': follow_count
             }
 
-    dump(empresas, open('data/linkedin_followed.json', 'w', encoding='utf-8'), ensure_ascii=False)
+    dump(empresas, open('data/companies_followed.json', 'w', encoding='utf-8'), ensure_ascii=False)
     return empresas
 
 
-def get_jobs(env: dict, update_followed: bool = False):
-    if 'linkedin_followed.json' not in listdir('data') or update_followed:
+def get_jobs(update_followed: bool = False):
+    if 'companies_followed.json' not in listdir('data') or update_followed:
         lista_empresas = get_followed_companies()
     else:
-        lista_empresas = load(open('data/linkedin_followed.json', 'r', encoding='utf-8'))
+        lista_empresas = load(open('data/companies_followed.json', 'r', encoding='utf-8'))
 
     vagas = {}
 
@@ -239,6 +239,8 @@ def get_jobs(env: dict, update_followed: bool = False):
     vagas = scrape_detalhes_vagas(vagas)
 
     dump(vagas, open('data/vagas_accepted.json', 'w', encoding='utf-8'), ensure_ascii=False)
+
+    return vagas
 
     # pegar info das vagas por requests
     #f'https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/3705238738'
