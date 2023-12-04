@@ -4,6 +4,8 @@ from os import listdir
 
 filtros = load(open('filtros.json', 'r', encoding='utf-8'))
 
+from interfaces.vagas_interface.models import Empresa, Vaga
+
 
 def initialize_puppet(load_cookies=False, headless=False) -> Page:
     playwright =  sync_playwright().start()
@@ -26,29 +28,15 @@ def set_cookies(driver):
     return driver
 
 
-def elemento_existe(elemento, selector, factor='', role=''):
-    if factor == '':
-        return True if elemento.locator(f'css={selector}').count() != 0 else False
-    elif factor == 'name':
-        return True if elemento.get_by_role(role, name=selector).count() != 0 else False
+def empresa_existe(e_id, plataforma) -> bool:
+    if plataforma == 'linkedin':
+        return Empresa.objects.filter(linkedin_id__exact=e_id).exists()
+    elif plataforma == 'glassdoor':
+        return Empresa.objects.filter(glassdoor_id__exact=e_id).exists()
 
 
-def filhos_de_el(elemento, selector):
-    return elemento.locator(f'css={selector} > *').all()
-
-
-def pai_n(elemento, quanto):
-    for _ in range(quanto):
-        elemento = elemento.locator('xpath=..')
-    return elemento
-
-
-def query_selector(elemento, selector):
-    return elemento.locator(f'css={selector}').first
-
-
-def query_selector_all(elemento, selector):
-    return elemento.locator(f'css={selector}').all()
+def vaga_existe(e_id) -> bool:
+    return Vaga.objects.filter(id_vaga__exact=e_id).exists()
 
 
 def filtrar_vaga(titulo, local, tipo):
@@ -58,7 +46,6 @@ def filtrar_vaga(titulo, local, tipo):
         estado, pais = local.split(', ')
     elif local.count(',') == 0:
         cidade = local.split(', ')[0]
-
 
     if tipo == 'Presencial/Hibrido':
         if 'cidade' in locals() and not any(map(lambda x: x == cidade, filtros['cidades'])):

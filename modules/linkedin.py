@@ -1,246 +1,244 @@
 from os import listdir
 from json import load, dump, loads
 from urllib.parse import unquote
-from modules.utils import filtrar_vaga
+from modules.utils import filtrar_vaga, empresa_existe, vaga_existe
 from time import sleep
 from requests import get, Session
 from bs4 import BeautifulSoup, PageElement
 from unidecode import unidecode
-from numpy import split, arange
 from re import sub
+from cloudscraper import create_scraper
+
+from interfaces.vagas_interface.models import Empresa, Vaga
+from django.db.models import Q
+from django.db.models import Model
+from django.utils.timezone import now
+from datetime import datetime
 
 
-def scrape_vagas_recomendadas() -> dict:
-    cookies = {cookie['name']: cookie['value'].replace('\"', '') for cookie in load(open('data/cookies.json', 'r', encoding='utf-8'))}
+def get_csrf_token(cookies):
+    for cookie in cookies:
+        if cookie['name'] == 'JSESSIONID':
+            return cookie['value'].strip('"')
 
-    sessao = Session()
-    
-    vagas = {}
-    vagas_recusadas = 0
-    
+
+def graphql_request(url, cookies, csrf_token):
+    vagas_total = 0
     page = 0
-    while True:
-        request = sessao.get(f'https://www.linkedin.com/jobs/collections/recommended/?start={25 * page}', cookies=cookies)
-        if request.status_code in [400, 429]:
-            sleep(1)
-            continue
-        soup = BeautifulSoup(request.content, 'html.parser')
-        
-        conta_atual = len(vagas) + vagas_recusadas
-        codigos = soup.find_all('code', id=lambda id: id and id.startswith("bpr-guid-"))
-        for tag_codigo in codigos:
-            resposta = loads(tag_codigo.get_text().replace('&quot;', '"').replace('&amp;', '&').replace('&#61;', '='))
 
-            for elemento in filter(lambda obj: 'preDashNormalizedJobPostingUrn' in obj, resposta['included']):
-                codigo = elemento['preDashNormalizedJobPostingUrn'].replace('urn:li:fs_normalized_jobPosting:', '')
-                if codigo not in vagas:
-                    titulo = elemento['jobPostingTitle']
-                    local = elemento['secondaryDescription']['text']
-
-                    modalidade = 'Remoto' if 'Remoto' in local else 'Presencial/Hibrido'
-                    if filtrar_vaga(sub(r'[\[\]\(\),./\\| ]+', ' ', unidecode(titulo).lower()), local, modalidade):
-                        empresa = elemento['primaryDescription']['text']
-                        
-                        vagas[codigo] = {'titulo': titulo, 'local': local, 'empresa': empresa, 'modalidade': modalidade, 'plataforma': 'LinkedIn'}
-                    else:
-                        vagas_recusadas += 1
-        
-        if conta_atual >= len(vagas) + vagas_recusadas:
-            break
-
-        sleep(.5)
-        page += 1
-
-    return vagas
-
-
-def extrair_vagas(itens: list) -> dict:
-    vagas = {}
-
-    for vaga in itens:
-        codigo_entidade: PageElement = vaga.find('div', {'class': 'base-card'})
-        if not codigo_entidade:
-            codigo_entidade = vaga.find('a', {'class': 'base-card'})
-        
-        codigo: str = codigo_entidade['data-entity-urn'].replace('urn:li:jobPosting:', '')
-        if codigo not in vagas:
-            titulo = sub(r' {2,}|\n', '', vaga.find('h3', {'class': 'base-search-card__title'}).get_text().strip())
-            local = vaga.find('span', {'class': 'job-search-card__location'}).get_text().strip()
-
-            modalidade: str = 'Remoto' if 'Remoto' in local else 'Presencial/Hibrido'
-            if filtrar_vaga(sub(r'[\[\]\(\),./\\| ]+', ' ', unidecode(titulo).lower()), local, modalidade):
-                empresa = vaga.find('a', {'class': 'hidden-nested-link'}).get_text().strip()
-                
-                vagas[codigo] = {'titulo': titulo, 'local': local, 'empresa': empresa, 'modalidade': modalidade, 'plataforma': 'LinkedIn'}
-    
-    return vagas
-
-
-def scrape_vagas_empresas(lista_empresas: dict) -> dict:
-    vagas = {}
-
-    for lista in split(list(lista_empresas), arange(10, len(list(lista_empresas)), 10)):
-        empresas_code = '%2C'.join([lista_empresas[empresa]['linkedin_id'] for empresa in lista])
-
-        page = 0
-        while True:
-            request = get(f'https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?f_C={empresas_code}&f_CR=106057199&geoId=92000000&start={page * 25}')
-            
-            if request.status_code == 400:
-                break
-            elif request.status_code == 429:
-                sleep(1)
-                continue
-            soup = BeautifulSoup(request.content, 'html.parser')
-            
-            itens = soup.find_all('li')
-            if not itens:
-                break
-
-            vagas |= extrair_vagas(itens)
-
-            sleep(.5)
-            page += 1
-
-    return vagas
-
-
-def scrape_vagas_remotos() -> dict:
-    vagas = {}
-
-    page = 0
+    session = create_scraper(browser={
+        'browser': 'chrome',
+        'platform': 'windows',
+        'mobile': False
+    })
     while True:
         if 40 < page:
             break
 
-        request = get(f'https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?f_CR=106057199&geoId=92000000&start={page * 25}&f_WT=2&f_TPR=r604800&f_I=96%2C4%2C6%2C3231')
-        if request.status_code == 400:
-            break
-        elif request.status_code == 429:
+        request = session.get(url + f'&start={25 * page}', headers={
+            "accept": "application/vnd.linkedin.normalized+json+2.1",
+            "accept-language": "pt-BR,pt;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6",
+            "cache-control": "no-cache",
+            "csrf-token": csrf_token,
+            "cookie": cookies,
+            "pragma": "no-cache",
+            "sec-ch-ua": "\"Microsoft Edge\";v=\"119\", \"Chromium\";v=\"119\", \"Not?A_Brand\";v=\"24\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "same-origin",
+            "x-li-deco-include-micro-schema": "true",
+            "x-li-lang": "pt_BR",
+            "x-li-page-instance": "urn:li:page:d_flagship3_search_srp_jobs;xhW+cLKCSmyQdAS+CI2l+Q==",
+            "x-li-pem-metadata": "Voyager - Careers=jobs-search-results",
+            "x-li-track": "{\"clientVersion\":\"1.13.7689\",\"mpVersion\":\"1.13.7689\",\"osName\":\"web\",\"timezoneOffset\":-3,\"timezone\":\"America/Sao_Paulo\",\"deviceFormFactor\":\"DESKTOP\",\"mpName\":\"voyager-web\",\"displayDensity\":1.25,\"displayWidth\":1920,\"displayHeight\":1080}",
+            "x-restli-protocol-version": "2.0.0",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0"})
+        if request.status_code in [400, 429]:
             sleep(1)
             continue
-        soup = BeautifulSoup(request.content, 'html.parser')
         
-        itens = soup.find_all('li')
-        if not itens:
+        conta_atual = vagas_total
+        resposta = loads(request.text)
+        fotos_empresas = {empresa_json['entityUrn'].replace('urn:li:fsd_company:', ''): 
+                          empresa_json['logo']['vectorImage']['rootUrl'] + empresa_json['logo']['vectorImage']['artifacts'][2]['fileIdentifyingUrlPathSegment'] 
+                          if 'logo' in empresa_json else 
+                          empresa_json['logoResolutionResult']['vectorImage']['rootUrl'] + empresa_json['logoResolutionResult']['vectorImage']['artifacts'][2]['fileIdentifyingUrlPathSegment'] for empresa_json in filter(lambda obj: ('logo' in obj and obj['logo'] != None and 'vectorImage' in obj['logo']) or ('logoResolutionResult' in obj and obj['logoResolutionResult'] != None and 'vectorImage' in obj['logoResolutionResult']), resposta['included'])}
+
+        for elemento in filter(lambda obj: 'preDashNormalizedJobPostingUrn' in obj, resposta['included']):
+            codigo = elemento['preDashNormalizedJobPostingUrn'].replace('urn:li:fs_normalized_jobPosting:', '')
+            if vaga_existe(codigo):
+                continue
+            titulo = elemento['jobPostingTitle']
+            local = elemento['secondaryDescription']['text']
+
+            modalidade = 'Remoto' if 'Remoto' in local else 'Presencial/Hibrido'
+            if filtrar_vaga(sub(r'[\[\]\(\),./\\| ]+', ' ', unidecode(titulo).lower()), local, modalidade):
+                empresa_nome = elemento['primaryDescription']['text']
+                empresa_id = elemento['logo']['attributes'][0]['detailData']['*companyLogo'].replace('urn:li:fsd_company:', '')
+                if not empresa_existe(empresa_id, 'linkedin'):
+                    empresa = Empresa()
+                    empresa.linkedin_id = empresa_id
+                    empresa.linkedin_nome = empresa_nome
+                    empresa.imagem_url = fotos_empresas.get(empresa_id, None)
+                    empresa.save()
+                
+                vaga = Vaga(titulo=titulo, local=local, empresa=Empresa.objects.get(linkedin_nome__iexact=empresa_nome), modalidade=modalidade,id_vaga=codigo, plataforma='LinkedIn')
+                vaga.save()
+            
+            vagas_total += 1
+    
+        if conta_atual >= vagas_total:
             break
 
-        vagas |= extrair_vagas(itens)
-            
         sleep(.5)
         page += 1
 
-    return vagas
+
+def scrape_vagas_recomendadas() -> dict:
+    cookies_json = load(open('data/cookies.json', 'r', encoding='utf-8'))
+    cookies = ';'.join([f"{cookie['name']}={cookie['value']}" for cookie in cookies_json])
+    
+    graphql_request(f'https://www.linkedin.com/voyager/api/graphql?variables=(count:25,jobCollectionSlug:recommended,query:(origin:GENERIC_JOB_COLLECTIONS_LANDING),includeJobState:true)&queryId=voyagerJobsDashJobCards.da56c4e71afbd3bcdb0a53b4ebd509c4', cookies, get_csrf_token(cookies_json))
 
 
-def scrape_detalhes_vagas(vagas: dict) -> dict:
-    for vaga in filter(lambda x: vagas[x]['plataforma'] == 'LinkedIn', vagas):
-        detalhes_vaga = get(f'https://www.linkedin.com/jobs/view/{vaga}/')
+def scrape_vagas_empresas():
+    cookies_json = load(open('data/cookies.json', 'r', encoding='utf-8'))
+    cookies = ';'.join([f"{cookie['name']}={cookie['value']}" for cookie in cookies_json])
 
-        if detalhes_vaga.status_code in [400, 429]:
-            sleep(1)
-            continue
-        detalhes_soup = BeautifulSoup(detalhes_vaga.content, 'html.parser')
+    empresas = list(filter(lambda x: not x.checado_recentemente() and x.followed, Empresa.objects.all()))
+    if empresas:
+        for empresa in empresas:
+            graphql_request(f'https://www.linkedin.com/voyager/api/voyagerJobsDashJobCards?decorationId=com.linkedin.voyager.dash.deco.jobs.search.JobSearchCardsCollection-191&count=25&q=jobSearch&query=(origin:JOB_SEARCH_PAGE_OTHER_ENTRY,locationUnion:(geoId:92000000),selectedFilters:(company:List({empresa.linkedin_id}),countryRegion:List(106057199)),spellCorrectionEnabled:true)', cookies, get_csrf_token(cookies_json))
 
-        link_el = detalhes_soup.select_one('a.sign-up-modal__company_webiste')
-        if link_el:
-            vagas[vaga]['link_inscricao'] = unquote(detalhes_soup.select_one('a.sign-up-modal__company_webiste')['href'] \
-                .replace(f'https://www.linkedin.com/jobs/view/externalApply/{vaga}?url=', '') \
-                .split('&')[0])
-        else:
-            vagas[vaga]['link_inscricao'] = f'https://www.linkedin.com/jobs/view/{vaga}/'
+            empresa.last_check = now()
+            empresa.save()
+
+
+def scrape_vagas_remotos():
+    cookies_json = load(open('data/cookies.json', 'r', encoding='utf-8'))
+    cookies = ';'.join([f"{cookie['name']}={cookie['value']}" for cookie in cookies_json])
+    
+    graphql_request(f'https://www.linkedin.com/voyager/api/voyagerJobsDashJobCards?decorationId=com.linkedin.voyager.dash.deco.jobs.search.JobSearchCardsCollection-191&count=25&q=jobSearch&query=(origin:JOBS_HOME_REMOTE_JOBS,locationUnion:(geoId:106057199),selectedFilters:(timePostedRange:List(r604800),workplaceType:List(2)),spellCorrectionEnabled:true)', cookies, get_csrf_token(cookies_json))
+
+
+def scrape_detalhes_vagas():
+    cookies_json = load(open('data/cookies.json', 'r', encoding='utf-8'))
+    cookies = ';'.join([f"{cookie['name']}={cookie['value']}" for cookie in cookies_json])
+
+
+    for vaga in filter(lambda x: x.plataforma == 'LinkedIn' and x.descricao == '', Vaga.objects.all()):
+        id_vaga = vaga.id_vaga
+
+        session = create_scraper(browser={
+            'browser': 'chrome',
+            'platform': 'windows',
+            'mobile': False
+        })
         
-        vagas[vaga]['descricao'] = detalhes_soup.find('div', {'class': 'description__text description__text--rich'}).find('div', {'class': 'show-more-less-html__markup'}).decode_contents().strip()
+        request = session.get(f'https://www.linkedin.com/voyager/api/jobs/jobPostings/{id_vaga}?decorationId=com.linkedin.voyager.deco.jobs.web.shared.WebFullJobPosting-65&topN=1&topNRequestedFlavors=List(TOP_APPLICANT,IN_NETWORK,COMPANY_RECRUIT,SCHOOL_RECRUIT,HIDDEN_GEM,ACTIVELY_HIRING_COMPANY)', headers={
+            "cookie": cookies,
+            "accept": "application/vnd.linkedin.normalized+json+2.1",
+            "accept-language": "pt-BR,pt;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6",
+            "cache-control": "no-cache",
+            "csrf-token": get_csrf_token(cookies_json),
+            "pragma": "no-cache",
+            "sec-ch-ua": "\"Microsoft Edge\";v=\"119\", \"Chromium\";v=\"119\", \"Not?A_Brand\";v=\"24\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "same-origin",
+            "x-li-lang": "pt_BR",
+            "x-li-page-instance": "urn:li:page:d_flagship3_jobs_discovery_jymbii;ycV3lFUlTMONvjhem4yCrw==",
+            "x-li-track": "{\"clientVersion\":\"1.13.7689\",\"mpVersion\":\"1.13.7689\",\"osName\":\"web\",\"timezoneOffset\":-3,\"timezone\":\"America/Sao_Paulo\",\"deviceFormFactor\":\"DESKTOP\",\"mpName\":\"voyager-web\",\"displayDensity\":1.25,\"displayWidth\":1920,\"displayHeight\":1080}",
+            "x-restli-protocol-version": "2.0.0",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0"
+        })
 
-        vagas[vaga]['n_candidaturas'] =  detalhes_soup.select_one('.num-applicants__caption').get_text().strip()
+        resposta = loads(request.text)
 
-        vagas[vaga]['tempo_publicado'] = detalhes_soup.select_one('span.posted-time-ago__text').get_text().strip()
+        descricao = resposta['data']['description']['text']
+        for atributo in sorted(resposta['data']['description']['attributes'], key=lambda x: x['start'], reverse=True):
+            index = atributo['start']
+            if atributo['type']['$type'] == 'com.linkedin.pemberly.text.LineBreak':
+                descricao = descricao[:index] + '\n' + descricao[index:]
+            elif atributo['type']['$type'] == 'com.linkedin.pemberly.text.ListItem':
+                descricao = descricao[:index] + '• ' + descricao[index:index + atributo['length']] + '\n' + descricao[index + atributo['length']:]
+            elif atributo['type']['$type'] == 'com.linkedin.pemberly.text.Bold':
+                descricao = descricao[:index] + '**' + descricao[index: index + atributo['length']] + '**' + descricao[index + atributo['length']:]
+            elif atributo['type']['$type'] == 'com.linkedin.pemberly.text.Italic':
+                descricao = descricao[:index] + '__' + descricao[index: index + atributo['length']] + '__' + descricao[index + atributo['length']:]                
 
+        descricao = sub('\n{2,}\*{2}\n{2,}', '**\n\n',  descricao)
+        descricao = sub('\n{2,}_{2}\n{2,}', '__\n\n', descricao)
+        vaga.descricao = sub('\n{3,}', '\n\n', descricao)
 
+        vaga.n_candidaturas =  resposta['data']['applies']
+
+        vaga.tempo_publicado = datetime.fromtimestamp(resposta['data']['listedAt'] / 1000)
+
+        empresa = vaga.empresa
+        for elemento in resposta['included']:
+            if 'followerCount' in elemento and empresa.linkedin_seguidores is None:
+                empresa.linkedin_seguidores = elemento['followerCount']
+            if 'staffCount' in elemento and empresa.employee_count is None:
+                empresa.employee_count = elemento['staffCount']
+
+        empresa.save()
+        vaga.save()
+        
         sleep(0.2)
 
-    return vagas
 
-
-def get_followed_companies() -> dict:
-    empresas = {}
+def get_followed_companies():
     cookies = {cookie['name']: cookie['value'].replace('\"', '') for cookie in load(open('data/cookies.json', 'r', encoding='utf-8'))}
-    armazenamento_local = load(open('data/armazenamento_local.json', 'r', encoding='utf-8'))
-
+    profile_id = load(open('data/armazenamento_local.json', 'r', encoding='utf-8'))['profile_id']
     sessao = Session()
     
-    profile_id = armazenamento_local['profile_id']
-    detalhes_empresas_iniciais = sessao.get(f'https://www.linkedin.com/voyager/api/graphql?variables=(start:0,count:100,paginationToken:null,pagedListComponent:urn%3Ali%3Afsd_profilePagedListComponent%3A%28{profile_id}%2CINTERESTS_VIEW_DETAILS%2Curn%3Ali%3Afsd_profileTabSection%3ACOMPANIES_INTERESTS%2CNONE%2Cpt_BR%29)&queryId=voyagerIdentityDashProfileComponents.3efef764c5f936e8a825b8674c814b0c', cookies=cookies, headers={'csrf-token': cookies['JSESSIONID']})
-    data = loads(detalhes_empresas_iniciais.content.decode('utf-8'))
-    for elemento in data['data']['identityDashProfileComponentsByPagedListComponent']['elements']:
-        entity = elemento['components']['entityComponent']
-
-        id = entity['textActionTarget'].replace('https://www.linkedin.com/company/', '').rstrip('/')
-        follow_count = entity['subComponents']['components'][0]['components']['actionComponent']['action']['followingStateAction']['followingState']['followerCount']
-        nome_empresa = entity['titleV2']['text']['text']
-        logo = entity['image']['attributes'][0]['detailData']['companyLogo']['logoResolutionResult']
-        logo_url = None
-        if logo:
-            logo_url = logo['vectorImage']['rootUrl'] + \
-                logo['vectorImage']['artifacts'][2]['fileIdentifyingUrlPathSegment']
+    total = 100
+    pos = 0
+    while pos < total:
+        detalhes_empresas = sessao.get(f'https://www.linkedin.com/voyager/api/graphql?variables=(start:{pos},count:100,paginationToken:null,pagedListComponent:urn%3Ali%3Afsd_profilePagedListComponent%3A%28{profile_id}%2CINTERESTS_VIEW_DETAILS%2Curn%3Ali%3Afsd_profileTabSection%3ACOMPANIES_INTERESTS%2CNONE%2Cpt_BR%29)&queryId=voyagerIdentityDashProfileComponents.3efef764c5f936e8a825b8674c814b0c', cookies=cookies, headers={'csrf-token': cookies['JSESSIONID']})
         
-        empresas[nome_empresa] = {
-            'linkedin_id': id,
-            'imagem': logo_url,
-            'linkedin_seguidores': follow_count
-        }
-        
-    total = data['data']['identityDashProfileComponentsByPagedListComponent']['paging']['total']
-
-    for i in range(100, total, 100):
-        detalhes_empresas_restantes = sessao.get(f'https://www.linkedin.com/voyager/api/graphql?variables=(start:{i},count:100,paginationToken:null,pagedListComponent:urn%3Ali%3Afsd_profilePagedListComponent%3A%28ACoAADNkf4EBpG80N1CmufGBMrJ8O3nrwFhhedY%2CINTERESTS_VIEW_DETAILS%2Curn%3Ali%3Afsd_profileTabSection%3ACOMPANIES_INTERESTS%2CNONE%2Cpt_BR%29)&queryId=voyagerIdentityDashProfileComponents.3efef764c5f936e8a825b8674c814b0c', cookies=cookies, headers={'csrf-token': cookies['JSESSIONID']})
-        data = loads(detalhes_empresas_restantes.content.decode('utf-8'))
+        data = loads(detalhes_empresas.content.decode('utf-8'))
+        total = data['data']['identityDashProfileComponentsByPagedListComponent']['paging']['total']
 
         for elemento in data['data']['identityDashProfileComponentsByPagedListComponent']['elements']:
             entity = elemento['components']['entityComponent']
 
-            id = entity['textActionTarget'].replace('https://www.linkedin.com/company/', '').rstrip('/')
-            follow_count = entity['subComponents']['components'][0]['components']['actionComponent']['action']['followingStateAction']['followingState']['followerCount']
-            nome_empresa = entity['titleV2']['text']['text']
+            linkedin_id = entity['textActionTarget'].replace('https://www.linkedin.com/company/', '').rstrip('/ ')
+            if empresa_existe(linkedin_id, 'linkedin'):
+                continue
+
+            linkedin_follow_count = entity['subComponents']['components'][0]['components']['actionComponent']['action']['followingStateAction']['followingState']['followerCount']
+            linkedin_name = entity['titleV2']['text']['text'].strip()
+
             logo = entity['image']['attributes'][0]['detailData']['companyLogo']['logoResolutionResult']
-            logo_url = None
-            if logo:
-                logo_url = logo['vectorImage']['rootUrl'] + logo['vectorImage']['artifacts'][2]['fileIdentifyingUrlPathSegment']
-            
-            empresas[nome_empresa] = {
-                'linkedin_id': id,
-                'imagem': logo_url,
-                'linkedin_seguidores': follow_count
-            }
+            imagem_url = logo['vectorImage']['rootUrl'] + logo['vectorImage']['artifacts'][2]['fileIdentifyingUrlPathSegment'] if logo else None
 
-    dump(empresas, open('data/companies_followed.json', 'w', encoding='utf-8'), ensure_ascii=False)
-    return empresas
+            try:
+                empresa = Empresa.objects.get(Q(linkedin_nome__iexact=linkedin_name) | Q(glassdoor_nome__iexact=linkedin_name))
+            except Exception:
+                empresa = Empresa()
+            empresa.linkedin_id = linkedin_id
+            empresa.linkedin_nome = linkedin_name
+            empresa.linkedin_seguidores = linkedin_follow_count
+            empresa.imagem_url = imagem_url
+            empresa.followed = True
+            empresa.save()
+        
+        pos += 100
 
 
-def get_jobs(update_followed: bool = False):
-    if 'companies_followed.json' not in listdir('data') or update_followed:
-        lista_empresas = get_followed_companies()
-    else:
-        lista_empresas = load(open('data/companies_followed.json', 'r', encoding='utf-8'))
+def get_jobs():
+    get_followed_companies()
 
-    vagas = {}
+    scrape_vagas_empresas()
 
-    res_vagas_empresas = scrape_vagas_empresas(lista_empresas)
-    vagas |= res_vagas_empresas
+    scrape_vagas_recomendadas()
 
-    res_vagas_recomendadas = scrape_vagas_recomendadas()
-    vagas |= res_vagas_recomendadas
+    scrape_vagas_remotos()
 
-    res_vagas_recentes_remo = scrape_vagas_remotos()
-    vagas |= res_vagas_recentes_remo
-
-    dump(vagas, open('data/vagas_accepted.json', 'w', encoding='utf-8'), ensure_ascii=False)
-
-    vagas = scrape_detalhes_vagas(vagas)
-
-    dump(vagas, open('data/vagas_accepted.json', 'w', encoding='utf-8'), ensure_ascii=False)
-
-    return vagas
-
-    # pegar info das vagas por requests
-    #f'https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/3705238738'
+    scrape_detalhes_vagas()
