@@ -6,33 +6,22 @@ filtros = load(open('filtros.json', 'r', encoding='utf-8'))
 
 from interfaces.vagas_interface.models import Empresa, Vaga
 
-
-def initialize_puppet(load_cookies=False, headless=False) -> Page:
-    playwright =  sync_playwright().start()
-    browser = playwright.chromium.launch(args=['--no-sandbox', '--disable-dev-shm-usage', '--incognito', '--disable-blink-features=AutomationControlled', '--disable-gpu', '--disable-extensions', '--ignore-certificate-errors-spki-list', '--no-default-browser-check', '--window-size=1280,720'],
-                                ignore_default_args=['--enable-automation'], 
-                                headless=headless)
-    context = browser.new_context(viewport=None, user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36 Edg/114.0.1823.79')
-    context.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
-    driver: Page = context.new_page()
-
-    if load_cookies:
-        driver = set_cookies(driver)
-    
-    return driver
-
-
-def set_cookies(driver):
-    cookies = load(open('data/cookies.json', 'r', encoding='utf-8'))
-    driver.context.add_cookies(cookies)
-    return driver
-
-
 def empresa_existe(e_id, plataforma) -> bool:
     if plataforma == 'linkedin':
         return Empresa.objects.filter(linkedin_id__exact=e_id).exists()
     elif plataforma == 'glassdoor':
         return Empresa.objects.filter(glassdoor_id__exact=e_id).exists()
+    
+
+def empresa_existe_nome(e_nome, plataforma) -> bool:
+    try:
+        if plataforma == 'linkedin':
+            return Empresa.objects.get(linkedin_nome__exact=e_nome)
+        elif plataforma == 'glassdoor':
+            return Empresa.objects.get(glassdoor_nome__exact=e_nome)
+        
+    except:
+        return Empresa()
 
 
 def vaga_existe(e_id) -> bool:

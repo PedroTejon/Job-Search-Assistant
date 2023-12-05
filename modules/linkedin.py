@@ -1,17 +1,14 @@
 from os import listdir
-from json import load, dump, loads
-from urllib.parse import unquote
+from json import load, loads
 from modules.utils import filtrar_vaga, empresa_existe, vaga_existe
 from time import sleep
-from requests import get, Session
-from bs4 import BeautifulSoup, PageElement
+from requests import Session
 from unidecode import unidecode
 from re import sub
 from cloudscraper import create_scraper
 
 from interfaces.vagas_interface.models import Empresa, Vaga
 from django.db.models import Q
-from django.db.models import Model
 from django.utils.timezone import now
 from datetime import datetime
 
@@ -67,6 +64,8 @@ def graphql_request(url, cookies, csrf_token):
                           empresa_json['logoResolutionResult']['vectorImage']['rootUrl'] + empresa_json['logoResolutionResult']['vectorImage']['artifacts'][2]['fileIdentifyingUrlPathSegment'] for empresa_json in filter(lambda obj: ('logo' in obj and obj['logo'] != None and 'vectorImage' in obj['logo']) or ('logoResolutionResult' in obj and obj['logoResolutionResult'] != None and 'vectorImage' in obj['logoResolutionResult']), resposta['included'])}
 
         for elemento in filter(lambda obj: 'preDashNormalizedJobPostingUrn' in obj, resposta['included']):
+            vagas_total += 1
+            
             codigo = elemento['preDashNormalizedJobPostingUrn'].replace('urn:li:fs_normalized_jobPosting:', '')
             if vaga_existe(codigo):
                 continue
@@ -75,20 +74,21 @@ def graphql_request(url, cookies, csrf_token):
 
             modalidade = 'Remoto' if 'Remoto' in local else 'Presencial/Hibrido'
             if filtrar_vaga(sub(r'[\[\]\(\),./\\| ]+', ' ', unidecode(titulo).lower()), local, modalidade):
+                if 'detailData' not in elemento['logo']['attributes'][0]:
+                    continue
+
                 empresa_nome = elemento['primaryDescription']['text']
                 empresa_id = elemento['logo']['attributes'][0]['detailData']['*companyLogo'].replace('urn:li:fsd_company:', '')
-                if not empresa_existe(empresa_id, 'linkedin'):
+                if not empresa_existe(empresa_id, 'linkedin') and empresa_id != None:
                     empresa = Empresa()
                     empresa.linkedin_id = empresa_id
                     empresa.linkedin_nome = empresa_nome
                     empresa.imagem_url = fotos_empresas.get(empresa_id, None)
                     empresa.save()
                 
-                vaga = Vaga(titulo=titulo, local=local, empresa=Empresa.objects.get(linkedin_nome__iexact=empresa_nome), modalidade=modalidade,id_vaga=codigo, plataforma='LinkedIn')
+                vaga = Vaga(titulo=titulo, local=local, empresa=Empresa.objects.get(linkedin_id__iexact=empresa_id), modalidade=modalidade,id_vaga=codigo, plataforma='LinkedIn')
                 vaga.save()
-            
-            vagas_total += 1
-    
+                
         if conta_atual >= vagas_total:
             break
 
@@ -107,12 +107,12 @@ def scrape_vagas_empresas():
     cookies_json = load(open('data/cookies.json', 'r', encoding='utf-8'))
     cookies = ';'.join([f"{cookie['name']}={cookie['value']}" for cookie in cookies_json])
 
-    empresas = list(filter(lambda x: not x.checado_recentemente() and x.followed, Empresa.objects.all()))
+    empresas = list(filter(lambda x: not x.checado_recentemente_ln() and x.followed, Empresa.objects.all()))
     if empresas:
         for empresa in empresas:
             graphql_request(f'https://www.linkedin.com/voyager/api/voyagerJobsDashJobCards?decorationId=com.linkedin.voyager.dash.deco.jobs.search.JobSearchCardsCollection-191&count=25&q=jobSearch&query=(origin:JOB_SEARCH_PAGE_OTHER_ENTRY,locationUnion:(geoId:92000000),selectedFilters:(company:List({empresa.linkedin_id}),countryRegion:List(106057199)),spellCorrectionEnabled:true)', cookies, get_csrf_token(cookies_json))
 
-            empresa.last_check = now()
+            empresa.last_check_linkedin = now()
             empresa.save()
 
 
@@ -177,7 +177,7 @@ def scrape_detalhes_vagas():
 
         vaga.n_candidaturas =  resposta['data']['applies']
 
-        vaga.tempo_publicado = datetime.fromtimestamp(resposta['data']['listedAt'] / 1000)
+        vaga.tempo_publicado = datetime.fromtimestamp(resposta['data']['listedAt'] / 1000).strftime("%Y-%m-%dT%H:%M:%S")
 
         empresa = vaga.empresa
         for elemento in resposta['included']:
