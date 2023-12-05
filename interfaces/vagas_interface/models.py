@@ -14,10 +14,16 @@ class Empresa(models.Model):
     glassdoor_id = models.TextField(null=True)
     glassdoor_nome = models.TextField(null=True)
     followed = models.BooleanField(default=False)
-    last_check = models.DateTimeField(null=True)
+
+    last_check_linkedin = models.DateTimeField(null=True)
+    last_check_glassdoor = models.DateTimeField(null=True)
     
-    def checado_recentemente(self):
-        return now() < self.last_check + timedelta(days=1) if self.last_check else False
+    def checado_recentemente_ln(self):
+        return now() < self.last_check_linkedin + timedelta(days=1) if self.last_check_linkedin else False
+    
+
+    def checado_recentemente_gl(self):
+        return now() < self.last_check_glassdoor + timedelta(days=1) if self.last_check_glassdoor else False
 
 
     def __str__(self):
@@ -30,13 +36,12 @@ class Vaga(models.Model):
     local = models.TextField()
     modalidade = models.TextField(choices=[['l', 'Presencial/Hibrido'], ['r', 'Remoto']], default='Presencial/Hibrido', )
     empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE)
-    applications_count = models.PositiveIntegerField(null=True)
     id_vaga = models.TextField()
     plataforma = models.TextField(choices=[['li', 'LinkedIn'], ['gl', 'Glassdoor']])
-    n_candidaturas = models.TextField(null=True)
+    n_candidaturas = models.PositiveIntegerField(null=True)
     link_inscricao = models.TextField()
     descricao = models.TextField()
     tempo_publicado = models.TextField()
 
     def __str__(self):
-        return f'{{\n"id": "{self.id}"\n"titulo": "{self.titulo}",\n"local": "{self.local}",\n"empresa": "{self.empresa.id}",\n"modalidade": "{self.modalidade}",\n"plataforma": "{self.plataforma}",\n"link_inscricao": "{self.link_inscricao}",\n"descricao": "{self.descricao}",\n"n_candidaturas": "{self.n_candidaturas}",\n"tempo_publicado": "{self.tempo_publicado}"\n}}'
+        return f'{{\n"id": "{self.id}"\n"titulo": "{self.titulo}",\n"local": "{self.local}",\n"empresa": "{self.empresa.id}",\n"modalidade": "{self.modalidade}",\n"id_vaga": "{self.id_vaga}"\n"plataforma": "{self.plataforma}",\n"link_inscricao": "{self.link_inscricao}",\n"descricao": "{self.descricao}",\n"n_candidaturas": "{self.n_candidaturas}",\n"tempo_publicado": "{self.tempo_publicado}"\n}}'
