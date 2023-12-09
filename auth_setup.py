@@ -29,7 +29,7 @@ def setup():
 
         response_text = response.value.text()
         profile_id = response_text[response_text.find('fs_miniProfile:') + 15:response_text.find(',', response_text.find('fs_miniProfile:')) - 6]
-        armazenamento_local = {'profile_id': profile_id}
+        local_storage = {'profile_id': profile_id}
 
         print('Logue com sua conta do Glassdoor')
         with driver.expect_response(lambda x: 'https://www.glassdoor.com.br/Vaga/index.htm' in x.url and x.status == 200, timeout=0) as response:
@@ -38,17 +38,18 @@ def setup():
 
         soup = BeautifulSoup(response.value.text(), 'html.parser')
         data = loads(soup.find('script', {'id': '__NEXT_DATA__'}).get_text())['props']['pageProps']
-        armazenamento_local['glassdoor_csrf'] = data['token']
+        local_storage['glassdoor_csrf'] = data['token']
 
         print('Salvando Cookies...')
         cookies = driver.context.cookies()
         dump(cookies, open('data/cookies.json', 'w', encoding='utf-8'), ensure_ascii=False)
 
         print('Salvando Local Storage...')
-        armazenamento_local |= driver.evaluate("() => {var ls = window.localStorage, items = {}; for (var i = 0, k; i < ls.length; ++i)  items[k = ls.key(i)] = ls.getItem(k); return items;}")
-        dump(armazenamento_local, open('data/armazenamento_local.json', 'w', encoding='utf-8'), ensure_ascii=False)
+        local_storage |= driver.evaluate("() => {var ls = window.localStorage, items = {}; for (var i = 0, k; i < ls.length; ++i)  items[k = ls.key(i)] = ls.getItem(k); return items;}")
+        dump(local_storage, open('data/local_storage.json', 'w', encoding='utf-8'), ensure_ascii=False)
 
         print('Autenticação concluída')
+
 
 if __name__ == '__main__':
     setup()
