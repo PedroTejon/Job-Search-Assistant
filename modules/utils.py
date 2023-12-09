@@ -1,53 +1,51 @@
 from json import load
 from re import sub
+from django.db.models import Q
 
-filtros = load(open('filtros.json', 'r', encoding='utf-8'))
+filters = load(open('filters.json', 'r', encoding='utf-8'))
 
-from interfaces.vagas_interface.models import Empresa, Vaga
+from interfaces.vagas_interface.models import Company, Listing
 
-def empresa_existe(e_id, plataforma) -> bool:
-    if plataforma == 'linkedin':
-        return Empresa.objects.filter(plataformas__linkedin__id__exact=e_id).exists()
-    elif plataforma == 'glassdoor':
-        return Empresa.objects.filter(plataformas__glassdoor__id__exact=e_id).exists()
+
+def company_exists_by_id(c_id, platform) -> bool:
+    if platform == 'linkedin':
+        return Company.objects.filter(platforms__linkedin__id__exact=c_id).exists()
+    elif platform == 'glassdoor':
+        return Company.objects.filter(platforms__glassdoor__id__exact=c_id).exists()
     
 
-def empresa_existe_nome(e_nome, plataforma) -> bool:
+def get_company_by_name(c_name) -> Company:
     try:
-        if plataforma == 'linkedin':
-            return Empresa.objects.get(plataformas__linkedin__nome__iexact=e_nome)
-        elif plataforma == 'glassdoor':
-            return Empresa.objects.get(plataformas__glassdoor__nome__iexact=e_nome)
-        
+        return Company.objects.get(Q(platforms__linkedin__name__iexact=c_name) | Q(platforms__glassdoor__name__iexact=c_name))
     except:
-        return Empresa()
+        return Company()
 
 
-def vaga_existe(e_id) -> bool:
-    return Vaga.objects.filter(id_vaga__exact=e_id).exists()
+def listing_exists(c_id) -> bool:
+    return Listing.objects.filter(platform_id__exact=c_id).exists()
 
 
-def filtrar_vaga(titulo, local, tipo):
-    local = sub(r'\s*\(\bPresencial\b\)|\s*\(\bHíbrido\b\)|\s*\(\bRemoto\b\)', '', local)
-    if local.count(',') == 2:
-        cidade, estado, pais = local.split(', ')
-    elif local.count(',') == 1:
-        estado, pais = local.split(', ')
-    elif local.count(',') == 0:
-        cidade = local.split(', ')[0]
+def filter_listing(title, location, workplace_type) -> bool:
+    location = sub(r'\s*\(\bPresencial\b\)|\s*\(\bHíbrido\b\)|\s*\(\bRemoto\b\)', '', location)
+    if location.count(',') == 2:
+        city, state, country = location.split(', ')
+    elif location.count(',') == 1:
+        state, country = location.split(', ')
+    elif location.count(',') == 0:
+        city = location.split(', ')[0]
 
-    if tipo == 'Presencial/Hibrido':
-        if 'cidade' in locals() and len(filtros['cidades']) and not any(map(lambda x: x == cidade, filtros['cidades'])):
+    if workplace_type == 'Presencial/Hibrido':
+        if 'city' in locals() and len(filters['cities']) and not any(map(lambda x: x == city, filters['cities'])):
             return False
-        elif 'estado' in locals() and len(filtros['estados']) and not any(map(lambda x: x == estado, filtros['estados'])):
+        elif 'state' in locals() and len(filters['states']) and not any(map(lambda x: x == state, filters['states'])):
             return False
-        elif 'pais' in locals() and len(filtros['paises']) and not any(map(lambda x: x == pais, filtros['paises'])):
+        elif 'country' in locals() and len(filters['countries']) and not any(map(lambda x: x == country, filters['countries'])):
             return False
         
-    if any(map(lambda x: x in titulo.split(), filtros['excludeWords'])):
+    if any(map(lambda x: x in title.split(), filters['exclude_words'])):
         return False
     
-    if any(map(lambda x: x in titulo, filtros['excludeTerms'])):
+    if any(map(lambda x: x in title, filters['exclude_terms'])):
         return False
     
     return True

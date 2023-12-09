@@ -1,14 +1,12 @@
-from os import listdir
 from json import load, loads
-from modules.utils import filtrar_vaga, empresa_existe, vaga_existe
+from modules.utils import filter_listing, company_exists_by_id, listing_exists, get_company_by_name
 from time import sleep
 from requests import Session
 from unidecode import unidecode
 from re import sub
 from cloudscraper import create_scraper
 
-from interfaces.vagas_interface.models import Empresa, Vaga
-from django.db.models import Q
+from interfaces.vagas_interface.models import Company, Listing
 from django.utils.timezone import now
 from datetime import datetime
 
@@ -20,7 +18,7 @@ def get_csrf_token(cookies):
 
 
 def get_job_listings(url, cookies, csrf_token):
-    vagas_total = 0
+    total_job_listings = 0
     page = 0
 
     session = create_scraper(browser={
@@ -56,79 +54,86 @@ def get_job_listings(url, cookies, csrf_token):
             sleep(1)
             continue
         
-        conta_atual = vagas_total
-        resposta = loads(request.text)
-        fotos_empresas = {empresa_json['entityUrn'].replace('urn:li:fsd_company:', ''): 
-                          empresa_json['logo']['vectorImage']['rootUrl'] + empresa_json['logo']['vectorImage']['artifacts'][2]['fileIdentifyingUrlPathSegment'] 
-                          if 'logo' in empresa_json else 
-                          empresa_json['logoResolutionResult']['vectorImage']['rootUrl'] + empresa_json['logoResolutionResult']['vectorImage']['artifacts'][2]['fileIdentifyingUrlPathSegment'] for empresa_json in filter(lambda obj: ('logo' in obj and obj['logo'] != None and 'vectorImage' in obj['logo']) or ('logoResolutionResult' in obj and obj['logoResolutionResult'] != None and 'vectorImage' in obj['logoResolutionResult']), resposta['included'])}
+        curr_count = total_job_listings
+        response = loads(request.text)
+        company_pfps = {company_json['entityUrn'].replace('urn:li:fsd_company:', ''): 
+                            company_json['logo']['vectorImage']['rootUrl'] + company_json['logo']['vectorImage']['artifacts'][2]['fileIdentifyingUrlPathSegment'] 
+                            if 'logo' in company_json else company_json['logoResolutionResult']['vectorImage']['rootUrl'] + company_json['logoResolutionResult']['vectorImage']['artifacts'][2]['fileIdentifyingUrlPathSegment']
+                            for company_json in filter(lambda obj: ('logo' in obj and obj['logo'] != None and 'vectorImage' in obj['logo']) or ('logoResolutionResult' in obj and obj['logoResolutionResult'] != None and 'vectorImage' in obj['logoResolutionResult']), response['included'])}
 
-        for elemento in filter(lambda obj: 'preDashNormalizedJobPostingUrn' in obj, resposta['included']):
-            vagas_total += 1
+        for element in filter(lambda obj: 'preDashNormalizedJobPostingUrn' in obj, response['included']):
+            total_job_listings += 1
             
-            codigo = elemento['preDashNormalizedJobPostingUrn'].replace('urn:li:fs_normalized_jobPosting:', '')
-            if vaga_existe(codigo):
+            listing_id = element['preDashNormalizedJobPostingUrn'].replace('urn:li:fs_normalized_jobPosting:', '')
+            if listing_exists(listing_id):
                 continue
-            titulo = elemento['jobPostingTitle']
-            local = elemento['secondaryDescription']['text']
 
-            modalidade = 'Remoto' if 'Remoto' in local else 'Presencial/Hibrido'
-            if filtrar_vaga(sub(r'[\[\]\(\),./\\| ]+', ' ', unidecode(titulo).lower()), local, modalidade):
-                if 'detailData' not in elemento['logo']['attributes'][0]:
+            listing_title = element['jobPostingTitle']
+            listing_location = element['secondaryDescription']['text']
+
+            workplace_type = 'Remoto' if 'Remoto' in listing_location else 'Presencial/Hibrido'
+            if filter_listing(sub(r'[\[\]\(\),./\\| ]+', ' ', unidecode(listing_title).lower()), listing_location, workplace_type):
+                if 'detailData' not in element['logo']['attributes'][0]:
                     continue
 
-                empresa_nome = elemento['primaryDescription']['text']
-                empresa_id = elemento['logo']['attributes'][0]['detailData']['*companyLogo'].replace('urn:li:fsd_company:', '')
-                if not empresa_existe(empresa_id, 'linkedin') and empresa_id != None:
-                    empresa = Empresa()
-                    empresa.plataformas['linkedin']['id'] = empresa_id
-                    empresa.plataformas['linkedin']['nome'] = empresa_nome
-                    empresa.imagem_url = fotos_empresas.get(empresa_id, None)
-                    empresa.save()
+                company_name = element['primaryDescription']['text']
+                company_id = element['logo']['attributes'][0]['detailData']['*companyLogo'].replace('urn:li:fsd_company:', '')
+                if company_id != None and not company_exists_by_id(company_id, 'linkedin'):
+                    company = Company()
+                    company.platforms['linkedin']['id'] = company_id
+                    company.platforms['linkedin']['name'] = company_name
+                    company.image_url = company_pfps.get(company_id, None)
+                    company.save()
                 
-                vaga = Vaga(titulo=titulo, local=local, empresa=Empresa.objects.get(plataformas__linkedin__id__iexact=empresa_id), modalidade=modalidade,id_vaga=codigo, plataforma='LinkedIn')
-                vaga.save()
+                Listing(
+                    title=listing_title, 
+                    location=listing_location, 
+                    company=Company.objects.get(platforms__linkedin__id__iexact=company_id), 
+                    workplace_type=workplace_type, 
+                    platform_id=listing_id, 
+                    platform='LinkedIn'
+                ).save()
                 
-        if conta_atual >= vagas_total:
+        if curr_count >= total_job_listings:
             break
 
         sleep(.5)
         page += 1
 
 
-def scrape_vagas_recomendadas() -> dict:
+def scrape_recommended_listings():
     cookies_json = load(open('data/cookies.json', 'r', encoding='utf-8'))
     cookies = ';'.join([f"{cookie['name']}={cookie['value']}" for cookie in cookies_json])
     
     get_job_listings(f'https://www.linkedin.com/voyager/api/graphql?variables=(count:25,jobCollectionSlug:recommended,query:(origin:GENERIC_JOB_COLLECTIONS_LANDING),includeJobState:true)&queryId=voyagerJobsDashJobCards.da56c4e71afbd3bcdb0a53b4ebd509c4', cookies, get_csrf_token(cookies_json))
 
 
-def scrape_vagas_empresas():
+def scrape_companies_listings():
     cookies_json = load(open('data/cookies.json', 'r', encoding='utf-8'))
     cookies = ';'.join([f"{cookie['name']}={cookie['value']}" for cookie in cookies_json])
 
-    empresas = list(filter(lambda x: not x.checado_recentemente_ln() and x.followed, Empresa.objects.all()))
-    if empresas:
-        for empresa in empresas:
-            get_job_listings(f'https://www.linkedin.com/voyager/api/voyagerJobsDashJobCards?decorationId=com.linkedin.voyager.dash.deco.jobs.search.JobSearchCardsCollection-191&count=25&q=jobSearch&query=(origin:JOB_SEARCH_PAGE_OTHER_ENTRY,locationUnion:(geoId:92000000),selectedFilters:(company:List({empresa.plataformas["linkedin"]["id"]}),countryRegion:List(106057199)),spellCorrectionEnabled:true)', cookies, get_csrf_token(cookies_json))
+    companies = list(filter(lambda x: not x.checked_recently_ln() and x.followed, Company.objects.all()))
+    if companies:
+        for company in companies:
+            get_job_listings(f'https://www.linkedin.com/voyager/api/voyagerJobsDashJobCards?decorationId=com.linkedin.voyager.dash.deco.jobs.search.JobSearchCardsCollection-191&count=25&q=jobSearch&query=(origin:JOB_SEARCH_PAGE_OTHER_ENTRY,locationUnion:(geoId:92000000),selectedFilters:(company:List({company.platforms["linkedin"]["id"]}),countryRegion:List(106057199)),spellCorrectionEnabled:true)', cookies, get_csrf_token(cookies_json))
 
-            empresa.plataformas['linkedin']['last_check'] = now().strftime("%Y-%m-%dT%H:%M:%S")
-            empresa.save()
+            company.platforms['linkedin']['last_check'] = now().strftime("%Y-%m-%dT%H:%M:%S")
+            company.save()
 
 
-def scrape_vagas_remotos():
+def scrape_remote_listings():
     cookies_json = load(open('data/cookies.json', 'r', encoding='utf-8'))
     cookies = ';'.join([f"{cookie['name']}={cookie['value']}" for cookie in cookies_json])
     
     get_job_listings(f'https://www.linkedin.com/voyager/api/voyagerJobsDashJobCards?decorationId=com.linkedin.voyager.dash.deco.jobs.search.JobSearchCardsCollection-191&count=25&q=jobSearch&query=(origin:JOBS_HOME_REMOTE_JOBS,locationUnion:(geoId:106057199),selectedFilters:(timePostedRange:List(r604800),workplaceType:List(2)),spellCorrectionEnabled:true)', cookies, get_csrf_token(cookies_json))
 
 
-def scrape_detalhes_vagas():
+def scrape_listings_details():
     cookies_json = load(open('data/cookies.json', 'r', encoding='utf-8'))
     cookies = ';'.join([f"{cookie['name']}={cookie['value']}" for cookie in cookies_json])
 
-    for vaga in filter(lambda x: x.plataforma == 'LinkedIn' and x.descricao == '', Vaga.objects.all()):
-        id_vaga = vaga.id_vaga
+    for listing in filter(lambda x: x.platform == 'LinkedIn' and x.description == '', Listing.objects.all()):
+        listing_id = listing.platform_id
 
         while True:
             session = create_scraper(browser={
@@ -137,7 +142,7 @@ def scrape_detalhes_vagas():
                 'mobile': False
             })
             
-            request = session.get(f'https://www.linkedin.com/voyager/api/jobs/jobPostings/{id_vaga}?decorationId=com.linkedin.voyager.deco.jobs.web.shared.WebFullJobPosting-65&topN=1&topNRequestedFlavors=List(TOP_APPLICANT,IN_NETWORK,COMPANY_RECRUIT,SCHOOL_RECRUIT,HIDDEN_GEM,ACTIVELY_HIRING_COMPANY)', headers={
+            request = session.get(f'https://www.linkedin.com/voyager/api/jobs/jobPostings/{listing_id}?decorationId=com.linkedin.voyager.deco.jobs.web.shared.WebFullJobPosting-65&topN=1&topNRequestedFlavors=List(TOP_APPLICANT,IN_NETWORK,COMPANY_RECRUIT,SCHOOL_RECRUIT,HIDDEN_GEM,ACTIVELY_HIRING_COMPANY)', headers={
                 "cookie": cookies,
                 "accept": "application/vnd.linkedin.normalized+json+2.1",
                 "accept-language": "pt-BR,pt;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6",
@@ -158,89 +163,85 @@ def scrape_detalhes_vagas():
             })
     
             if request.status_code == 200:
-                resposta = loads(request.text)
+                response = loads(request.text)
                 break
 
-        descricao = resposta['data']['description']['text']
-        for atributo in sorted(resposta['data']['description']['attributes'], key=lambda x: x['start'], reverse=True):
-            index = atributo['start']
-            if atributo['type']['$type'] == 'com.linkedin.pemberly.text.LineBreak':
-                descricao = descricao[:index] + '\n' + descricao[index:]
-            elif atributo['type']['$type'] == 'com.linkedin.pemberly.text.ListItem':
-                descricao = descricao[:index] + '• ' + descricao[index:index + atributo['length']] + '\n' + descricao[index + atributo['length']:]
-            elif atributo['type']['$type'] == 'com.linkedin.pemberly.text.Bold':
-                descricao = descricao[:index] + '**' + descricao[index: index + atributo['length']] + '**' + descricao[index + atributo['length']:]
-            elif atributo['type']['$type'] == 'com.linkedin.pemberly.text.Italic':
-                descricao = descricao[:index] + '__' + descricao[index: index + atributo['length']] + '__' + descricao[index + atributo['length']:]                
+        listing_description = response['data']['description']['text']
+        for attribute in sorted(response['data']['description']['attributes'], key=lambda x: x['start'], reverse=True):
+            curr_index = attribute['start']
+            if attribute['type']['$type'] == 'com.linkedin.pemberly.text.LineBreak':
+                listing_description = listing_description[:curr_index] + '\n' + listing_description[curr_index:]
+            elif attribute['type']['$type'] == 'com.linkedin.pemberly.text.ListItem':
+                listing_description = listing_description[:curr_index] + '• ' + listing_description[curr_index:curr_index + attribute['length']] + '\n' + listing_description[curr_index + attribute['length']:]
+            elif attribute['type']['$type'] == 'com.linkedin.pemberly.text.Bold':
+                listing_description = listing_description[:curr_index] + '**' + listing_description[curr_index: curr_index + attribute['length']] + '**' + listing_description[curr_index + attribute['length']:]
+            elif attribute['type']['$type'] == 'com.linkedin.pemberly.text.Italic':
+                listing_description = listing_description[:curr_index] + '__' + listing_description[curr_index: curr_index + attribute['length']] + '__' + listing_description[curr_index + attribute['length']:]                
 
-        descricao = sub('\n{2,}\*{2}\n{2,}', '**\n\n',  descricao)
-        descricao = sub('\n{2,}_{2}\n{2,}', '__\n\n', descricao)
-        vaga.descricao = sub('\n{3,}', '\n\n', descricao)
+        listing_description = sub('\n{2,}\*{2}\n{2,}', '**\n\n',  listing_description)
+        listing_description = sub('\n{2,}_{2}\n{2,}', '__\n\n', listing_description)
+        listing.description = sub('\n{3,}', '\n\n', listing_description)
 
-        vaga.n_candidaturas =  resposta['data']['applies']
+        listing.applies =  response['data']['applies']
+        listing.publication_date = datetime.fromtimestamp(response['data']['listedAt'] / 1000).strftime("%Y-%m-%dT%H:%M:%S")
 
-        vaga.tempo_publicado = datetime.fromtimestamp(resposta['data']['listedAt'] / 1000).strftime("%Y-%m-%dT%H:%M:%S")
+        company = listing.company
+        for element in response['included']:
+            if 'followerCount' in element and company.platforms['linkedin']['followers'] is None:
+                company.platforms['linkedin']['followers'] = element['followerCount']
+            if 'staffCount' in element and company.employee_count is None:
+                company.employee_count = element['staffCount']
 
-        empresa = vaga.empresa
-        for elemento in resposta['included']:
-            if 'followerCount' in elemento and empresa.plataformas['linkedin']['followers'] is None:
-                empresa.plataformas['linkedin']['followers'] = elemento['followerCount']
-            if 'staffCount' in elemento and empresa.employee_count is None:
-                empresa.employee_count = elemento['staffCount']
-
-        empresa.save()
-        vaga.save()
+        company.save()
+        listing.save()
         
         sleep(0.2)
 
 
 def get_followed_companies():
     cookies = {cookie['name']: cookie['value'].replace('\"', '') for cookie in load(open('data/cookies.json', 'r', encoding='utf-8'))}
-    profile_id = load(open('data/armazenamento_local.json', 'r', encoding='utf-8'))['profile_id']
-    sessao = Session()
-    
-    total = 100
-    pos = 0
-    while pos < total:
-        detalhes_empresas = sessao.get(f'https://www.linkedin.com/voyager/api/graphql?variables=(start:{pos},count:100,paginationToken:null,pagedListComponent:urn%3Ali%3Afsd_profilePagedListComponent%3A%28{profile_id}%2CINTERESTS_VIEW_DETAILS%2Curn%3Ali%3Afsd_profileTabSection%3ACOMPANIES_INTERESTS%2CNONE%2Cpt_BR%29)&queryId=voyagerIdentityDashProfileComponents.3efef764c5f936e8a825b8674c814b0c', cookies=cookies, headers={'csrf-token': cookies['JSESSIONID']})
+    profile_id = load(open('data/local_storage.json', 'r', encoding='utf-8'))['profile_id']
+
+    session = Session()
+
+    max_index = 100
+    curr_index = 0
+    while curr_index < max_index:
+        company_details = session.get(f'https://www.linkedin.com/voyager/api/graphql?variables=(start:{curr_index},count:100,paginationToken:null,pagedListComponent:urn%3Ali%3Afsd_profilePagedListComponent%3A%28{profile_id}%2CINTERESTS_VIEW_DETAILS%2Curn%3Ali%3Afsd_profileTabSection%3ACOMPANIES_INTERESTS%2CNONE%2Cpt_BR%29)&queryId=voyagerIdentityDashProfileComponents.3efef764c5f936e8a825b8674c814b0c', cookies=cookies, headers={'csrf-token': cookies['JSESSIONID']})
         
-        data = loads(detalhes_empresas.content.decode('utf-8'))
-        total = data['data']['identityDashProfileComponentsByPagedListComponent']['paging']['total']
+        data = loads(company_details.content.decode('utf-8'))
+        max_index = data['data']['identityDashProfileComponentsByPagedListComponent']['paging']['total']
 
-        for elemento in data['data']['identityDashProfileComponentsByPagedListComponent']['elements']:
-            entity = elemento['components']['entityComponent']
+        for element in data['data']['identityDashProfileComponentsByPagedListComponent']['elements']:
+            entity = element['components']['entityComponent']
 
-            linkedin_id = entity['textActionTarget'].replace('https://www.linkedin.com/company/', '').rstrip('/ ')
-            if empresa_existe(linkedin_id, 'linkedin'):
+            company_id = entity['textActionTarget'].replace('https://www.linkedin.com/company/', '').rstrip('/ ')
+            if company_exists_by_id(company_id, 'linkedin'):
                 continue
-
-            linkedin_follow_count = entity['subComponents']['components'][0]['components']['actionComponent']['action']['followingStateAction']['followingState']['followerCount']
-            linkedin_name = entity['titleV2']['text']['text'].strip()
+            company_follow_count = entity['subComponents']['components'][0]['components']['actionComponent']['action']['followingStateAction']['followingState']['followerCount']
+            company_name = entity['titleV2']['text']['text'].strip()
 
             logo = entity['image']['attributes'][0]['detailData']['companyLogo']['logoResolutionResult']
-            imagem_url = logo['vectorImage']['rootUrl'] + logo['vectorImage']['artifacts'][2]['fileIdentifyingUrlPathSegment'] if logo else None
+            company_image_url = logo['vectorImage']['rootUrl'] + logo['vectorImage']['artifacts'][2]['fileIdentifyingUrlPathSegment'] if logo else None
 
-            try:
-                empresa = Empresa.objects.get(Q(plataformas__linkedin__nome__iexact=linkedin_name) | Q(plataformas__glassdoor__nome__iexact=linkedin_name))
-            except Exception:
-                empresa = Empresa()
-            empresa.plataformas['linkedin']['id'] = linkedin_id
-            empresa.plataformas['linkedin']['nome'] = linkedin_name
-            empresa.plataformas['linkedin']['followers'] = linkedin_follow_count
-            empresa.imagem_url = imagem_url
-            empresa.followed = True
-            empresa.save()
+            company = get_company_by_name(company_name)
+            company.platforms['linkedin']['id'] = company_id
+            company.platforms['linkedin']['name'] = company_name
+            company.platforms['linkedin']['followers'] = company_follow_count
+            company.image_url = company_image_url
+            company.followed = True
+            company.save()
         
-        pos += 100
+        curr_index += 100
 
 
 def get_jobs():
     get_followed_companies()
 
-    scrape_vagas_empresas()
+    scrape_companies_listings()
 
-    scrape_vagas_recomendadas()
+    scrape_recommended_listings()
 
-    scrape_vagas_remotos()
+    scrape_remote_listings()
 
-    scrape_detalhes_vagas()
+    scrape_listings_details()

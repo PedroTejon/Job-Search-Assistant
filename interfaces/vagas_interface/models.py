@@ -4,58 +4,65 @@ from django.utils.timezone import now, make_aware
 from datetime import timedelta, datetime
 
 
-class Empresa(models.Model):
+class Company(models.Model):
+    class Meta:
+        verbose_name_plural = "companies"
+
+
     id = models.AutoField(primary_key=True)
-    imagem_url = models.TextField(null=True)
+    image_url = models.TextField(null=True)
     employee_count = models.PositiveIntegerField(null=True)
     followed = models.BooleanField(default=False)
-
 
     def get_default_platforms() -> dict:
         return {
             'linkedin': {
                 'id': None,
-                'nome': None,
+                'name': None,
                 'followers': None,
                 'last_check': None
             },
             'glassdoor': {
                 'id': None,
-                'nome': None,
+                'name': None,
                 'last_check': None
             }
         }
 
 
-    plataformas = models.JSONField(default=get_default_platforms)
+    platforms = models.JSONField(default=get_default_platforms)
 
 
-    def checado_recentemente_ln(self):
-        return now() < make_aware(datetime.strptime(self.plataformas['linkedin']['last_check'], '%Y-%m-%dT%H:%M:%S')) + timedelta(days=1) \
-            if self.plataformas['linkedin']['last_check'] else False
+    def checked_recently_ln(self):
+        return now() < make_aware(datetime.strptime(self.platforms['linkedin']['last_check'], '%Y-%m-%dT%H:%M:%S')) + timedelta(days=1) \
+            if self.platforms['linkedin']['last_check'] else False
     
 
-    def checado_recentemente_gl(self):
-        return now() < make_aware(datetime.strptime(self.plataformas['glassdoor']['last_check'], '%Y-%m-%dT%H:%M:%S')) + timedelta(days=1) \
-            if self.plataformas['glassdoor']['last_check'] else False
+    def checked_recently__gl(self):
+        return now() < make_aware(datetime.strptime(self.platforms['glassdoor']['last_check'], '%Y-%m-%dT%H:%M:%S')) + timedelta(days=1) \
+            if self.platforms['glassdoor']['last_check'] else False
 
 
     def __str__(self):
-        return f'{{\n"id": "{self.id}"\n"imagem": "{self.imagem_url}",\n"employee_count": {self.employee_count},\n"followed": {self.followed},\n"plataformas": {self.plataformas}}}'
+        return f'{{\n"id": "{self.id}"\n"image": "{self.image_url}",\n"employee_count": {self.employee_count},\n"followed": {self.followed},\n"platforms": {self.platforms}}}'
 
 
-class Vaga(models.Model):
+class Listing(models.Model):
+    class Meta:
+        verbose_name_plural = "listings"
+
+
     id = models.AutoField(primary_key=True)
-    titulo = models.TextField()
-    local = models.TextField()
-    modalidade = models.TextField()
-    empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE)
-    id_vaga = models.TextField()
-    plataforma = models.TextField()
-    n_candidaturas = models.PositiveIntegerField(null=True)
-    link_inscricao = models.TextField()
-    descricao = models.TextField()
-    tempo_publicado = models.TextField()
+    title = models.TextField()
+    location = models.TextField()
+    workplace_type = models.TextField()
+    description = models.TextField()
+    company = models.ForeignKey(Company, on_delete=models.CASCADE)
+    platform_id = models.TextField()
+    platform = models.TextField()
+    applies = models.PositiveIntegerField(null=True)
+    application_url = models.TextField()
+    publication_date = models.TextField()
 
     def __str__(self):
-        return f'{{\n"id": "{self.id}"\n"titulo": "{self.titulo}",\n"local": "{self.local}",\n"empresa": "{self.empresa.id}",\n"modalidade": "{self.modalidade}",\n"id_vaga": "{self.id_vaga}"\n"plataforma": "{self.plataforma}",\n"link_inscricao": "{self.link_inscricao}",\n"descricao": "{self.descricao}",\n"n_candidaturas": "{self.n_candidaturas}",\n"tempo_publicado": "{self.tempo_publicado}"\n}}'
+        return f'{{\n"id": "{self.id}"\n"title": "{self.title}",\n"location": "{self.location}",\n"company": "{self.company.id}",\n"workplace_type": "{self.workplace_type}",\n"platform_id": "{self.platform_id}"\n"platform": "{self.platform}",\n"application_url": "{self.application_url}",\n"description": "{self.description}",\n"applies": "{self.applies}",\n"publication_date": "{self.publication_date}"\n}}'
