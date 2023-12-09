@@ -1,6 +1,5 @@
-from playwright.sync_api import sync_playwright, Page
 from json import load
-from os import listdir
+from re import sub
 
 filtros = load(open('filtros.json', 'r', encoding='utf-8'))
 
@@ -8,17 +7,17 @@ from interfaces.vagas_interface.models import Empresa, Vaga
 
 def empresa_existe(e_id, plataforma) -> bool:
     if plataforma == 'linkedin':
-        return Empresa.objects.filter(linkedin_id__exact=e_id).exists()
+        return Empresa.objects.filter(plataformas__linkedin__id__exact=e_id).exists()
     elif plataforma == 'glassdoor':
-        return Empresa.objects.filter(glassdoor_id__exact=e_id).exists()
+        return Empresa.objects.filter(plataformas__glassdoor__id__exact=e_id).exists()
     
 
 def empresa_existe_nome(e_nome, plataforma) -> bool:
     try:
         if plataforma == 'linkedin':
-            return Empresa.objects.get(linkedin_nome__exact=e_nome)
+            return Empresa.objects.get(plataformas__linkedin__nome__iexact=e_nome)
         elif plataforma == 'glassdoor':
-            return Empresa.objects.get(glassdoor_nome__exact=e_nome)
+            return Empresa.objects.get(plataformas__glassdoor__nome__iexact=e_nome)
         
     except:
         return Empresa()
@@ -29,6 +28,7 @@ def vaga_existe(e_id) -> bool:
 
 
 def filtrar_vaga(titulo, local, tipo):
+    local = sub(r'\s*\(\bPresencial\b\)|\s*\(\bHíbrido\b\)|\s*\(\bRemoto\b\)', '', local)
     if local.count(',') == 2:
         cidade, estado, pais = local.split(', ')
     elif local.count(',') == 1:
@@ -37,11 +37,11 @@ def filtrar_vaga(titulo, local, tipo):
         cidade = local.split(', ')[0]
 
     if tipo == 'Presencial/Hibrido':
-        if 'cidade' in locals() and not any(map(lambda x: x == cidade, filtros['cidades'])):
+        if 'cidade' in locals() and len(filtros['cidades']) and not any(map(lambda x: x == cidade, filtros['cidades'])):
             return False
-        if 'estado' in locals() and not any(map(lambda x: x == estado, filtros['estados'])):
+        elif 'estado' in locals() and len(filtros['estados']) and not any(map(lambda x: x == estado, filtros['estados'])):
             return False
-        if 'pais' in locals() and not any(map(lambda x: x == pais, filtros['paises'])):
+        elif 'pais' in locals() and len(filtros['paises']) and not any(map(lambda x: x == pais, filtros['paises'])):
             return False
         
     if any(map(lambda x: x in titulo.split(), filtros['excludeWords'])):

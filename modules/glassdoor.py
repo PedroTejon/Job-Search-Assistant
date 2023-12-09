@@ -65,10 +65,10 @@ def extrair_vagas(itens: list):
         modalidade = 'Remoto' if 'remoto' in local else 'Presencial/Hibrido'
         empresa_nome = vaga_header['employerNameFromSearch']
         if filtrar_vaga(sub(r'[\[\]\(\),./\\| ]+', ' ', unidecode(titulo).lower()), local, modalidade):
-            if (empresa := empresa_existe_nome(empresa_nome, 'glassdoor')).glassdoor_nome == None:
-                empresa.glassdoor_nome = empresa_nome
+            if (empresa := empresa_existe_nome(empresa_nome, 'glassdoor')).plataformas['glassdoor']['nome'] == None:
+                empresa.plataformas['glassdoor']['nome'] = empresa_nome
                 if 'employer' in vaga['jobview']['header']:
-                    empresa.glassdoor_id = str(vaga['jobview']['header']['employer']['id'])
+                    empresa.plataformas['glassdoor']['id'] = str(vaga['jobview']['header']['employer']['id'])
                 empresa.save()
             Vaga(
                 id_vaga=str(vaga['jobview']['job']['listingId']),
@@ -83,8 +83,8 @@ def extrair_vagas(itens: list):
 def scrape_vagas_empresas():
     cookies = {cookie['name']: cookie['value'].replace('\"', '') for cookie in load(open('data/cookies.json', 'r', encoding='utf-8'))}
 
-    for empresa in filter(lambda x: x.glassdoor_nome not in ['', 'not_found'] 
-                          and x.glassdoor_id not in ['', 'not_found'] 
+    for empresa in filter(lambda x: x.plataformas['glassdoor']['nome'] not in [None, 'not_found'] 
+                          and x.plataformas['glassdoor']['id'] not in [None, 'not_found'] 
                           and not x.checado_recentemente_gl()
                           and x.followed, Empresa.objects.all()):
         cursor = None
@@ -92,7 +92,7 @@ def scrape_vagas_empresas():
         while cursor == None or cursor:
             response = job_listings_request(cookies, cursor, "query JobSearchResultsQuery($excludeJobListingIds: [Long!], $keyword: String, $locationId: Int, $locationType: LocationTypeEnum, $numJobsToShow: Int!, $pageCursor: String, $pageNumber: Int, $filterParams: [FilterParams], $originalPageUrl: String, $seoFriendlyUrlInput: String, $parameterUrlInput: String, $seoUrl: Boolean) {\n  jobListings(\n    contextHolder: {searchParams: {excludeJobListingIds: $excludeJobListingIds, keyword: $keyword, locationId: $locationId, locationType: $locationType, numPerPage: $numJobsToShow, pageCursor: $pageCursor, pageNumber: $pageNumber, filterParams: $filterParams, originalPageUrl: $originalPageUrl, seoFriendlyUrlInput: $seoFriendlyUrlInput, parameterUrlInput: $parameterUrlInput, seoUrl: $seoUrl, searchType: SR}}\n  ) {\n    companyFilterOptions {\n      id\n      shortName\n      __typename\n    }\n    filterOptions\n    indeedCtk\n    jobListings {\n      ...JobView\n      __typename\n    }\n    jobListingSeoLinks {\n      linkItems {\n        position\n        url\n        __typename\n      }\n      __typename\n    }\n    jobSearchTrackingKey\n    jobsPageSeoData {\n      pageMetaDescription\n      pageTitle\n      __typename\n    }\n    paginationCursors {\n      cursor\n      pageNumber\n      __typename\n    }\n    indexablePageForSeo\n    searchResultsMetadata {\n      searchCriteria {\n        implicitLocation {\n          id\n          localizedDisplayName\n          type\n          __typename\n        }\n        keyword\n        location {\n          id\n          shortName\n          localizedShortName\n          localizedDisplayName\n          type\n          __typename\n        }\n        __typename\n      }\n      footerVO {\n        countryMenu {\n          childNavigationLinks {\n            id\n            link\n            textKey\n            __typename\n          }\n          __typename\n        }\n        __typename\n      }\n      helpCenterDomain\n      helpCenterLocale\n      jobAlert {\n        jobAlertExists\n        __typename\n      }\n      jobSerpFaq {\n        questions {\n          answer\n          question\n          __typename\n        }\n        __typename\n      }\n      jobSerpJobOutlook {\n        occupation\n        paragraph\n        heading\n        __typename\n      }\n      showMachineReadableJobs\n      __typename\n    }\n    serpSeoLinksVO {\n      relatedJobTitlesResults\n      searchedJobTitle\n      searchedKeyword\n      searchedLocationIdAsString\n      searchedLocationSeoName\n      searchedLocationType\n      topCityIdsToNameResults {\n        key\n        value\n        __typename\n      }\n      topEmployerIdsToNameResults {\n        key\n        value\n        __typename\n      }\n      topEmployerNameResults\n      topOccupationResults\n      __typename\n    }\n    totalJobsCount\n    __typename\n  }\n}\n\nfragment JobView on JobListingSearchResult {\n  jobview {\n    header {\n      adOrderId\n      advertiserType\n      adOrderSponsorshipLevel\n      ageInDays\n      divisionEmployerName\n      easyApply\n      employer {\n        id\n        name\n        shortName\n        __typename\n      }\n      employerNameFromSearch\n      goc\n      gocConfidence\n      gocId\n      jobCountryId\n      jobLink\n      jobResultTrackingKey\n      jobTitleText\n      locationName\n      locationType\n      locId\n      needsCommission\n      payCurrency\n      payPeriod\n      payPeriodAdjustedPay {\n        p10\n        p50\n        p90\n        __typename\n      }\n      rating\n      salarySource\n      savedJobId\n      seoJobLink\n      sponsored\n      __typename\n    }\n    job {\n      descriptionFragments\n      importConfigId\n      jobTitleId\n      jobTitleText\n      listingId\n      __typename\n    }\n    jobListingAdminDetails {\n      cpcVal\n      importConfigId\n      jobListingId\n      jobSourceId\n      userEligibleForAdminJobDetails\n      __typename\n    }\n    overview {\n      shortName\n      squareLogoUrl\n      __typename\n    }\n    __typename\n  }\n  __typename\n}\n", "JobSearchResultsQuery", {
                 "excludeJobListingIds": [],
-                "filterParams": [{"filterKey": "companyId", "values": empresa.glassdoor_id}],
+                "filterParams": [{"filterKey": "companyId", "values": empresa.plataformas['glassdoor']['id']}],
                 "keyword": "",
                 "locationId": 0,
                 "numJobsToShow": 50,
@@ -112,12 +112,10 @@ def scrape_vagas_empresas():
                 pagina = cursor['pageNumber']
 
             extrair_vagas(conteudo['jobListings']['jobListings'])
-
-
     
             sleep(.5)
 
-        empresa.last_check_glassdoor = now()
+        empresa.last_check_glassdoor = now().strftime("%Y-%m-%dT%H:%M:%S")
         empresa.save()
 
 
@@ -174,25 +172,30 @@ def scrape_detalhes_vagas():
         sleep(.5)
 
 
-
 def get_followed_companies():
+    cookies_json = load(open('data/cookies.json', 'r', encoding='utf-8'))
+    cookies = ';'.join([f"{cookie['name']}={cookie['value']}" for cookie in cookies_json])
+
     empresas = Empresa.objects.all()
-    for empresa in filter(lambda x: x.glassdoor_nome == None and x.followed, empresas):
+    for empresa in filter(lambda x: x.plataformas['glassdoor']['id'] == None and x.followed, empresas):
         session = create_scraper(browser={
             'browser': 'firefox',
             'platform': 'windows',
             'mobile': False
         })
 
-        response = session.get(f"http://www.glassdoor.com.br/api-web/employer/find.htm?autocomplete=true&term={empresa.linkedin_nome}")
+        response = session.get(f'http://www.glassdoor.com.br/api-web/employer/find.htm?autocomplete=true&term={empresa.plataformas["linkedin"]["nome"]}', 
+            headers={
+                'cookie': cookies
+            })
         response_content = loads(response.text)
         
         if len(response_content):
-            empresa.glassdoor_id = str(response_content[0]['id'])
-            empresa.glassdoor_nome = response_content[0]['label']
+            empresa.plataformas['glassdoor']['id'] = str(response_content[0]['id'])
+            empresa.plataformas['glassdoor']['nome'] = response_content[0]['label']
         else:
-            empresa.glassdoor_id = 'not_found'
-            empresa.glassdoor_nome = 'not_found'
+            empresa.plataformas['glassdoor']['id'] = 'not_found'
+            empresa.plataformas['glassdoor']['nome'] = 'not_found'
 
         empresa.save()        
         sleep(.5)
