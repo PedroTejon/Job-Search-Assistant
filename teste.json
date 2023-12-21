@@ -1,0 +1,50 @@
+{
+    "metricsApply": {
+        "origin": "sugestao-de-vagas",
+        "typeEntrance": "direto",
+        "channel": "pagina-da-sugestao",
+        "action": "sem-acao"
+    },
+    "jobAdData": {
+        "id": 24423596,
+        "jobStatus": "ACTIVE",
+        "empId": 125636,
+        "descricao": "Apoiar nas atividades de investigação de e-mails suspeitos e vazamentos de dados;\nApoiar na investigação de alertas de segurança da informação;\nApoiar em atividades de sustentação de soluções de segurança da informação. Conhecimento em pelo menos uma das seguintes:\n- Segurança da informação;\n- Linguagem de programação;\n- Redes de computadores;\n- Sistemas operacionais.",
+        "benef": [...
+        ],
+        "titulo": "Estágio em TI",
+        "data": "2023-10-02T23: 59: 59Z",
+        "dataAtualizacao": "2023-10-02T10: 50: 50-03: 00",
+        "vagas": [...
+        ], ...
+    },
+    "canApplyStatus": 2,
+    "hirer": {
+        "name": "Confidencial",
+        "areaName": "Engenharia",
+        "description": "Serviços de instalação e manutenção em sistemas de utilidades.",
+        "confidential": True,
+        "advertiser": True,
+        "size": "G",
+        "isForeigner": False,
+        "numberOfEmployees": 1500,
+        "site": "www.grupogps.com.br", ...
+    },
+    "isNewPlanEnabled": True,
+    "similarJobs": None,
+    "loggedUserData": {
+        "id": "76142425",
+        "plan": {...
+        },
+        "status": "A",
+        "tokenJWT": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJDYXRobyIsImVtcElkIjoiMCIsImV4cCI6MTcwMzIwMzMyMCwiaWF0IjoxNzAzMTE2OTIwLCJpc3MiOiJodHRwczovL3NlZ3Vyby5jYXRoby5jb20uYnIiLCJqdGkiOiI4OTZiODEwMC01MDI3LTQyMTEtYWFmNy00MThhNmQ3ODZhMDIiLCJuYmYiOjE3MDMxMTY5MjAsInNlc3Npb25Db250cm9sIjoiZDk1ZDFmYjRjYmM0ZGE3NThiNTQwZGE5ODE5MmM4YzliZTI3ZmJiOWY4MjhlNmM1NjYzMzk3OWEzNjc3MjkyNzk0MDcyOTFhMzM4YjM4N2I3MjFmZTkwMWNlNWEzZDJhZTMxYjhmMDkyZjNhM2IyMzI4MDVlOGE0OWRkYzc4ZjMiLCJzdWIiOiI3NjE0MjQyNSJ9.fvNLBz_39mJ6e8NN4AErePKnP05shsWodeszo32lWmMRgITqKVEtM0-RLOnu6pyL3CZX-qKomMyv9OYaeWIW1MV6s5FIWwQ2k_bMtQP71ryE0uP07Le98NNRs27dufSFbN84sR0Z2BJpAucZQ-eN6NISN8nA5crmny1P9m8MGjut3LbHovdgm80IF_O7IZudfr_yFFFNYDV3OSlTWY9sFU99EexjydMHEPxnvUA5J56IuoqXVk906ZlQqqEQLsCPzv2SqOh39SM2jMZbN-J6GNnHyxkSEIuGOPISAAuSCqLH4v5Gnv8T8efZaKeVfFw5g280IYUnAy7X7XjvWILUWw",
+        "userPlan": "free_plan",
+        "hasControlPlan": True,
+        "resumeInfo": {...
+        }
+    },
+    "pathname": "/vagas/sugestao/24423596/",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0",
+    "experimentVariants": {},
+    "robotsIndexingEnabled": False
+}
