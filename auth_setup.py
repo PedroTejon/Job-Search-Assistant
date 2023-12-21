@@ -47,6 +47,11 @@ def setup():
 
         driver.goto('https://www.catho.com.br/area-candidato', wait_until='load')
 
+        print('Logue com sua conta do Vagas.com')
+        with driver.expect_response(lambda x: 'https://www.vagas.com.br/meu-perfil' in x.url and x.status == 200, timeout=0) as response:
+            driver.goto('https://www.vagas.com.br/login-candidatos')
+        print('Conta da Vagas.com conectada com sucesso')
+
         print('Salvando Cookies...')
         cookies = driver.context.cookies()
         dump(cookies, open('data/cookies.json', 'w', encoding='utf-8'), ensure_ascii=False)

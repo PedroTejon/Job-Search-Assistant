@@ -10,6 +10,7 @@ import modules.linkedin as linkedin
 import modules.glassdoor as glassdoor
 # import modules.indeed as indeed
 import modules.catho as catho
+import modules.vagas_com as vagas_com
 
 
 def main():
@@ -17,7 +18,7 @@ def main():
     linkedin.get_jobs()
     glassdoor.get_jobs()
     catho.get_jobs()
-    # vagas.com
+    vagas_com.get_jobs()
 
 
 if __name__ == '__main__':
