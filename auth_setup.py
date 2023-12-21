@@ -40,6 +40,13 @@ def setup():
         data = loads(soup.find('script', {'id': '__NEXT_DATA__'}).get_text())['props']['pageProps']
         local_storage['glassdoor_csrf'] = data['token']
 
+        print('Logue com sua conta da Cathos')
+        with driver.expect_response(lambda x: 'https://www.catho.com.br/area-candidato' in x.url and x.status == 200, timeout=0) as response:
+            driver.goto('https://seguro.catho.com.br/signin/')
+        print('Conta da Cathos conectada com sucesso')
+
+        driver.goto('https://www.catho.com.br/area-candidato', wait_until='load')
+
         print('Salvando Cookies...')
         cookies = driver.context.cookies()
         dump(cookies, open('data/cookies.json', 'w', encoding='utf-8'), ensure_ascii=False)

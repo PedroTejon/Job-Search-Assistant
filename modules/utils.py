@@ -12,11 +12,15 @@ def company_exists_by_id(c_id, platform) -> bool:
         return Company.objects.filter(platforms__linkedin__id__exact=c_id).exists()
     elif platform == 'glassdoor':
         return Company.objects.filter(platforms__glassdoor__id__exact=c_id).exists()
+    elif platform == 'catho':
+        return Company.objects.filter(platforms__catho__id__exact=c_id).exists()
+    elif platform == 'vagas_com':
+        return Company.objects.filter(platforms__vagas_com__id__exact=c_id).exists()
     
 
 def get_company_by_name(c_name) -> Company:
     try:
-        return Company.objects.get(Q(platforms__linkedin__name__iexact=c_name) | Q(platforms__glassdoor__name__iexact=c_name))
+        return Company.objects.get(Q(platforms__linkedin__name__iexact=c_name) | Q(platforms__glassdoor__name__iexact=c_name) | Q(platforms__catho__name__iexact=c_name) )
     except:
         return Company()
 

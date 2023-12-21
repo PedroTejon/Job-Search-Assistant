@@ -26,21 +26,26 @@ class Company(models.Model):
                 'id': None,
                 'name': None,
                 'last_check': None
+            },
+            'catho': {
+                'id': None,
+                'name': None,
+                'last_check': None
+            },
+            'vagas_com': {
+                'id': None,
+                'name': None,
+                'last_check': None
             }
         }
 
 
     platforms = models.JSONField(default=get_default_platforms)
-
-
-    def checked_recently_ln(self):
-        return now() < make_aware(datetime.strptime(self.platforms['linkedin']['last_check'], '%Y-%m-%dT%H:%M:%S')) + timedelta(days=1) \
-            if self.platforms['linkedin']['last_check'] else False
     
 
-    def checked_recently__gl(self):
-        return now() < make_aware(datetime.strptime(self.platforms['glassdoor']['last_check'], '%Y-%m-%dT%H:%M:%S')) + timedelta(days=1) \
-            if self.platforms['glassdoor']['last_check'] else False
+    def checked_recently(self, platform):
+        return now() < make_aware(datetime.strptime(self.platforms[platform]['last_check'], '%Y-%m-%dT%H:%M:%S')) + timedelta(days=1) \
+            if self.platforms[platform]['last_check'] else False
 
 
     def __str__(self):
