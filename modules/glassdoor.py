@@ -84,8 +84,8 @@ def scrape_companies_listings():
     cookies = {cookie['name']: cookie['value'].replace('\"', '') for cookie in load(open('data/cookies.json', 'r', encoding='utf-8'))}
 
     for company in filter(lambda x: x.platforms['glassdoor']['name'] not in [None, 'not_found'] 
-                          and x.platforms['glassdoor']['id'] not in [None, 'not_found'] 
-                          and not x.checked_recently__gl()
+                          and x.platforms['glassdoor']['id'] not in [None, 'not_found']
+                          and not x.checked_recently('glassdoor')
                           and x.followed, Company.objects.all()):
         cursor = None
         page = 1

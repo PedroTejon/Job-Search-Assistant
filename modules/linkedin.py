@@ -78,9 +78,9 @@ def get_job_listings(url, cookies, csrf_token):
 
                 company_name = element['primaryDescription']['text']
                 company_id = element['logo']['attributes'][0]['detailData']['*companyLogo'].replace('urn:li:fsd_company:', '')
-                if company_id != None and not company_exists_by_id(company_id, 'linkedin'):
-                    company = Company()
-                    company.platforms['linkedin']['id'] = company_id
+                if (company := get_company_by_name(company_name)).platforms['linkedin']['name'] == None:
+                    if company_id != None:
+                        company.platforms['linkedin']['id'] = company_id
                     company.platforms['linkedin']['name'] = company_name
                     company.image_url = company_pfps.get(company_id, None)
                     company.save()
@@ -88,7 +88,7 @@ def get_job_listings(url, cookies, csrf_token):
                 Listing(
                     title=listing_title, 
                     location=listing_location, 
-                    company=Company.objects.get(platforms__linkedin__id__iexact=company_id), 
+                    company=company, 
                     workplace_type=workplace_type, 
                     platform_id=listing_id, 
                     platform='LinkedIn'
@@ -112,7 +112,7 @@ def scrape_companies_listings():
     cookies_json = load(open('data/cookies.json', 'r', encoding='utf-8'))
     cookies = ';'.join([f"{cookie['name']}={cookie['value']}" for cookie in cookies_json])
 
-    companies = list(filter(lambda x: not x.checked_recently_ln() and x.followed, Company.objects.all()))
+    companies = list(filter(lambda x: not x.checked_recently('linkedin') and x.followed, Company.objects.all()))
     if companies:
         for company in companies:
             get_job_listings(f'https://www.linkedin.com/voyager/api/voyagerJobsDashJobCards?decorationId=com.linkedin.voyager.dash.deco.jobs.search.JobSearchCardsCollection-191&count=25&q=jobSearch&query=(origin:JOB_SEARCH_PAGE_OTHER_ENTRY,locationUnion:(geoId:92000000),selectedFilters:(company:List({company.platforms["linkedin"]["id"]}),countryRegion:List(106057199)),spellCorrectionEnabled:true)', cookies, get_csrf_token(cookies_json))
@@ -136,6 +136,8 @@ def scrape_listings_details():
         listing_id = listing.platform_id
 
         while True:
+            sleep(0.2)
+
             session = create_scraper(browser={
                 'browser': 'chrome',
                 'platform': 'windows',
@@ -194,8 +196,6 @@ def scrape_listings_details():
 
         company.save()
         listing.save()
-        
-        sleep(0.2)
 
 
 def get_followed_companies():
@@ -207,8 +207,16 @@ def get_followed_companies():
     max_index = 100
     curr_index = 0
     while curr_index < max_index:
-        company_details = session.get(f'https://www.linkedin.com/voyager/api/graphql?variables=(start:{curr_index},count:100,paginationToken:null,pagedListComponent:urn%3Ali%3Afsd_profilePagedListComponent%3A%28{profile_id}%2CINTERESTS_VIEW_DETAILS%2Curn%3Ali%3Afsd_profileTabSection%3ACOMPANIES_INTERESTS%2CNONE%2Cpt_BR%29)&queryId=voyagerIdentityDashProfileComponents.3efef764c5f936e8a825b8674c814b0c', cookies=cookies, headers={'csrf-token': cookies['JSESSIONID']})
+        while tries := 1:
+            company_details = session.get(f'https://www.linkedin.com/voyager/api/graphql?variables=(start:{curr_index},count:100,paginationToken:null,pagedListComponent:urn%3Ali%3Afsd_profilePagedListComponent%3A%28{profile_id}%2CINTERESTS_VIEW_DETAILS%2Curn%3Ali%3Afsd_profileTabSection%3ACOMPANIES_INTERESTS%2CNONE%2Cpt_BR%29)&queryId=voyagerIdentityDashProfileComponents.3efef764c5f936e8a825b8674c814b0c', cookies=cookies, headers={'csrf-token': cookies['JSESSIONID']})
         
+            if company_details.status_code == 200 or tries > 3:
+                break
+            tries += 1
+        
+        if company_details.status_code != 200:
+            raise('MaxRetriesError: possible error in authentication/cookies or request body and requests don\'t return OK')
+
         data = loads(company_details.content.decode('utf-8'))
         max_index = data['data']['identityDashProfileComponentsByPagedListComponent']['paging']['total']
 
@@ -224,13 +232,13 @@ def get_followed_companies():
             logo = entity['image']['attributes'][0]['detailData']['companyLogo']['logoResolutionResult']
             company_image_url = logo['vectorImage']['rootUrl'] + logo['vectorImage']['artifacts'][2]['fileIdentifyingUrlPathSegment'] if logo else None
 
-            company = get_company_by_name(company_name)
-            company.platforms['linkedin']['id'] = company_id
-            company.platforms['linkedin']['name'] = company_name
-            company.platforms['linkedin']['followers'] = company_follow_count
-            company.image_url = company_image_url
-            company.followed = True
-            company.save()
+            if (company := get_company_by_name(company_name)).platforms['linkedin']['name'] == None:
+                company.platforms['linkedin']['id'] = company_id
+                company.platforms['linkedin']['name'] = company_name
+                company.platforms['linkedin']['followers'] = company_follow_count
+                company.image_url = company_image_url
+                company.followed = True
+                company.save()
         
         curr_index += 100
 
