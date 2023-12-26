@@ -1,6 +1,7 @@
 from playwright.sync_api import sync_playwright, Page
 from bs4 import BeautifulSoup
 from json import dump, load, loads
+from os import listdir
 
 
 def initialize_puppet(load_cookies=False, headless=False) -> Page:
@@ -21,43 +22,60 @@ def initialize_puppet(load_cookies=False, headless=False) -> Page:
 
 def setup():
     with initialize_puppet() as driver:
+        if 'cookies.json' in listdir('data') and input('Deseja manter seus cookies antigos e apenas substituir autenticações de sites específicos? (Sim/Não) ').lower() in ['sim', 's']:
+            cookies = load(open('data/cookies.json', 'rb'))
+        else:
+            cookies = {
+                'linkedin': [],
+                'glassdoor': [],
+                'catho': [],
+                'vagas.com': []
+            }
 
-        print('Logue com sua conta do LinkedIn')      
-        with driver.expect_response(lambda x: 'https://www.linkedin.com/feed/?trk=homepage-basic_sign-in-submit' in x.url and x.status == 200, timeout=0) as response:
-            driver.goto('https://www.linkedin.com/')
-        print('Conta do LinkedIn conectada com sucesso')
+        if input('Deseja logar com sua conta do Linkedin? (Sim/Não) ').lower() in ['sim', 's']:
+            with driver.expect_response(lambda x: 'https://www.linkedin.com/feed/?trk=homepage-basic_sign-in-submit' in x.url and x.status == 200, timeout=0) as response:
+                driver.goto('https://www.linkedin.com/')
+            print('Conta do LinkedIn conectada com sucesso')
 
-        response_text = response.value.text()
-        profile_id = response_text[response_text.find('fs_miniProfile:') + 15:response_text.find(',', response_text.find('fs_miniProfile:')) - 6]
-        local_storage = {'profile_id': profile_id}
+            response_text = response.value.text()
+            profile_id = response_text[response_text.find('fs_miniProfile:') + 15:response_text.find(',', response_text.find('fs_miniProfile:')) - 6]
+            local_storage = {'profile_id': profile_id}
 
-        print('Logue com sua conta do Glassdoor')
-        with driver.expect_response(lambda x: 'https://www.glassdoor.com.br/Vaga/index.htm' in x.url and x.status == 200, timeout=0) as response:
-            driver.goto('https://www.glassdoor.com.br/')
-        print('Conta do Glassdoor conectada com sucesso')
+        if input('Deseja logar com sua conta do Glassdoor? (Sim/Não) ').lower() in ['sim', 's']:
+            with driver.expect_response(lambda x: 'https://www.glassdoor.com.br/Vaga/index.htm' in x.url and x.status == 200, timeout=0) as response:
+                driver.goto('https://www.glassdoor.com.br/')
+            print('Conta do Glassdoor conectada com sucesso')
 
-        soup = BeautifulSoup(response.value.text(), 'html.parser')
-        data = loads(soup.find('script', {'id': '__NEXT_DATA__'}).get_text())['props']['pageProps']
-        local_storage['glassdoor_csrf'] = data['token']
+            soup = BeautifulSoup(response.value.text(), 'html.parser')
+            data = loads(soup.find('script', {'id': '__NEXT_DATA__'}).get_text())['props']['pageProps']
+            local_storage['glassdoor_csrf'] = data['token']
+        
+        if input('Deseja logar com sua conta da Catho? (Sim/Não) ').lower() in ['sim', 's']:
+            with driver.expect_response(lambda x: 'https://www.catho.com.br/area-candidato' in x.url and x.status == 200, timeout=0) as response:
+                driver.goto('https://seguro.catho.com.br/signin/')
+            print('Conta da Catho conectada com sucesso')
 
-        print('Logue com sua conta da Cathos')
-        with driver.expect_response(lambda x: 'https://www.catho.com.br/area-candidato' in x.url and x.status == 200, timeout=0) as response:
-            driver.goto('https://seguro.catho.com.br/signin/')
-        print('Conta da Cathos conectada com sucesso')
+            driver.goto('https://www.catho.com.br/area-candidato', wait_until='load')
 
-        driver.goto('https://www.catho.com.br/area-candidato', wait_until='load')
-
-        print('Logue com sua conta do Vagas.com')
-        with driver.expect_response(lambda x: 'https://www.vagas.com.br/meu-perfil' in x.url and x.status == 200, timeout=0) as response:
-            driver.goto('https://www.vagas.com.br/login-candidatos')
-        print('Conta da Vagas.com conectada com sucesso')
+        if input('Deseja logar com sua conta da Vagas.com? (Sim/Não) ').lower() in ['sim', 's']:
+            with driver.expect_response(lambda x: 'https://www.vagas.com.br/meu-perfil' in x.url and x.status == 200, timeout=0) as response:
+                driver.goto('https://www.vagas.com.br/login-candidatos')
+            print('Conta da Vagas.com conectada com sucesso')
 
         print('Salvando Cookies...')
-        cookies = driver.context.cookies()
+        for cookie in driver.context.cookies():
+            if 'linkedin' in cookie['domain']:
+                cookies['linkedin'].append(cookie)
+            elif 'glassdoor' in cookie['domain']:
+                cookies['glassdoor'].append(cookie)
+            elif 'catho' in cookie['domain']:
+                cookies['catho'].append(cookie)
+            elif 'vagas.com' in cookie['domain']:
+                cookies['vagas.com'].append(cookie)
+
         dump(cookies, open('data/cookies.json', 'w', encoding='utf-8'), ensure_ascii=False)
 
         print('Salvando Local Storage...')
-        local_storage |= driver.evaluate("() => {var ls = window.localStorage, items = {}; for (var i = 0, k; i < ls.length; ++i)  items[k = ls.key(i)] = ls.getItem(k); return items;}")
         dump(local_storage, open('data/local_storage.json', 'w', encoding='utf-8'), ensure_ascii=False)
 
         print('Autenticação concluída')
