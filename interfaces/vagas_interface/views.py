@@ -1,7 +1,6 @@
+import threading
 from django.http import HttpResponse, JsonResponse
 from django.template import loader
-from time import sleep
-import threading
 
 
 def index(request):
