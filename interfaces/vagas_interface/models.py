@@ -42,7 +42,7 @@ class Company(Model):
     def checked_recently(self, platform) -> bool:
         # pylint: disable=E1136
         return now() < make_aware(datetime.strptime(self.platforms[platform]['last_check'], '%Y-%m-%dT%H:%M:%S')) + timedelta(days=1) \
-            if self.platforms[platform]['last_check'] else False
+            if self.platforms[platform]['last_check'] else False # pylint:
 
     def __str__(self) -> str:
         return f'{{\n"id": "{self.id}"\n"image": "{self.image_url}",\n"employee_count": {self.employee_count},\n"followed": {self.followed},\n"platforms": {self.platforms}}}'
