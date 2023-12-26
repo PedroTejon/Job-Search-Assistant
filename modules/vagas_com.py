@@ -1,15 +1,15 @@
 from json import load
-from modules.utils import get_company_by_name, filter_listing, listing_exists
 from time import sleep
+from re import sub
 from cloudscraper import create_scraper
 from unidecode import unidecode
-from re import sub
 from django.utils.timezone import now, datetime, timedelta
 from bs4 import BeautifulSoup
-
+from modules.utils import get_company_by_name, filter_listing, listing_exists
 from interfaces.vagas_interface.models import Company, Listing
 
 filters = load(open('filters.json', 'r', encoding='utf-8'))
+
 
 def get_bearer_token(cookies):
     for cookie in cookies:
@@ -21,103 +21,126 @@ def filter_title(title):
     title = sub(r'[\[\]\(\),./\\| ]+', ' ', unidecode(title).lower())
     if any(map(lambda x: x in title.split(), filters['exclude_words'])):
         return False
-    
+
     if any(map(lambda x: x in title, filters['exclude_terms'])):
         return False
-    
+
     return True
 
 
 def filter_location(location, workplace_type):
     if workplace_type == 'Presencial/Hibrido' and len(filters['cities']) and not any(map(lambda x: x == location, filters['cities'])):
         return False
-    
+
     return True
 
 
-def scrape_companies_listings():
+def get_companies_listings():
     session = create_scraper(browser={
         'browser': 'firefox',
         'platform': 'windows',
         'mobile': False
     })
 
-    for company in filter(lambda x: x.platforms['vagas_com']['name'] not in [None, 'not_found'] 
+    for company in filter(lambda x: x.platforms['vagas_com']['name'] not in [None, 'not_found']
                           and not x.checked_recently('vagas_com')
                           and x.followed, Company.objects.all()):
         page = 1
-        
+
         while True:
             sleep(0.5)
-            response = session.get(f'https://www.vagas.com.br/empregos/{company.platforms["vagas_com"]["id"]}?page={page}')
+            response = session.get(
+                f'https://www.vagas.com.br/empregos/{company.platforms["vagas_com"]["id"]}?page={page}')
             soup = BeautifulSoup(response.text, 'html.parser')
 
-            listing_urls = [link['href'] for link in soup.find_all('a', {'class': 'link-detalhes-vaga'}) 
+            listing_urls = [link['href'] for link in soup.find_all('a', {'class': 'link-detalhes-vaga'})
                             if not listing_exists(link['data-id-vaga']) and filter_title(sub(r'[\[\]\(\),./\\| ]+', ' ', unidecode(link.get_text(strip=True)).lower()))]
             if not listing_urls:
                 break
 
             for url in listing_urls:
                 sleep(0.5)
-                listing_response = session.get('https://www.vagas.com.br' + url)
-                listing_soup = BeautifulSoup(listing_response.text, 'html.parser')
-                
+                listing_response = session.get(
+                    'https://www.vagas.com.br' + url)
+                listing_soup = BeautifulSoup(
+                    listing_response.text, 'html.parser')
+
                 listing = Listing()
-                listing.title = listing_soup.find('h1', {'class': 'job-shortdescription__title'}).get_text(strip=True)
-                listing.location = listing_soup.find('span', {'class': 'info-localizacao'}).get_text(strip=True)
+                listing.title = listing_soup.find(
+                    'h1', {'class': 'job-shortdescription__title'}).get_text(strip=True)
+                listing.location = listing_soup.find(
+                    'span', {'class': 'info-localizacao'}).get_text(strip=True)
                 listing.workplace_type = 'Remoto' if listing.location == '100% Home Office' else 'Presencial/Hibrido'
                 if filter_location(listing.location, listing.workplace_type):
                     listing.company = company
                     listing.description = listing_soup.find('div', {'class': 'job-description__text'}).text.strip() + \
-                                          listing_soup.find('div', {'class': 'job-company-presentation'}).text.strip() + \
-                                          'Benefícios:\n' + '\n'.join([benefit.get_text(strip=True) for benefit in listing_soup.find_all('span', {'class': 'benefit-label'})])
-                    listing.platform_id = listing_soup.find('li', {'class': 'job-breadcrumb__item--id'}).get_text(strip=True)
+                        listing_soup.find('div', {'class': 'job-company-presentation'}).text.strip() + \
+                        'Benefícios:\n' + '\n'.join([benefit.get_text(
+                            strip=True) for benefit in listing_soup.find_all('span', {'class': 'benefit-label'})])
+                    listing.platform_id = listing_soup.find(
+                        'li', {'class': 'job-breadcrumb__item--id'}).get_text(strip=True)
                     listing.platform = 'Vagas.com'
 
-                    data = listing_soup.find('li', {'class': 'job-breadcrumb__item--published'}).get_text(strip=True)
+                    data = listing_soup.find(
+                        'li', {'class': 'job-breadcrumb__item--published'}).get_text(strip=True)
                     if '/' in data:
-                        data = datetime.strptime(data.replace('Publicada em ', ''), '%d/%m/%Y')
+                        data = datetime.strptime(data.replace(
+                            'Publicada em ', ''), '%d/%m/%Y')
                     elif 'há' in data:
-                        data = now() - timedelta(days=int(data.replace('Há  ', '').replace(' dias', '')))
+                        data = now() - timedelta(days=int(data.replace('Publicada há ', '').replace(' dias', '')))
                     elif 'ontem' in data:
                         data = now() - timedelta(days=1)
-                    listing.publication_date = data.strftime("%Y-%m-%dT%H:%M:%S")            
+                    listing.publication_date = data.strftime(
+                        "%Y-%m-%dT%H:%M:%S")
                     listing.save()
 
             page += 1
 
-        company.platforms['vagas_com']['last_check'] = now().strftime("%Y-%m-%dT%H:%M:%S")
+        company.platforms['vagas_com']['last_check'] = now().strftime(
+            "%Y-%m-%dT%H:%M:%S")
         company.save()
 
-def scrape_recommended_listings():
-    cookies_json = load(open('data/cookies.json', 'r', encoding='utf-8'))
-    cookies = ';'.join([f"{cookie['name']}={cookie['value']}" for cookie in cookies_json if 'vagas.com' in cookie['domain']]) + '; session_id=99be0cd2-0098-4f6e-9206-b4555d5c5172'
+
+def get_recommended_listings():
+    cookies_json = load(open('data/cookies.json', 'r',
+                        encoding='utf-8'))['vagas.com']
+    cookies = ';'.join([f"{cookie['name']}={cookie['value']}" for cookie in cookies_json]
+                       ) + '; session_id=99be0cd2-0098-4f6e-9206-b4555d5c5172'
     token = get_bearer_token(cookies_json)
-    
+
     session = create_scraper(browser={
         'browser': 'firefox',
         'platform': 'windows',
         'mobile': False
     })
 
-    response = session.get('https://api-candidato.vagas.com.br/v1/perfis/paginas_personalizadas', headers={
-        "accept": "application/json, text/plain, */*",
-        "accept-language": "pt-BR,pt;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6",
-        "access-control-allow-origin": "*",
-        "authorization": f"Bearer {token}",
-        "cache-control": "no-cache",
-        "cookie": cookies,
-        "pragma": "no-cache",
-        "sec-ch-ua": "\"Not_A Brand\";v=\"8\", \"Chromium\";v=\"120\", \"Microsoft Edge\";v=\"120\"",
-        "sec-ch-ua-mobile": "?0",
-        "sec-ch-ua-platform": "\"Windows\"",
-        "sec-fetch-dest": "empty",
-        "sec-fetch-mode": "cors",
-        "sec-fetch-site": "same-site",
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0"
-    }).json()
+    while tries := 1:
+        response = session.get('https://api-candidato.vagas.com.br/v1/perfis/paginas_personalizadas', headers={
+            "accept": "application/json, text/plain, */*",
+            "accept-language": "pt-BR,pt;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6",
+            "access-control-allow-origin": "*",
+            "authorization": f"Bearer {token}",
+            "cache-control": "no-cache",
+            "cookie": cookies,
+            "pragma": "no-cache",
+            "sec-ch-ua": "\"Not_A Brand\";v=\"8\", \"Chromium\";v=\"120\", \"Microsoft Edge\";v=\"120\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "same-site",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0"
+        })
 
-    for listing in response['vagas_similares']:
+        if response.status_code == 200:
+            content = response.json()
+            break
+        elif tries > 3:
+            raise Exception(
+                'MaxRetriesError: possible error in authentication/cookies or request body and requests don\'t return OK')
+        tries += 1
+
+    for listing in content['vagas_similares']:
         listing_title = listing['cargo']
         listing_location = listing['local_de_trabalho']
         listing_worktype = 'Remoto' if listing['modelo_local_trabalho'] == '100% Home Office' else 'Presencial/Hibrido'
@@ -125,10 +148,10 @@ def scrape_recommended_listings():
             listing_id = listing['id']
 
             company_name = listing['nome_da_empresa']
-            if (company := get_company_by_name(company_name)).platforms['vagas_com']['name'] == None:
+            if (company := get_company_by_name(company_name)).platforms['vagas_com']['name'] is None:
                 company.platforms['vagas_com']['name'] = company_name
                 company.save()
-            
+
             Listing(
                 title=listing_title,
                 location=listing_location,
@@ -138,19 +161,19 @@ def scrape_recommended_listings():
                 platform='Vagas.com',
             ).save()
 
-    for listing in response['vagas_do_dia']:
+    for listing in content['vagas_do_dia']:
         assert False, 'not implemented'
         listing_title = listing['cargo']
         listing_location = listing['local_de_trabalho']
         listing_worktype = 'Remoto' if listing['modelo_local_trabalho'] == '100% Home Office' else 'Presencial/Hibrido'
-        if filter_listing(sub(r'[\[\]\(\),./\\| ]+', ' ', unidecode(listing_title).lower()), listing_location, listing_worktype)  and not listing['exclusividade_para_pcd']:
+        if filter_listing(sub(r'[\[\]\(\),./\\| ]+', ' ', unidecode(listing_title).lower()), listing_location, listing_worktype) and not listing['exclusividade_para_pcd']:
             listing_id = listing['id']
 
             company_name = listing['nome_da_empresa']
-            if (company := get_company_by_name(company_name)).platforms['vagas_com']['name'] == None:
+            if (company := get_company_by_name(company_name)).platforms['vagas_com']['name'] is None:
                 company.platforms['vagas_com']['name'] = company_name
                 company.save()
-            
+
             Listing(
                 title=listing_title,
                 location=listing_location,
@@ -168,13 +191,15 @@ def get_followed_companies():
         'mobile': False
     })
     companies = Company.objects.all()
-    for company in filter(lambda x: x.platforms['vagas_com']['id'] == None and x.followed, companies):
+    for company in filter(lambda x: x.platforms['vagas_com']['id'] is None and x.followed, companies):
         for platform in company.platforms:
             if company.platforms[platform]['name'] not in [None, 'not_found']:
                 sleep(0.5)
-                formatted_name = sub(r'[\[\]\(\),./\\|#]+', '', unidecode(company.platforms[platform]['name'])).lower().replace(' ', '-')
-                response = session.get(f'https://www.vagas.com.br/empregos/{formatted_name}', allow_redirects=False)
-    
+                formatted_name = sub(r'[\[\]\(\),./\\|#]+', '', unidecode(
+                    company.platforms[platform]['name'])).lower().replace(' ', '-')
+                response = session.get(
+                    f'https://www.vagas.com.br/empregos/{formatted_name}', allow_redirects=False)
+
                 if response.status_code == 302:
                     continue
                 elif response.status_code != 200:
@@ -182,22 +207,22 @@ def get_followed_companies():
 
                 soup = BeautifulSoup(response.text, 'html.parser')
 
-                company.platforms['vagas_com']['id'] = response.url.replace('https://www.vagas.com.br/empregos/', '')
-                company.platforms['vagas_com']['name'] = soup.find('h1', {'class': 'titulo'}).get_text().replace('Vagas de emprego - ', '')
+                company.platforms['vagas_com']['id'] = response.url.replace(
+                    'https://www.vagas.com.br/empregos/', '')
+                company.platforms['vagas_com']['name'] = soup.find(
+                    'h1', {'class': 'titulo'}).get_text().replace('Vagas de emprego - ', '')
                 break
         else:
             if company.platforms['vagas_com']['name'] in [None, 'not_found']:
                 company.platforms['vagas_com']['id'] = 'not_found'
                 company.platforms['vagas_com']['name'] = 'not_found'
-        
+
         company.save()
 
 
 def get_jobs():
     get_followed_companies()
 
-    scrape_companies_listings()
+    get_companies_listings()
 
-    scrape_recommended_listings()
-
-    # scrape_listings_details()
+    get_recommended_listings()

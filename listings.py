@@ -1,23 +1,20 @@
-import django
+# pylint: disable=C0413
 import os
-
+import django
+# from json import load
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'django_config.settings')
 django.setup()
-
-from json import load
-# import modules.burh as burh
 import modules.linkedin as linkedin
 import modules.glassdoor as glassdoor
-# import modules.indeed as indeed
 import modules.catho as catho
 import modules.vagas_com as vagas_com
 
 
 def main():
-    configs = load(open('config.json', 'r', encoding='utf-8'))
-    # linkedin.get_jobs()
-    # glassdoor.get_jobs()
-    # catho.get_jobs()
+    # configs = load(open('config.json', 'r', encoding='utf-8'))
+    linkedin.get_jobs()
+    glassdoor.get_jobs()
+    catho.get_jobs()
     vagas_com.get_jobs()
 
 
