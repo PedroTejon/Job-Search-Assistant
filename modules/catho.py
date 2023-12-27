@@ -104,7 +104,11 @@ def get_recommended_listings(location_ids):
                 'sec-fetch-mode': 'cors',
                 'sec-fetch-site': 'same-site',
                 'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0'
-            }).json()['pageProps']
+            })
+            if listing_resp.status_code == 404:
+                continue
+            
+            listing_resp = listing_resp.json()['pageProps']
 
             listing_details = listing_resp['jobAdData']
 
@@ -137,7 +141,7 @@ def get_recommended_listings(location_ids):
 
                 company_name = listing_details['contratante']['nome'] if not listing_details[
                     'contratante']['confidencial'] else 'Confidencial'
-                if (company := get_company_by_name(company_name)).platforms['catho']['name'] is None:
+                if (company := get_company_by_name(company_name, 'catho')).platforms['catho']['name'] is None:
                     company.platforms['catho']['name'] = company_name
                     company.platforms['catho']['id'] = listing_details['empId'] if not listing_details['contratante']['confidencial'] else 'Confidencial'
                     if not company.employee_count and not listing_details['contratante']['confidencial']:

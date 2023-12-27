@@ -5,7 +5,6 @@ from time import sleep
 
 from cloudscraper import create_scraper
 from django.utils.timezone import now
-from requests import Session
 from unidecode import unidecode
 
 from interfaces.vagas_interface.models import Company, Listing
@@ -100,11 +99,13 @@ def get_job_listings(url):
             if filter_listing(sub(r'[\[\]\(\),./\\| !?#]+', ' ', unidecode(listing_title).lower()), listing_location, workplace_type):
                 if 'detailData' not in element['logo']['attributes'][0]:
                     continue
+                listing_location = sub(r'\s*\(\bPresencial\b\)|\s*\(\bHíbrido\b\)|\s*\(\bRemoto\b\)',
+                                       '', listing_location.split(',')[0].strip())
 
                 company_name = element['primaryDescription']['text']
                 company_id = element['logo']['attributes'][0]['detailData']['*companyLogo'].replace(
                     'urn:li:fsd_company:', '')
-                if (company := get_company_by_name(company_name)).platforms['linkedin']['name'] is None:
+                if (company := get_company_by_name(company_name, 'linkedin')).platforms['linkedin']['name'] is None:
                     if company_id is None:
                         company.platforms['linkedin']['id'] = company_id
                     company.platforms['linkedin']['name'] = company_name
@@ -224,18 +225,31 @@ def get_followed_companies():
     with open('data/local_storage.json', 'rb') as f_local_storage:
         profile_id = load(f_local_storage)['profile_id']
 
-    session = Session()
+    session = create_scraper()
 
     max_index = 100
     curr_index = 0
     while curr_index < max_index:
         tries = 1
         while tries <= 3:
-            response = session.get(f'https://www.linkedin.com/voyager/api/graphql?variables=(start:{curr_index},count:100,paginationToken:null,pagedListComponent:urn%3Ali%3Afsd_profilePagedListComponent%3A%28{profile_id}%2CINTERESTS_VIEW_DETAILS%2Curn%3Ali%3Afsd_profileTabSection%3ACOMPANIES_INTERESTS%2CNONE%2Cpt_BR%29)&queryId=voyagerIdentityDashProfileComponents.3efef764c5f936e8a825b8674c814b0c',
-                                   headers={
-                                       'csrf-token': token,
-                                       'cookie': COOKIES
-                                   })
+            response = session.get(f'https://www.linkedin.com/voyager/api/graphql?variables=(start:{curr_index},count:100,paginationToken:null,pagedListComponent:urn%3Ali%3Afsd_profilePagedListComponent%3A%28{profile_id}%2CINTERESTS_VIEW_DETAILS%2Curn%3Ali%3Afsd_profileTabSection%3ACOMPANIES_INTERESTS%2CNONE%2Cpt_BR%29)&queryId=voyagerIdentityDashProfileComponents.3efef764c5f936e8a825b8674c814b0c', headers={
+                "accept": "application/vnd.linkedin.normalized+json+2.1",
+                "accept-language": "pt-BR,pt;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6",
+                "cache-control": "no-cache",
+                'cookie': COOKIES,
+                'csrf-token': token,
+                "pragma": "no-cache",
+                "sec-ch-ua": "\"Not_A Brand\";v=\"8\", \"Chromium\";v=\"120\", \"Microsoft Edge\";v=\"120\"",
+                "sec-ch-ua-mobile": "?0",
+                "sec-ch-ua-platform": "\"Windows\"",
+                "sec-fetch-dest": "empty",
+                "sec-fetch-mode": "cors",
+                "sec-fetch-site": "same-origin",
+                "x-li-lang": "en_US",
+                "x-li-page-instance": "urn:li:page:d_flagship3_profile_view_base_interests_details;SMBEUWK7RWSdHCxtKcrvaw==",
+                "x-li-track": "{\"clientVersion\":\"1.13.8499\",\"mpVersion\":\"1.13.8499\",\"osName\":\"web\",\"timezoneOffset\":-3,\"timezone\":\"America/Sao_Paulo\",\"deviceFormFactor\":\"DESKTOP\",\"mpName\":\"voyager-web\",\"displayDensity\":1.25,\"displayWidth\":1920,\"displayHeight\":1080}",
+                'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0'
+            })
 
             if response.status_code == 200:
                 company_details = response.json()
@@ -244,23 +258,23 @@ def get_followed_companies():
             if tries > 3:
                 raise MaxRetriesException
 
-        max_index = company_details['data']['identityDashProfileComponentsByPagedListComponent']['paging']['total']
+        max_index = company_details['data']['data']['identityDashProfileComponentsByPagedListComponent']['paging']['total']
 
-        for element in company_details['data']['identityDashProfileComponentsByPagedListComponent']['elements']:
+        company_pfps = get_companies_pfps(filter(lambda obj: ('logo' in obj and obj['logo'] is not None and 'vectorImage' in obj['logo']) or (
+            'logoResolutionResult' in obj and obj['logoResolutionResult'] is not None and 'vectorImage' in obj['logoResolutionResult']), company_details['included']))
+
+        for element in company_details['data']['data']['identityDashProfileComponentsByPagedListComponent']['elements']:
             entity = element['components']['entityComponent']
 
             company_id = entity['textActionTarget'].replace('https://www.linkedin.com/company/', '').rstrip('/ ')
             if company_exists_by_id(company_id, 'linkedin'):
                 continue
-            company_follow_count = entity['subComponents']['components'][0]['components'][
-                'actionComponent']['action']['followingStateAction']['followingState']['followerCount']
+            company_follow_count = int(entity['caption']['text'].replace(',', '').replace(' followers', ''))
             company_name = entity['titleV2']['text']['text'].strip()
 
-            logo = entity['image']['attributes'][0]['detailData']['companyLogo']['logoResolutionResult']
-            company_image_url = logo['vectorImage']['rootUrl'] + \
-                logo['vectorImage']['artifacts'][2]['fileIdentifyingUrlPathSegment'] if logo else None
+            company_image_url = company_pfps[company_id] if company_id in company_pfps else None
 
-            if (company := get_company_by_name(company_name)).platforms['linkedin']['name'] is None:
+            if (company := get_company_by_name(company_name, 'linkedin')).platforms['linkedin']['name'] is None:
                 company.platforms['linkedin']['id'] = company_id
                 company.platforms['linkedin']['name'] = company_name
                 company.platforms['linkedin']['followers'] = company_follow_count

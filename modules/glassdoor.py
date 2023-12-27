@@ -8,7 +8,7 @@ from unidecode import unidecode
 
 from interfaces.vagas_interface.models import Company, Listing
 from modules.exceptions import MaxRetriesException
-from modules.utils import filter_listing, get_company_by_name, listing_exists
+from modules.utils import company_exists_by_id, filter_listing, get_company_by_name, listing_exists
 
 with open('data/local_storage.json', 'rb') as f:
     token = load(f)['glassdoor_csrf']
@@ -67,7 +67,7 @@ def extract_job_listings(job_listings: list):
 
         company_name = listing_header['employerNameFromSearch']
         if filter_listing(sub(r'[\[\]\(\),./\\| ]+', ' ', unidecode(listing_title).lower()), listing_location, listing_worktype):
-            if (company := get_company_by_name(company_name)).platforms['glassdoor']['name'] is None:
+            if (company := get_company_by_name(company_name, 'glassdoor')).platforms['glassdoor']['name'] is None:
                 company.platforms['glassdoor']['name'] = company_name
                 if 'employer' in listing['jobview']['header']:
                     company.platforms['glassdoor']['id'] = str(
@@ -123,7 +123,7 @@ def get_companies_listings():
 def get_recommended_listings():
     cursor = None
     for page in range(20):
-        response = job_listings_request(cursor, 'query JobRecommendationsQuery($numJobsToShow: Int!, $pageNumber: Int, $pageCursor: String) {\n  jobListings(\n    contextHolder: {adSlotName: \'forYou-jobs-lsr\', searchParams: {numPerPage: $numJobsToShow, searchType: REC_JOBS, pageNumber: $pageNumber, pageCursor: $pageCursor}}\n  ) {\n    indeedCtk\n    jobListings {\n      ...JobView\n      __typename\n    }\n    jobSearchTrackingKey\n    paginationCursors {\n      cursor\n      pageNumber\n      __typename\n    }\n    searchResultsMetadata {\n      footerVO {\n        countryMenu {\n          childNavigationLinks {\n            id\n            link\n            textKey\n            __typename\n          }\n          __typename\n        }\n        __typename\n      }\n      helpCenterDomain\n      helpCenterLocale\n      __typename\n    }\n    jobsPageSeoData {\n      pageMetaDescription\n      __typename\n    }\n    __typename\n  }\n}\n\nfragment JobView on JobListingSearchResult {\n  jobview {\n    header {\n      adOrderId\n      advertiserType\n      adOrderSponsorshipLevel\n      ageInDays\n      divisionEmployerName\n      easyApply\n      employer {\n        id\n        name\n        shortName\n        __typename\n      }\n      employerNameFromSearch\n      goc\n      gocConfidence\n      gocId\n      jobCountryId\n      jobLink\n      jobResultTrackingKey\n      jobTitleText\n      locationName\n      locationType\n      locId\n      needsCommission\n      payCurrency\n      payPeriod\n      payPeriodAdjustedPay {\n        p10\n        p50\n        p90\n        __typename\n      }\n      rating\n      salarySource\n      savedJobId\n      seoJobLink\n      sponsored\n      __typename\n    }\n    job {\n      descriptionFragments\n      importConfigId\n      jobTitleId\n      jobTitleText\n      listingId\n      __typename\n    }\n    jobListingAdminDetails {\n      cpcVal\n      importConfigId\n      jobListingId\n      jobSourceId\n      userEligibleForAdminJobDetails\n      __typename\n    }\n    overview {\n      shortName\n      squareLogoUrl\n      __typename\n    }\n    __typename\n  }\n  __typename\n}\n', 'JobRecommendationsQuery', {
+        response = job_listings_request(cursor, 'query JobRecommendationsQuery($numJobsToShow: Int!, $pageNumber: Int, $pageCursor: String) {\n  jobListings(\n    contextHolder: {adSlotName: \"forYou-jobs-lsr\", searchParams: {numPerPage: $numJobsToShow, searchType: REC_JOBS, pageNumber: $pageNumber, pageCursor: $pageCursor}}\n  ) {\n    indeedCtk\n    jobListings {\n      ...JobView\n      __typename\n    }\n    jobSearchTrackingKey\n    paginationCursors {\n      cursor\n      pageNumber\n      __typename\n    }\n    searchResultsMetadata {\n      footerVO {\n        countryMenu {\n          childNavigationLinks {\n            id\n            link\n            textKey\n            __typename\n          }\n          __typename\n        }\n        __typename\n      }\n      helpCenterDomain\n      helpCenterLocale\n      __typename\n    }\n    jobsPageSeoData {\n      pageMetaDescription\n      __typename\n    }\n    __typename\n  }\n}\n\nfragment JobView on JobListingSearchResult {\n  jobview {\n    header {\n      adOrderId\n      advertiserType\n      adOrderSponsorshipLevel\n      ageInDays\n      divisionEmployerName\n      easyApply\n      employer {\n        id\n        name\n        shortName\n        __typename\n      }\n      employerNameFromSearch\n      goc\n      gocConfidence\n      gocId\n      jobCountryId\n      jobLink\n      jobResultTrackingKey\n      jobTitleText\n      locationName\n      locationType\n      locId\n      needsCommission\n      payCurrency\n      payPeriod\n      payPeriodAdjustedPay {\n        p10\n        p50\n        p90\n        __typename\n      }\n      rating\n      salarySource\n      savedJobId\n      seoJobLink\n      sponsored\n      __typename\n    }\n    job {\n      descriptionFragments\n      importConfigId\n      jobTitleId\n      jobTitleText\n      listingId\n      __typename\n    }\n    jobListingAdminDetails {\n      cpcVal\n      importConfigId\n      jobListingId\n      jobSourceId\n      userEligibleForAdminJobDetails\n      __typename\n    }\n    overview {\n      shortName\n      squareLogoUrl\n      __typename\n    }\n    __typename\n  }\n  __typename\n}\n', 'JobRecommendationsQuery', {
             'numJobsToShow': 50,
             'originalPageUrl': 'https://www.glassdoor.com.br/Vaga/index.htm'
         })
@@ -183,7 +183,7 @@ def get_followed_companies():
                                })
         content = response.json()
 
-        if len(content):
+        if len(content) and not company_exists_by_id(str(content[0]['id']), 'glassdoor'):
             company.platforms['glassdoor']['id'] = str(content[0]['id'])
             company.platforms['glassdoor']['name'] = content[0]['label']
         else:

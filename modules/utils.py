@@ -1,7 +1,4 @@
 from json import load
-from re import sub
-
-from django.db.models import Q
 
 from interfaces.vagas_interface.models import Company, Listing
 
@@ -22,9 +19,16 @@ def company_exists_by_id(c_id, platform) -> bool:
     return False
 
 
-def get_company_by_name(c_name) -> Company:
+def get_company_by_name(c_name, platform) -> Company:
     try:
-        return Company.objects.get(Q(platforms__linkedin__name__iexact=c_name) | Q(platforms__glassdoor__name__iexact=c_name) | Q(platforms__catho__name__iexact=c_name))
+        if platform == 'linkedin':
+            return Company.objects.get(platforms__linkedin__name__iexact=c_name)
+        if platform == 'glassdoor':
+            return Company.objects.get(platforms__glassdoor__name__iexact=c_name)
+        if platform == 'catho':
+            return Company.objects.get(platforms__catho__name__iexact=c_name)
+        if platform == 'vagas.com':
+            return Company.objects.get(platforms__vagas_com__name__iexact=c_name)
     except Company.DoesNotExist:
         return Company()
 
@@ -34,8 +38,6 @@ def listing_exists(c_id) -> bool:
 
 
 def filter_listing(title, location, workplace_type) -> bool:
-    location = sub(
-        r'\s*\(\bPresencial\b\)|\s*\(\bHíbrido\b\)|\s*\(\bRemoto\b\)', '', location)
     if location.count(',') == 2:
         city, state, country = location.split(', ')
     elif location.count(',') == 1:

@@ -28,6 +28,9 @@ def setup():
             try:
                 with open('data/cookies.json', 'rb') as f:
                     cookies = load(f)
+                with open('data/local_storage.json', 'rb') as f:
+                    local_storage = load(f)
+                 
             except JSONDecodeError:
                 if input('Arquivo de cookies inválido, criar novo arquivo vazio? (Sim/Não) ').lower() in ['sim', 's']:
                     cookies = {
@@ -36,6 +39,7 @@ def setup():
                         'catho': [],
                         'vagas.com': []
                     }
+                    local_storage = {}
                 else:
                     return
         else:
@@ -45,8 +49,8 @@ def setup():
                 'catho': [],
                 'vagas.com': []
             }
-
-        local_storage = {}
+            local_storage = {}
+        
         if input('Deseja logar com sua conta do Linkedin? (Sim/Não) ').lower() in ['sim', 's']:
             cookies['linkedin'] = []
             with driver.expect_response(lambda x: 'https://www.linkedin.com/feed/?trk=homepage-basic_sign-in-submit' in x.url and x.status == 200, timeout=0) as response:
@@ -63,9 +67,7 @@ def setup():
             with driver.expect_response(lambda x: 'https://www.glassdoor.com.br/Vaga/index.htm' in x.url and x.status == 200, timeout=0) as response:
                 driver.goto('https://www.glassdoor.com.br/')
             print('Conta do Glassdoor conectada com sucesso')
-
-            driver.goto('https://www.glassdoor.com.br/Vaga/index.htm',
-                        wait_until='load')
+            
             soup = BeautifulSoup(response.value.text(), 'html.parser')
             data_element = soup.find('script', {'id': '__NEXT_DATA__'})
             data = loads(data_element.get_text())['props']['pageProps']

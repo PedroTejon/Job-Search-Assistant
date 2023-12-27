@@ -148,7 +148,7 @@ def get_recommended_listings():
             listing_id = listing['id']
 
             company_name = listing['nome_da_empresa']
-            if (company := get_company_by_name(company_name)).platforms['vagas_com']['name'] is None:
+            if (company := get_company_by_name(company_name, 'vagas.com')).platforms['vagas_com']['name'] is None:
                 company.platforms['vagas_com']['name'] = company_name
                 company.save()
 
@@ -169,7 +169,7 @@ def get_recommended_listings():
             listing_id = listing['id']
 
             company_name = listing['nome_da_empresa']
-            if (company := get_company_by_name(company_name)).platforms['vagas_com']['name'] is None:
+            if (company := get_company_by_name(company_name, 'vagas.com')).platforms['vagas_com']['name'] is None:
                 company.platforms['vagas_com']['name'] = company_name
                 company.save()
 
