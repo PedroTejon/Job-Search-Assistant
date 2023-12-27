@@ -107,7 +107,7 @@ def get_recommended_listings(location_ids):
             })
             if listing_resp.status_code == 404:
                 continue
-            
+
             listing_resp = listing_resp.json()['pageProps']
 
             listing_details = listing_resp['jobAdData']

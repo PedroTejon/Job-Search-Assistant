@@ -1,0 +1,54 @@
+* {
+    margin: 0;
+    font-family: 'Rubik', sans-serif;
+}
+
+body {
+    overflow: hidden;
+}
+
+
+#listings_sidebar {
+    width: 20vw;
+    height: 90vh;
+
+    overflow: scroll;
+    overflow-x: hidden;
+}
+
+.listing {
+    display: flex;
+    flex-direction: column;
+
+    padding: 10px;
+    border-bottom: 2px gray solid;
+
+    &:last-child {
+        border-bottom: none;
+    } 
+
+    & i {
+        display: flex;
+
+        justify-content: flex-end;
+    }
+}
+
+.listing_title {
+    font-size: 18px;
+}
+
+.listing_company {
+    font-size: 14px;
+}
+
+.listing_condition {
+    font-size: 12px;
+}
+
+.icon_container {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-end;
+    gap: 5px;
+}

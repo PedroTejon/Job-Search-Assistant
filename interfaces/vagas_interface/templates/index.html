@@ -1,17 +1,48 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        
+    <head>        
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Document</title>
         <script src="{% static 'script.js' %}"></script>
         <link rel="stylesheet" href="{% static 'style.css' %}">
+        <script src="https://kit.fontawesome.com/fb813e9d63.js" crossorigin="anonymous"></script>
     </head>
     <body>
         <!-- <button onclick="teste()">tstetetet</button>
 
-        <button onclick="teste2()">tstetetet</button> -->
+        <button onclick="teste2()">tstetetet</button>
+
+        <a href=""></a> -->
+
+        <div id="listings_sidebar">
+            {% for listing in listings %}
+                <div class="listing">
+                    <p class="listing_title">{{listing.title}}</p>
+                    <p class="listing_company">{{listing.company_name}}</p>
+                    {% if listing.workplace_type != 'Remoto' %}
+                        <p class="listing_condition">{{listing.location}}</p>
+                        <div class="icon_container">
+                            <i class="fa-solid fa-briefcase" title="Presencial/Híbrido"></i>
+                    {% else %}
+                        <p class="listing_condition">Remoto</p>
+                        <div class="icon_container">
+                            <i class="fa-solid fa-laptop" title="Remoto"></i>
+                    {% endif %}
+                    {% if listing.platform == 'Glassdoor' %}
+                        <img src="{% static 'glassdoor.svg' %}" width="16" height="16" color="black" title="Vaga postada no Glassdoor">
+                    {% elif listing.platform == 'LinkedIn' %}
+                        <i class="fa-brands fa-linkedin" title="Vaga postada no LinkedIn"></i>
+                    {% elif listing.platform == 'Catho' %}
+                        <img src="{% static 'catho.svg' %}" width="16" height="16" color="black" title="Vaga postada na Catho">
+                    {% elif listing.platform == 'Vagas.com' %}
+                        <img src="{% static 'vagas_com.svg' %}" width="16" height="16" color="black" title="Vaga postada no Vagas.com">
+                    {% endif %}
+
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
     </body>
 </html>
