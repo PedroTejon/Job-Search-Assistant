@@ -1,6 +1,9 @@
-from datetime import timedelta, datetime
-from django.utils.timezone import now, make_aware
-from django.db.models import Model, JSONField, PositiveIntegerField, TextField, AutoField, BooleanField, ForeignKey, CASCADE
+from datetime import datetime, timedelta
+
+from django.db.models import (CASCADE, AutoField, BooleanField, ForeignKey,
+                              JSONField, Model, PositiveIntegerField,
+                              TextField)
+from django.utils.timezone import make_aware, now
 
 
 class Company(Model):
@@ -12,7 +15,7 @@ class Company(Model):
     employee_count: PositiveIntegerField = PositiveIntegerField(null=True)
     followed: BooleanField = BooleanField(default=False)
 
-    def get_default_platforms(self) -> dict:
+    def get_default_platforms() -> dict:  # pylint: disable=E0211
         return {
             'linkedin': {
                 'id': None,
@@ -42,7 +45,7 @@ class Company(Model):
     def checked_recently(self, platform) -> bool:
         # pylint: disable=E1136
         return now() < make_aware(datetime.strptime(self.platforms[platform]['last_check'], '%Y-%m-%dT%H:%M:%S')) + timedelta(days=1) \
-            if self.platforms[platform]['last_check'] else False # pylint:
+            if self.platforms[platform]['last_check'] else False
 
     def __str__(self) -> str:
         return f'{{\n"id": "{self.id}"\n"image": "{self.image_url}",\n"employee_count": {self.employee_count},\n"followed": {self.followed},\n"platforms": {self.platforms}}}'

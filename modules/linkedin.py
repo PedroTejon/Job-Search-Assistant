@@ -1,13 +1,17 @@
-from json import load
-from time import sleep
-from re import sub
 from datetime import datetime
+from json import load
+from re import sub
+from time import sleep
+
+from cloudscraper import create_scraper
+from django.utils.timezone import now
 from requests import Session
 from unidecode import unidecode
-from django.utils.timezone import now
-from cloudscraper import create_scraper
-from modules.utils import filter_listing, company_exists_by_id, listing_exists, get_company_by_name
+
 from interfaces.vagas_interface.models import Company, Listing
+from modules.exceptions import MaxRetriesException
+from modules.utils import (company_exists_by_id, filter_listing,
+                           get_company_by_name, listing_exists)
 
 
 def get_csrf_token():
@@ -15,12 +19,28 @@ def get_csrf_token():
         if cookie['name'] == 'JSESSIONID' and 'linkedin' in cookie['domain']:
             return cookie['value'].strip('"')
 
+    return ''
 
-cookies_json = load(open('data/cookies.json', 'r',
-                    encoding='utf-8'))['linkedin']
-COOKIES = ';'.join(
-    [f"{cookie['name']}={cookie['value']}" for cookie in cookies_json])
+
+with open('data/cookies.json', 'rb') as f:
+    cookies_json = load(f)['linkedin']
+COOKIES = ';'.join([f"{cookie['name']}={cookie['value']}" for cookie in cookies_json])
 token = get_csrf_token()
+
+
+def get_companies_pfps(companies_json):
+    companies_pfps = {}
+    for company_json in companies_json:
+        company_id = company_json['entityUrn'].replace('urn:li:fsd_company:', '')
+        if 'logo' in company_json:
+            logo_url = company_json['logo']['vectorImage']['rootUrl'] + \
+                company_json['logo']['vectorImage']['artifacts'][2]['fileIdentifyingUrlPathSegment']
+        else:
+            logo_url = company_json['logoResolutionResult']['vectorImage']['rootUrl'] + \
+                company_json['logoResolutionResult']['vectorImage']['artifacts'][2]['fileIdentifyingUrlPathSegment']
+        companies_pfps[company_id] = logo_url
+
+    return companies_pfps
 
 
 def get_job_listings(url):
@@ -37,42 +57,39 @@ def get_job_listings(url):
             break
 
         response = session.get(url + f'&start={25 * page}', headers={
-            "accept": "application/vnd.linkedin.normalized+json+2.1",
-            "accept-language": "pt-BR,pt;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6",
-            "cache-control": "no-cache",
-            "csrf-token": token,
-            "cookie": COOKIES,
-            "pragma": "no-cache",
-            "sec-ch-ua": "\"Microsoft Edge\";v=\"119\", \"Chromium\";v=\"119\", \"Not?A_Brand\";v=\"24\"",
-            "sec-ch-ua-mobile": "?0",
-            "sec-ch-ua-platform": "\"Windows\"",
-            "sec-fetch-dest": "empty",
-            "sec-fetch-mode": "cors",
-            "sec-fetch-site": "same-origin",
-            "x-li-deco-include-micro-schema": "true",
-            "x-li-lang": "pt_BR",
-            "x-li-page-instance": "urn:li:page:d_flagship3_search_srp_jobs;xhW+cLKCSmyQdAS+CI2l+Q==",
-            "x-li-pem-metadata": "Voyager - Careers=jobs-search-results",
-            "x-li-track": "{\"clientVersion\":\"1.13.7689\",\"mpVersion\":\"1.13.7689\",\"osName\":\"web\",\"timezoneOffset\":-3,\"timezone\":\"America/Sao_Paulo\",\"deviceFormFactor\":\"DESKTOP\",\"mpName\":\"voyager-web\",\"displayDensity\":1.25,\"displayWidth\":1920,\"displayHeight\":1080}",
-            "x-restli-protocol-version": "2.0.0",
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0"})
+            'accept': 'application/vnd.linkedin.normalized+json+2.1',
+            'accept-language': 'pt-BR,pt;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+            'cache-control': 'no-cache',
+            'csrf-token': token,
+            'cookie': COOKIES,
+            'pragma': 'no-cache',
+            'sec-ch-ua': '\"Microsoft Edge\";v=\"119\", \"Chromium\";v=\"119\", \"Not?A_Brand\";v=\"24\"',
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-platform': '\"Windows\"',
+            'sec-fetch-dest': 'empty',
+            'sec-fetch-mode': 'cors',
+            'sec-fetch-site': 'same-origin',
+            'x-li-deco-include-micro-schema': 'true',
+            'x-li-lang': 'pt_BR',
+            'x-li-page-instance': 'urn:li:page:d_flagship3_search_srp_jobs;xhW+cLKCSmyQdAS+CI2l+Q==',
+            'x-li-pem-metadata': 'Voyager - Careers=jobs-search-results',
+            'x-li-track': '{\"clientVersion\":\"1.13.7689\",\"mpVersion\":\"1.13.7689\",\"osName\":\"web\",\"timezoneOffset\":-3,\"timezone\":\"America/Sao_Paulo\",\"deviceFormFactor\":\"DESKTOP\",\"mpName\":\"voyager-web\",\"displayDensity\":1.25,\"displayWidth\":1920,\"displayHeight\":1080}',
+            'x-restli-protocol-version': '2.0.0',
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0'})
+
         if response.status_code in [400, 429]:
             sleep(1)
             continue
 
         curr_count = total_job_listings
         response = response.json()
-        company_pfps = {company_json['entityUrn'].replace('urn:li:fsd_company:', ''):
-                        company_json['logo']['vectorImage']['rootUrl'] +
-                        company_json['logo']['vectorImage']['artifacts'][2]['fileIdentifyingUrlPathSegment']
-                        if 'logo' in company_json else company_json['logoResolutionResult']['vectorImage']['rootUrl'] + company_json['logoResolutionResult']['vectorImage']['artifacts'][2]['fileIdentifyingUrlPathSegment']
-                        for company_json in filter(lambda obj: ('logo' in obj and obj['logo'] is not None and 'vectorImage' in obj['logo']) or ('logoResolutionResult' in obj and obj['logoResolutionResult'] is not None and 'vectorImage' in obj['logoResolutionResult']), response['included'])}
+        company_pfps = get_companies_pfps(filter(lambda obj: ('logo' in obj and obj['logo'] is not None and 'vectorImage' in obj['logo']) or (
+            'logoResolutionResult' in obj and obj['logoResolutionResult'] is not None and 'vectorImage' in obj['logoResolutionResult']), response['included']))
 
         for element in filter(lambda obj: 'preDashNormalizedJobPostingUrn' in obj, response['included']):
             total_job_listings += 1
 
-            listing_id = element['preDashNormalizedJobPostingUrn'].replace(
-                'urn:li:fs_normalized_jobPosting:', '')
+            listing_id = element['preDashNormalizedJobPostingUrn'].replace('urn:li:fs_normalized_jobPosting:', '')
             if listing_exists(listing_id):
                 continue
 
@@ -120,10 +137,9 @@ def get_companies_listings():
     if companies:
         for company in companies:
             get_job_listings(
-                f'https://www.linkedin.com/voyager/api/voyagerJobsDashJobCards?decorationId=com.linkedin.voyager.dash.deco.jobs.search.JobSearchCardsCollection-191&count=25&q=jobSearch&query=(origin:JOB_SEARCH_PAGE_OTHER_ENTRY,locationUnion:(geoId:92000000),selectedFilters:(company:List({company.platforms["linkedin"]["id"]}),countryRegion:List(106057199)),spellCorrectionEnabled:true)')
+                f"https://www.linkedin.com/voyager/api/voyagerJobsDashJobCards?decorationId=com.linkedin.voyager.dash.deco.jobs.search.JobSearchCardsCollection-191&count=25&q=jobSearch&query=(origin:JOB_SEARCH_PAGE_OTHER_ENTRY,locationUnion:(geoId:92000000),selectedFilters:(company:List({company.platforms['linkedin']['id']}),countryRegion:List(106057199)),spellCorrectionEnabled:true)")
 
-            company.platforms['linkedin']['last_check'] = now().strftime(
-                "%Y-%m-%dT%H:%M:%S")
+            company.platforms['linkedin']['last_check'] = now().strftime('%Y-%m-%dT%H:%M:%S')
             company.save()
 
 
@@ -134,7 +150,8 @@ def get_remote_listings():
 def get_listing_details(listing):
     listing_id = listing.platform_id
 
-    while tries := 1:
+    tries = 1
+    while tries <= 3:
         sleep(0.2)
 
         session = create_scraper(browser={
@@ -144,58 +161,53 @@ def get_listing_details(listing):
         })
 
         response = session.get(f'https://www.linkedin.com/voyager/api/jobs/jobPostings/{listing_id}?decorationId=com.linkedin.voyager.deco.jobs.web.shared.WebFullJobPosting-65&topN=1&topNRequestedFlavors=List(TOP_APPLICANT,IN_NETWORK,COMPANY_RECRUIT,SCHOOL_RECRUIT,HIDDEN_GEM,ACTIVELY_HIRING_COMPANY)', headers={
-            "cookie": COOKIES,
-            "accept": "application/vnd.linkedin.normalized+json+2.1",
-            "accept-language": "pt-BR,pt;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6",
-            "cache-control": "no-cache",
-            "csrf-token": token,
-            "pragma": "no-cache",
-            "sec-ch-ua": "\"Microsoft Edge\";v=\"119\", \"Chromium\";v=\"119\", \"Not?A_Brand\";v=\"24\"",
-            "sec-ch-ua-mobile": "?0",
-            "sec-ch-ua-platform": "\"Windows\"",
-            "sec-fetch-dest": "empty",
-            "sec-fetch-mode": "cors",
-            "sec-fetch-site": "same-origin",
-            "x-li-lang": "pt_BR",
-            "x-li-page-instance": "urn:li:page:d_flagship3_jobs_discovery_jymbii;ycV3lFUlTMONvjhem4yCrw==",
-            "x-li-track": "{\"clientVersion\":\"1.13.7689\",\"mpVersion\":\"1.13.7689\",\"osName\":\"web\",\"timezoneOffset\":-3,\"timezone\":\"America/Sao_Paulo\",\"deviceFormFactor\":\"DESKTOP\",\"mpName\":\"voyager-web\",\"displayDensity\":1.25,\"displayWidth\":1920,\"displayHeight\":1080}",
-            "x-restli-protocol-version": "2.0.0",
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0"
+            'cookie': COOKIES,
+            'accept': 'application/vnd.linkedin.normalized+json+2.1',
+            'accept-language': 'pt-BR,pt;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+            'cache-control': 'no-cache',
+            'csrf-token': token,
+            'pragma': 'no-cache',
+            'sec-ch-ua': '\"Microsoft Edge\";v=\"119\", \"Chromium\";v=\"119\", \"Not?A_Brand\";v=\"24\"',
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-platform': '\"Windows\"',
+            'sec-fetch-dest': 'empty',
+            'sec-fetch-mode': 'cors',
+            'sec-fetch-site': 'same-origin',
+            'x-li-lang': 'pt_BR',
+            'x-li-page-instance': 'urn:li:page:d_flagship3_jobs_discovery_jymbii;ycV3lFUlTMONvjhem4yCrw==',
+            'x-li-track': '{\"clientVersion\":\"1.13.7689\",\"mpVersion\":\"1.13.7689\",\"osName\":\"web\",\"timezoneOffset\":-3,\"timezone\":\"America/Sao_Paulo\",\"deviceFormFactor\":\"DESKTOP\",\"mpName\":\"voyager-web\",\"displayDensity\":1.25,\"displayWidth\":1920,\"displayHeight\":1080}',
+            'x-restli-protocol-version': '2.0.0',
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0'
         })
 
         if response.status_code == 200:
             response = response.json()
             break
-        elif tries > 3:
-            raise Exception(
-                'MaxRetriesError: possible error in authentication/cookies or request body and requests don\'t return OK')
         tries += 1
+        if tries > 3:
+            raise MaxRetriesException
 
     listing_description = response['data']['description']['text']
     for attribute in sorted(response['data']['description']['attributes'], key=lambda x: x['start'], reverse=True):
         curr_index = attribute['start']
+        before_text = listing_description[:curr_index]
+        text = listing_description[curr_index:curr_index + attribute['length']]
+        after_text = listing_description[curr_index + attribute['length']:]
         if attribute['type']['$type'] == 'com.linkedin.pemberly.text.LineBreak':
-            listing_description = listing_description[:curr_index] + \
-                '\n' + listing_description[curr_index:]
+            listing_description = before_text + '\n' + listing_description[curr_index:]
         elif attribute['type']['$type'] == 'com.linkedin.pemberly.text.ListItem':
-            listing_description = listing_description[:curr_index] + '• ' + listing_description[curr_index:curr_index +
-                                                                                                attribute['length']] + '\n' + listing_description[curr_index + attribute['length']:]
+            listing_description = before_text + '• ' + text + '\n' + after_text
         elif attribute['type']['$type'] == 'com.linkedin.pemberly.text.Bold':
-            listing_description = listing_description[:curr_index] + '**' + listing_description[curr_index: curr_index +
-                                                                                                attribute['length']] + '**' + listing_description[curr_index + attribute['length']:]
+            listing_description = before_text + '**' + text + '**' + after_text
         elif attribute['type']['$type'] == 'com.linkedin.pemberly.text.Italic':
-            listing_description = listing_description[:curr_index] + '__' + listing_description[curr_index: curr_index +
-                                                                                                attribute['length']] + '__' + listing_description[curr_index + attribute['length']:]
+            listing_description = before_text + '__' + text + '__' + after_text
 
-    listing_description = sub(
-        '\n{2,}*{2}\n{2,}', '**\n\n',  listing_description)
-    listing_description = sub(
-        '\n{2,}_{2}\n{2,}', '__\n\n', listing_description)
+    listing_description = sub('\n{2,}\*{2}\n{2,}', '**\n\n', listing_description)  # pylint: disable=W1401
+    listing_description = sub('\n{2,}_{2}\n{2,}', '__\n\n', listing_description)
     listing.description = sub('\n{3,}', '\n\n', listing_description)
 
     listing.applies = response['data']['applies']
-    listing.publication_date = datetime.fromtimestamp(
-        response['data']['listedAt'] / 1000).strftime("%Y-%m-%dT%H:%M:%S")
+    listing.publication_date = datetime.fromtimestamp(response['data']['listedAt'] / 1000).strftime('%Y-%m-%dT%H:%M:%S')
 
     company = listing.company
     for element in response['included']:
@@ -209,33 +221,35 @@ def get_listing_details(listing):
 
 
 def get_followed_companies():
-    profile_id = load(open('data/local_storage.json', 'r',
-                      encoding='utf-8'))['profile_id']
+    with open('data/local_storage.json', 'rb') as f_local_storage:
+        profile_id = load(f_local_storage)['profile_id']
 
     session = Session()
 
     max_index = 100
     curr_index = 0
     while curr_index < max_index:
-        while tries := 1:
-            response = session.get(f'https://www.linkedin.com/voyager/api/graphql?variables=(start:{curr_index},count:100,paginationToken:null,pagedListComponent:urn%3Ali%3Afsd_profilePagedListComponent%3A%28{profile_id}%2CINTERESTS_VIEW_DETAILS%2Curn%3Ali%3Afsd_profileTabSection%3ACOMPANIES_INTERESTS%2CNONE%2Cpt_BR%29)&queryId=voyagerIdentityDashProfileComponents.3efef764c5f936e8a825b8674c814b0c', headers={
-                                   'csrf-token': token, 'cookie': COOKIES})
+        tries = 1
+        while tries <= 3:
+            response = session.get(f'https://www.linkedin.com/voyager/api/graphql?variables=(start:{curr_index},count:100,paginationToken:null,pagedListComponent:urn%3Ali%3Afsd_profilePagedListComponent%3A%28{profile_id}%2CINTERESTS_VIEW_DETAILS%2Curn%3Ali%3Afsd_profileTabSection%3ACOMPANIES_INTERESTS%2CNONE%2Cpt_BR%29)&queryId=voyagerIdentityDashProfileComponents.3efef764c5f936e8a825b8674c814b0c',
+                                   headers={
+                                       'csrf-token': token,
+                                       'cookie': COOKIES
+                                   })
 
             if response.status_code == 200:
                 company_details = response.json()
                 break
-            elif tries > 3:
-                raise Exception(
-                    'MaxRetriesError: possible error in authentication/cookies or request body and requests don\'t return OK')
             tries += 1
+            if tries > 3:
+                raise MaxRetriesException
 
         max_index = company_details['data']['identityDashProfileComponentsByPagedListComponent']['paging']['total']
 
         for element in company_details['data']['identityDashProfileComponentsByPagedListComponent']['elements']:
             entity = element['components']['entityComponent']
 
-            company_id = entity['textActionTarget'].replace(
-                'https://www.linkedin.com/company/', '').rstrip('/ ')
+            company_id = entity['textActionTarget'].replace('https://www.linkedin.com/company/', '').rstrip('/ ')
             if company_exists_by_id(company_id, 'linkedin'):
                 continue
             company_follow_count = entity['subComponents']['components'][0]['components'][
