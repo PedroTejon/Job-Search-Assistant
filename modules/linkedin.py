@@ -194,21 +194,47 @@ def get_listing_details(listing):
         before_text = listing_description[:curr_index]
         text = listing_description[curr_index:curr_index + attribute['length']]
         after_text = listing_description[curr_index + attribute['length']:]
-        if attribute['type']['$type'] == 'com.linkedin.pemberly.text.LineBreak':
-            listing_description = before_text + '\n' + listing_description[curr_index:]
-        elif attribute['type']['$type'] == 'com.linkedin.pemberly.text.ListItem':
-            listing_description = before_text + '• ' + text + '\n' + after_text
+        if attribute['type']['$type'] == 'com.linkedin.pemberly.text.ListItem':
+            listing_description = before_text + '<li>' + text + '</li>' + after_text
+            curr_index -= 6
         elif attribute['type']['$type'] == 'com.linkedin.pemberly.text.Bold':
-            listing_description = before_text + '**' + text + '**' + after_text
+            listing_description = before_text + '<b>' + text + '</b>' + \
+                listing_description[curr_index + attribute['length']:]
+            curr_index -= 4
         elif attribute['type']['$type'] == 'com.linkedin.pemberly.text.Italic':
-            listing_description = before_text + '__' + text + '__' + after_text
+            listing_description = before_text + '<i>' + text + '</i>' + after_text
+            curr_index -= 4
 
-    listing_description = sub('\n{2,}\*{2}\n{2,}', '**\n\n', listing_description)  # pylint: disable=W1401
-    listing_description = sub('\n{2,}_{2}\n{2,}', '__\n\n', listing_description)
-    listing.description = sub('\n{3,}', '\n\n', listing_description)
+    listing.description = listing_description.replace('\n', '<br>')
 
     listing.applies = response['data']['applies']
     listing.publication_date = datetime.fromtimestamp(response['data']['listedAt'] / 1000).strftime('%Y-%m-%dT%H:%M:%S')
+
+    application_url_response = session.get(f'https://www.linkedin.com/voyager/api/graphql?includeWebMetadata=true&variables=(cardSectionTypes:List(TOP_CARD),jobPostingUrn:urn%3Ali%3Afsd_jobPosting%3A{listing_id},includeSecondaryActionsV2:true)&queryId=voyagerJobsDashJobPostingDetailSections.7a099d4cd4fe903e01deac5893fc08d0', headers={
+        'cookie': COOKIES,
+        'accept': 'application/vnd.linkedin.normalized+json+2.1',
+        'accept-language': 'pt-BR,pt;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+        'cache-control': 'no-cache',
+        'csrf-token': token,
+        'pragma': 'no-cache',
+        'sec-ch-ua': '\"Microsoft Edge\";v=\"119\", \"Chromium\";v=\"119\", \"Not?A_Brand\";v=\"24\"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '\"Windows\"',
+        'sec-fetch-dest': 'empty',
+        'sec-fetch-mode': 'cors',
+        'sec-fetch-site': 'same-origin',
+        'x-li-lang': 'pt_BR',
+        'x-li-page-instance': 'urn:li:page:d_flagship3_jobs_discovery_jymbii;ycV3lFUlTMONvjhem4yCrw==',
+        'x-li-track': '{\"clientVersion\":\"1.13.7689\",\"mpVersion\":\"1.13.7689\",\"osName\":\"web\",\"timezoneOffset\":-3,\"timezone\":\"America/Sao_Paulo\",\"deviceFormFactor\":\"DESKTOP\",\"mpName\":\"voyager-web\",\"displayDensity\":1.25,\"displayWidth\":1920,\"displayHeight\":1080}',
+        'x-restli-protocol-version': '2.0.0',
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0'
+    })
+    if application_url_response.status_code == 200:
+        listing.application_url = list(filter(lambda element: 'companyApplyUrl' in element,
+                                       application_url_response.json()['included']))[0]['companyApplyUrl']
+
+    if listing.application_url is None:
+        listing.application_url = f'https://www.linkedin.com/jobs/view/{listing_id}/'
 
     company = listing.company
     for element in response['included']:
