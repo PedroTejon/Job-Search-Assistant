@@ -4,13 +4,51 @@
 }
 
 body {
+    height: 100vh;
+    width: 100vw;
     overflow: hidden;
 }
 
+#app_container {
+    width: 100%;
+    height: 100%;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+#header {
+    width: 100%;
+    height: 7.5%;
+}
+
+#listings_section {
+    width: 100%;
+    height: 92%;
+
+    display: flex;
+    flex-direction: column;
+}
+
+#listings_filters {
+    width: 100%;
+    flex-grow: 1;
+
+    border-bottom: 1px black solid;
+}
+
+#listings_view {
+    width: 100%;
+    height: 90%;   
+
+    display: flex;
+    flex-direction: row;
+}
 
 #listings_sidebar {
-    width: 20vw;
-    height: 90vh;
+    width: 25vw;
+    height: 100%;
 
     overflow: scroll;
     overflow-x: hidden;
@@ -23,6 +61,8 @@ body {
     padding: 10px;
     border-bottom: 2px gray solid;
 
+    cursor: pointer;
+
     &:last-child {
         border-bottom: none;
     } 
@@ -32,6 +72,10 @@ body {
 
         justify-content: flex-end;
     }
+}
+
+.listing_title {
+    font-size: 18px;
 }
 
 .listing_title {
@@ -51,4 +95,44 @@ body {
     flex-direction: row;
     justify-content: flex-end;
     gap: 5px;
+}
+
+#listings_pagination {
+    display: flex;
+    justify-content: center;
+    gap: 0.5vw;
+}
+
+#listing_details {
+    width: 74vw;
+
+    display: flex;
+    flex-direction: column;
+
+    padding: 2vw;
+
+    border-left: 1px solid black;
+
+    overflow-y: auto;
+}
+
+#listing_title_det {
+    font-size: 24px;
+    font-weight: 700;
+}
+
+#apply_button {
+    height: 7.5vh; 
+    width: 10vw; 
+    
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+
+    background-color: #6767c2; 
+    color: white; 
+
+    border-radius: 15px; 
+
+    text-decoration: none;
 }

@@ -1,4 +1,5 @@
 {% load static %}
+
 <!DOCTYPE html>
 <html lang="en">
     <head>        
@@ -10,39 +11,115 @@
         <script src="https://kit.fontawesome.com/fb813e9d63.js" crossorigin="anonymous"></script>
     </head>
     <body>
+        
         <!-- <button onclick="teste()">tstetetet</button>
 
         <button onclick="teste2()">tstetetet</button>
 
         <a href=""></a> -->
+        <div id="app_container">
+            <div id="header"></div>
+            <div id="listings_section">
+                <div id="listings_filters">
+                    <input id="search_bar" input="text" value="{{query}}">
+                    <button onclick="search()">Pesquisar</button>
+                </div>
+                <div id="listings_view">
+                    <div id="listings_sidebar">
+                        {% for listing in listings %}
+                            {{listing|json_script:listing.id}}
+                            <div class="listing" onclick="show(JSON.parse(document.getElementById('{{listing.id}}').textContent))">
+                                <p class="listing_title">{{listing.title}}</p>
+                                <p class="listing_company">{{listing.company_name}}</p>
+                                {% if listing.workplace_type != 'Remoto' %}
+                                    <p class="listing_condition">{{listing.location}}</p>
+                                    <div class="icon_container">
+                                        <i class="fa-solid fa-briefcase" title="Presencial/Híbrido"></i>
+                                {% else %}
+                                    <p class="listing_condition">Remoto</p>
+                                    <div class="icon_container">
+                                        <i class="fa-solid fa-laptop" title="Remoto"></i>
+                                {% endif %}
+                                {% if listing.platform == 'Glassdoor' %}
+                                    <img src="{% static 'glassdoor.svg' %}" width="16" height="16" color="black" title="Vaga postada no Glassdoor">
+                                {% elif listing.platform == 'LinkedIn' %}
+                                    <i class="fa-brands fa-linkedin" title="Vaga postada no LinkedIn"></i>
+                                {% elif listing.platform == 'Catho' %}
+                                    <img src="{% static 'catho.svg' %}" width="16" height="16" color="black" title="Vaga postada na Catho">
+                                {% elif listing.platform == 'Vagas.com' %}
+                                    <img src="{% static 'vagas_com.svg' %}" width="16" height="16" color="black" title="Vaga postada no Vagas.com">
+                                {% endif %}
 
-        <div id="listings_sidebar">
-            {% for listing in listings %}
-                <div class="listing">
-                    <p class="listing_title">{{listing.title}}</p>
-                    <p class="listing_company">{{listing.company_name}}</p>
-                    {% if listing.workplace_type != 'Remoto' %}
-                        <p class="listing_condition">{{listing.location}}</p>
-                        <div class="icon_container">
-                            <i class="fa-solid fa-briefcase" title="Presencial/Híbrido"></i>
-                    {% else %}
-                        <p class="listing_condition">Remoto</p>
-                        <div class="icon_container">
-                            <i class="fa-solid fa-laptop" title="Remoto"></i>
-                    {% endif %}
-                    {% if listing.platform == 'Glassdoor' %}
-                        <img src="{% static 'glassdoor.svg' %}" width="16" height="16" color="black" title="Vaga postada no Glassdoor">
-                    {% elif listing.platform == 'LinkedIn' %}
-                        <i class="fa-brands fa-linkedin" title="Vaga postada no LinkedIn"></i>
-                    {% elif listing.platform == 'Catho' %}
-                        <img src="{% static 'catho.svg' %}" width="16" height="16" color="black" title="Vaga postada na Catho">
-                    {% elif listing.platform == 'Vagas.com' %}
-                        <img src="{% static 'vagas_com.svg' %}" width="16" height="16" color="black" title="Vaga postada no Vagas.com">
-                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                        <div id="listings_pagination">
+                            {% if page != 1 and 1 not in pages %}
+                                <a href="http://localhost:8000/vagas/?page=1&query={{query}}"> 1 </a> ...
+                            {% endif %}
 
+                            {% for num_page in pages %}
+                                {%if num_page == page %}
+                                    <a href="http://localhost:8000/vagas/?page={{num_page}}&query={{query}}"><b>{{num_page}}</b></a> 
+                                {% else %}
+                                    <a href="http://localhost:8000/vagas/?page={{num_page}}&query={{query}}">{{num_page}}</a> 
+                                {% endif %}
+                            {% endfor %}
+
+                            {% if page != total_pages and total_pages not in pages and page < total_pages %}
+                                ...<a href="http://localhost:8000/vagas/?page={{total_pages}}&query={{query}}"> {{total_pages}}</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div id="listing_details" style="display: none"> 
+                        <div style="width:auto; height: auto; display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
+                            <div style="width: auto; height: auto;">
+                                <p id="listing_title_det"></p>
+                                <div style="display: flex; flex-direction: row; column-gap: 1vw;">
+                                    <div style="display: flex; flex-direction: row; column-gap: 0.5vw;">
+                                        <i class="fa-solid fa-building" title="Empresa que publicou a vaga"></i>
+                                        <p id="listing_company_det"></p>
+                                    </div>
+                                    <div style="display: flex; flex-direction: row; column-gap: 0.5vw;">
+                                        <i class="fa-solid fa-location-dot" title="Local de trabalho"></i>
+                                        <p id="listing_location_det"></p>
+                                    </div>
+                                    <div style="display: flex; flex-direction: row; column-gap: 0.5vw;">
+                                        <i id="listing_workplace_type_ico" class="fa-solid" title="Vaga presencial/híbrida"></i>
+                                        <p id="listing_workplace_type_det"></p>
+                                    </div>
+                                    
+                                </div>
+                                <div style="display: flex; flex-direction: row; column-gap: 1vw;">
+                                    <div style="display: flex; flex-direction: row; column-gap: 0.5vw;">
+                                        <img id="platform_logo" width="16" height="16">
+                                        <p id="platform_name"></p>
+                                    </div>
+
+                                    <div style="display: flex; flex-direction: row; column-gap: 0.5vw;">
+                                        <i class="fa-solid fa-calendar" title="Data de publicação da vaga"></i>
+                                        <p id="listing_publish_date_det"></p>
+                                    </div>
+                                    <div style="display: flex; flex-direction: row; column-gap: 0.5vw;">
+                                        <i class="fa-solid fa-users" title="Candidatos inscritos na vaga"></i>
+                                        <p id="listing_applies_det"></p>
+                                    </div>
+                                </div>
+                            </div>
+                            <a id="apply_button" target="_blank">Candidatar-se</a>
+                        </div>
+                        <br>
+                        <hr>
+                        <br>
+                        <p id="listing_description_det"></p>
                     </div>
                 </div>
-            {% endfor %}
+            </div>
         </div>
+
+        {{listings.0|json_script:"dataI"}}
+        <script defer>
+            show(JSON.parse(document.getElementById('dataI').textContent))
+        </script>
     </body>
 </html>
