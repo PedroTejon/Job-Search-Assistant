@@ -233,7 +233,7 @@ def get_listing_details(listing):
         listing.application_url = list(filter(lambda element: 'companyApplyUrl' in element,
                                        application_url_response.json()['included']))[0]['companyApplyUrl']
 
-    if listing.application_url is None:
+    if listing.application_url is None or listing.application_url.startswith('https://www.linkedin.com/job-apply/'):
         listing.application_url = f'https://www.linkedin.com/jobs/view/{listing_id}/'
 
     company = listing.company

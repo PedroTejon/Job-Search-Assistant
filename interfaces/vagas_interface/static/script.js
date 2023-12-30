@@ -55,9 +55,11 @@ function show(listing) {
     }
     let platform_logo = document.getElementById('platform_logo');
     let platform_name = document.getElementById('platform_name');
+    let platform_id = document.getElementById('platform_id');
     if (listing.platform) {
         platform_logo.src = "data:image/svg+xml;base64," + logos[listing.platform];
         platform_name.innerText = listing.platform;
+        platform_id.innerText = "#" + listing.platform_id;
     }
 
     let apply_button = document.getElementById('apply_button');

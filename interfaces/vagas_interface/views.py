@@ -19,7 +19,7 @@ def index(request):
             query = Q()
             for term in queries:
                 query &= Q(title__contains=term)
-            pages = split(Listing.objects.filter(query).values(), arange(50, Listing.objects.count(), 50))
+            pages = split(Listing.objects.filter(query).values(), arange(50, Listing.objects.filter(query).count(), 50))
             listings = list(list(pages)[page - 1])
 
         for listing in listings:
@@ -34,6 +34,6 @@ def index(request):
                 listing['company_name'] = company.platforms['vagas_com']['name']
 
         paginations = list(range(max(1, page - 4), min(page + 4, len(pages) + 1)))
-        return HttpResponse(template.render({'listings': listings, 'page': page, 'pages': paginations, 'total_pages': len(pages) - 1, 'query': queries_str}, request))
+        return HttpResponse(template.render({'listings': listings, 'page': page, 'pages': paginations, 'total_pages': len(paginations) - 1, 'query': queries_str}, request))
     except IndexError:
         return HttpResponse(template.render({'listings': [], 'page': page, 'pages': [page], 'total_pages': 0, 'query': queries_str}, request))

@@ -26,9 +26,9 @@
                 </div>
                 <div id="listings_view">
                     <div id="listings_sidebar">
+                        {{listings|json_script:"listings"}}
                         {% for listing in listings %}
-                            {{listing|json_script:listing.id}}
-                            <div class="listing" onclick="show(JSON.parse(document.getElementById('{{listing.id}}').textContent))">
+                            <div class="listing" onclick="show(JSON.parse(document.getElementById('listings').textContent)[{{forloop.counter0}}])">
                                 <p class="listing_title">{{listing.title}}</p>
                                 <p class="listing_company">{{listing.company_name}}</p>
                                 {% if listing.workplace_type != 'Remoto' %}
@@ -75,6 +75,7 @@
                         <div style="width:auto; height: auto; display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
                             <div style="width: auto; height: auto;">
                                 <p id="listing_title_det"></p>
+                                <p id="platform_id"></p>
                                 <div style="display: flex; flex-direction: row; column-gap: 1vw;">
                                     <div style="display: flex; flex-direction: row; column-gap: 0.5vw;">
                                         <i class="fa-solid fa-building" title="Empresa que publicou a vaga"></i>
@@ -117,9 +118,8 @@
             </div>
         </div>
 
-        {{listings.0|json_script:"dataI"}}
         <script defer>
-            show(JSON.parse(document.getElementById('dataI').textContent))
+            show(JSON.parse(document.getElementById('listings').textContent)[0])
         </script>
     </body>
 </html>
