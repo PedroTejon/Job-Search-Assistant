@@ -30,7 +30,6 @@ def setup():
                     cookies = load(f)
                 with open('data/local_storage.json', 'rb') as f:
                     local_storage = load(f)
-                 
             except JSONDecodeError:
                 if input('Arquivo de cookies inválido, criar novo arquivo vazio? (Sim/Não) ').lower() in ['sim', 's']:
                     cookies = {
@@ -50,14 +49,13 @@ def setup():
                 'vagas.com': []
             }
             local_storage = {}
-        
         if input('Deseja logar com sua conta do Linkedin? (Sim/Não) ').lower() in ['sim', 's']:
             cookies['linkedin'] = []
             with driver.expect_response(lambda x: 'https://www.linkedin.com/feed/?trk=homepage-basic_sign-in-submit' in x.url and x.status == 200, timeout=0) as response:
                 driver.goto('https://www.linkedin.com/')
             print('Conta do LinkedIn conectada com sucesso')
 
-            response_text = response.value.text()
+            response_text = driver.content()
             profile_id = response_text[response_text.find(
                 'fs_miniProfile:') + 15:response_text.find(',', response_text.find('fs_miniProfile:')) - 6]
             local_storage['profile_id'] = profile_id
@@ -67,8 +65,8 @@ def setup():
             with driver.expect_response(lambda x: 'https://www.glassdoor.com.br/Vaga/index.htm' in x.url and x.status == 200, timeout=0) as response:
                 driver.goto('https://www.glassdoor.com.br/')
             print('Conta do Glassdoor conectada com sucesso')
-            
-            soup = BeautifulSoup(response.value.text(), 'html.parser')
+
+            soup = BeautifulSoup(driver.content(), 'html.parser')
             data_element = soup.find('script', {'id': '__NEXT_DATA__'})
             data = loads(data_element.get_text())['props']['pageProps']
             local_storage['glassdoor_csrf'] = data['token']
@@ -79,8 +77,10 @@ def setup():
                 driver.goto('https://seguro.catho.com.br/signin/')
             print('Conta da Catho conectada com sucesso')
 
-            driver.goto('https://www.catho.com.br/area-candidato',
-                        wait_until='load')
+            driver.goto('https://www.catho.com.br/vagas', wait_until='load')
+            cur_build_id_soup = BeautifulSoup(driver.content(), 'html.parser')
+            build_id = loads(cur_build_id_soup.find('script', {'id': '__NEXT_DATA__'}).get_text())['buildId']
+            local_storage['catho_build_id'] = build_id
             sleep(1)
 
         if input('Deseja logar com sua conta da Vagas.com? (Sim/Não) ').lower() in ['sim', 's']:

@@ -25,6 +25,8 @@ with open('data/cookies.json', 'r', encoding='utf-8') as f:
 COOKIES = ';'.join([f"{cookie['name']}={cookie['value']}" for cookie in cookies_json]) + \
     '; session_id=99be0cd2-0098-4f6e-9206-b4555d5c5172'
 token = get_bearer_token()
+with open('data/local_storage.json', 'r', encoding='utf-8') as f:
+    build_id = load(f)['catho_build_id']
 
 
 def filter_listing(title, listing_locations_ids, location_ids):
@@ -91,7 +93,7 @@ def get_recommended_listings(location_ids):
         content = response.json()['data']
         listing_id = content['id']
         if not listing_exists(listing_id):
-            listing_resp = session.get(f'https://www.catho.com.br/vagas/_next/data/K0FFX3tbYixCNuDCNvnHt/sugestao/{listing_id}.json?origem_apply=sugestao-de-vagas&entrada_apply=direto&slug={listing_id}', headers={
+            listing_resp = session.get(f'https://www.catho.com.br/vagas/_next/data/{build_id}/sugestao/{listing_id}.json?origem_apply=sugestao-de-vagas&entrada_apply=direto&slug={listing_id}', headers={
                 'accept': '*/*',
                 'accept-language': 'pt-BR,pt;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
                 'cache-control': 'no-cache',
@@ -105,8 +107,6 @@ def get_recommended_listings(location_ids):
                 'sec-fetch-site': 'same-site',
                 'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0'
             })
-            if listing_resp.status_code == 404:
-                continue
 
             listing_resp = listing_resp.json()['pageProps']
 
