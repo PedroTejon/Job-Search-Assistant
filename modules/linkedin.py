@@ -116,6 +116,7 @@ def get_job_listings(url):
                     title=listing_title,
                     location=listing_location,
                     company=company,
+                    company_name=company_name,
                     workplace_type=workplace_type,
                     platform_id=listing_id,
                     platform='LinkedIn'

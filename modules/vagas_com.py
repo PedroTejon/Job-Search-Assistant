@@ -70,19 +70,16 @@ def get_companies_listings():
 
             for url in listing_urls:
                 sleep(0.5)
-                listing_response = session.get(
-                    'https://www.vagas.com.br' + url)
-                listing_soup = BeautifulSoup(
-                    listing_response.text, 'html.parser')
+                listing_response = session.get('https://www.vagas.com.br' + url)
+                listing_soup = BeautifulSoup(listing_response.text, 'html.parser')
 
                 listing = Listing()
-                listing.title = listing_soup.find(
-                    'h1', {'class': 'job-shortdescription__title'}).get_text(strip=True)
-                listing.location = listing_soup.find(
-                    'span', {'class': 'info-localizacao'}).get_text(strip=True)
+                listing.title = listing_soup.find('h1', {'class': 'job-shortdescription__title'}).get_text(strip=True)
+                listing.location = listing_soup.find('span', {'class': 'info-localizacao'}).get_text(strip=True)
                 listing.workplace_type = 'Remoto' if listing.location == '100% Home Office' else 'Presencial/Hibrido'
                 if filter_location(listing.location, listing.workplace_type):
                     listing.company = company
+                    listing.company_name = company.platforms['vagas_com']['name']
                     listing.description = listing_soup.find('div', {'class': 'job-description__text'}).text.strip() + \
                         listing_soup.find('div', {'class': 'job-company-presentation'}).text.strip() + \
                         'Benefícios:\n' + '\n'.join([benefit.get_text(
@@ -157,6 +154,7 @@ def get_recommended_listings():
                 location=listing_location,
                 workplace_type=listing_worktype,
                 company=company,
+                company_name=company_name,
                 platform_id=listing_id,
                 platform='Vagas.com').save()
 
@@ -178,6 +176,7 @@ def get_recommended_listings():
                 location=listing_location,
                 workplace_type=listing_worktype,
                 company=company,
+                company_name=company_name,
                 platform_id=listing_id,
                 platform='Vagas.com',
             ).save()

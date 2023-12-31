@@ -61,14 +61,13 @@ class Listing(Model):
     workplace_type: TextField = TextField()
     description: TextField = TextField()
     company: ForeignKey = ForeignKey(Company, on_delete=CASCADE)
+    company_name: TextField = TextField()
     platform_id: TextField = TextField()
     platform: TextField = TextField()
     applies: PositiveIntegerField = PositiveIntegerField(null=True)
     application_url: TextField = TextField()
     publication_date: TextField = TextField()
+    applied_to: BooleanField = BooleanField(null=True)
 
     def __str__(self) -> str:
-        return f'{{\n"id": "{self.id}"\n"title": "{self.title}",\n"location": "{self.location}",\n"company": "{self.company.id}",\n"workplace_type": "{self.workplace_type}",\n"platform_id": "{self.platform_id}"\n"platform": "{self.platform}",\n"application_url": "{self.application_url}",\n"description": "{self.description}",\n"applies": "{self.applies}",\n"publication_date": "{self.publication_date}"\n}}'
-
-    def teste(self) -> str:
-        return f'{{\n"id": "{self.id}"\n"title": "{self.title}",\n"location": "{self.location}",\n"company": "{self.company.id}",\n"workplace_type": "{self.workplace_type}",\n"platform_id": "{self.platform_id}"\n"platform": "{self.platform}",\n"application_url": "{self.application_url}",\n"description": "{self.description}",\n"applies": "{self.applies}",\n"publication_date": "{self.publication_date}"\n}}'
+        return f'{{\n"id": "{self.id}"\n"title": "{self.title}",\n"location": "{self.location}",\n"company": "{self.company.id}",\n"company_name": "{self.company_name}",\n"workplace_type": "{self.workplace_type}",\n"platform_id": "{self.platform_id}"\n"platform": "{self.platform}",\n"application_url": "{self.application_url}",\n"description": "{self.description}",\n"applies": "{self.applies}",\n"publication_date": "{self.publication_date}"\n"applied_to": "{self.applied_to}"\n}}'

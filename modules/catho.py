@@ -149,6 +149,7 @@ def get_recommended_listings(location_ids):
                     company.save()
 
                 listing.company = company
+                listing.company_name = company_name
                 listing.save()
 
 

@@ -79,6 +79,7 @@ def extract_job_listings(job_listings: list):
                 location=listing_location,
                 workplace_type=listing_worktype,
                 company=company,
+                company_name=company_name,
                 platform_id=str(listing['jobview']['job']['listingId']),
                 platform='Glassdoor'))
 
