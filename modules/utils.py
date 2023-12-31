@@ -29,6 +29,8 @@ def get_company_by_name(c_name, platform) -> Company:
             return Company.objects.get(platforms__catho__name__iexact=c_name)
         if platform == 'vagas.com':
             return Company.objects.get(platforms__vagas_com__name__iexact=c_name)
+
+        raise Exception('InvalidPlatform: a plataforma inserida não está entre as suportadas')
     except Company.DoesNotExist:
         return Company()
 

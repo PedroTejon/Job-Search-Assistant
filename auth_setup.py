@@ -51,7 +51,7 @@ def setup():
             local_storage = {}
         if input('Deseja logar com sua conta do Linkedin? (Sim/Não) ').lower() in ['sim', 's']:
             cookies['linkedin'] = []
-            with driver.expect_response(lambda x: 'https://www.linkedin.com/feed/?trk=homepage-basic_sign-in-submit' in x.url and x.status == 200, timeout=0) as response:
+            with driver.expect_response(lambda x: 'https://www.linkedin.com/feed/?trk=homepage-basic_sign-in-submit' in x.url and x.status == 200, timeout=0):
                 driver.goto('https://www.linkedin.com/')
             print('Conta do LinkedIn conectada com sucesso')
 
@@ -62,7 +62,7 @@ def setup():
 
         if input('Deseja logar com sua conta do Glassdoor? (Sim/Não) ').lower() in ['sim', 's']:
             cookies['glassdoor'] = []
-            with driver.expect_response(lambda x: 'https://www.glassdoor.com.br/Vaga/index.htm' in x.url and x.status == 200, timeout=0) as response:
+            with driver.expect_response(lambda x: 'https://www.glassdoor.com.br/Vaga/index.htm' in x.url and x.status == 200, timeout=0):
                 driver.goto('https://www.glassdoor.com.br/')
             print('Conta do Glassdoor conectada com sucesso')
 
@@ -73,7 +73,7 @@ def setup():
 
         if input('Deseja logar com sua conta da Catho? (Sim/Não) ').lower() in ['sim', 's']:
             cookies['catho'] = []
-            with driver.expect_response(lambda x: 'https://www.catho.com.br/area-candidato' in x.url and x.status == 200, timeout=0) as response:
+            with driver.expect_response(lambda x: 'https://www.catho.com.br/area-candidato' in x.url and x.status == 200, timeout=0):
                 driver.goto('https://seguro.catho.com.br/signin/')
             print('Conta da Catho conectada com sucesso')
 
@@ -85,7 +85,7 @@ def setup():
 
         if input('Deseja logar com sua conta da Vagas.com? (Sim/Não) ').lower() in ['sim', 's']:
             cookies['vagas.com'] = []
-            with driver.expect_response(lambda x: 'https://www.vagas.com.br/meu-perfil' in x.url and x.status == 200, timeout=0) as response:
+            with driver.expect_response(lambda x: 'https://www.vagas.com.br/meu-perfil' in x.url and x.status == 200, timeout=0):
                 driver.goto('https://www.vagas.com.br/login-candidatos')
             print('Conta da Vagas.com conectada com sucesso')
 

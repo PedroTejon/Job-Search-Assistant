@@ -49,6 +49,8 @@ def applied_to_listing(request):
         listing.save()
         return JsonResponse({'status': 200})
 
+    return JsonResponse({'status': 404})
+
 
 @csrf_exempt
 def dismiss_listing(request):
@@ -59,6 +61,8 @@ def dismiss_listing(request):
         listing.save()
         return JsonResponse({'status': 200})
 
+    return JsonResponse({'status': 404})
+
 
 @csrf_exempt
 def nullify_listing(request):
@@ -68,6 +72,8 @@ def nullify_listing(request):
         listing.applied_to = None
         listing.save()
         return JsonResponse({'status': 200})
+
+    return JsonResponse({'status': 404})
 
 
 def get_listings(queries_str, page, tabs) -> dict:
