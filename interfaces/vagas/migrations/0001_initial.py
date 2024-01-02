@@ -2,7 +2,7 @@
 
 from django.db import migrations, models
 import django.db.models.deletion
-import interfaces.vagas_interface.models
+import interfaces.vagas.models
 
 
 class Migration(migrations.Migration):
@@ -20,7 +20,7 @@ class Migration(migrations.Migration):
                 ('image_url', models.TextField(null=True)),
                 ('employee_count', models.PositiveIntegerField(null=True)),
                 ('followed', models.BooleanField(default=False)),
-                ('platforms', models.JSONField(default=interfaces.vagas_interface.models.Company.get_default_platforms)),
+                ('platforms', models.JSONField(default=interfaces.vagas.models.Company.get_default_platforms)),
             ],
         ),
         migrations.CreateModel(
@@ -36,7 +36,17 @@ class Migration(migrations.Migration):
                 ('applies', models.PositiveIntegerField(null=True)),
                 ('application_url', models.TextField()),
                 ('publication_date', models.TextField()),
-                ('company', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='vagas_interface.company')),
+                ('company', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='vagas.company')),
+                ('applied_to', models.BooleanField(null=True)),
+                ('company_name', models.TextField(default=''))
             ],
+        ),
+        migrations.AlterModelOptions(
+            name='company',
+            options={'verbose_name_plural': 'companies'},
+        ),
+        migrations.AlterModelOptions(
+            name='listing',
+            options={'verbose_name_plural': 'listings'},
         ),
     ]
