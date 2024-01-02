@@ -55,9 +55,10 @@ def setup():
                 driver.goto('https://www.linkedin.com/')
             print('Conta do LinkedIn conectada com sucesso')
 
-            response_text = driver.content()
-            profile_id = response_text[response_text.find(
-                'fs_miniProfile:') + 15:response_text.find(',', response_text.find('fs_miniProfile:')) - 6]
+            driver.goto('https://www.linkedin.com/', wait_until='load')
+            content_soup = BeautifulSoup(driver.content(), 'html.parser')
+            element = list(filter(lambda el: '*miniProfile' in el.get_text(), content_soup.select('[id^=bpr-guid-]')))[0]
+            profile_id = loads(element.get_text())['data']['*miniProfile'].replace('urn:li:fs_miniProfile:', '')
             local_storage['profile_id'] = profile_id
 
         if input('Deseja logar com sua conta do Glassdoor? (Sim/Não) ').lower() in ['sim', 's']:
