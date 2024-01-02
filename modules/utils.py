@@ -1,6 +1,6 @@
 from json import load
 
-from interfaces.vagas_interface.models import Company, Listing
+from interfaces.vagas.models import Company, Listing
 
 with open('filters.json', 'r', encoding='utf-8') as f:
     filters = load(f)

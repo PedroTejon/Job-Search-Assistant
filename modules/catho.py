@@ -5,7 +5,7 @@ from time import sleep
 from cloudscraper import create_scraper
 from unidecode import unidecode
 
-from interfaces.vagas_interface.models import Listing
+from interfaces.vagas.models import Listing
 from modules.exceptions import MaxRetriesException
 from modules.utils import get_company_by_name, listing_exists
 

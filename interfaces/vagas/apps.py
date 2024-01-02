@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class VagasInterfaceConfig(AppConfig):
+class VagasConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'interfaces.vagas_interface'
+    name = 'interfaces.vagas'

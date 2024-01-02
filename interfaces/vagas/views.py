@@ -4,7 +4,7 @@ from django.template import loader
 from django.views.decorators.csrf import csrf_exempt
 from numpy import arange, split
 
-from interfaces.vagas_interface.models import Listing
+from interfaces.vagas.models import Listing
 
 
 def index(request):

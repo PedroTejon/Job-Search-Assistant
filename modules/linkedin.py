@@ -7,7 +7,7 @@ from cloudscraper import create_scraper
 from django.utils.timezone import now
 from unidecode import unidecode
 
-from interfaces.vagas_interface.models import Company, Listing
+from interfaces.vagas.models import Company, Listing
 from modules.exceptions import MaxRetriesException
 from modules.utils import (company_exists_by_id, filter_listing,
                            get_company_by_name, listing_exists)
