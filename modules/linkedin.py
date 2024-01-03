@@ -96,11 +96,11 @@ def get_job_listings(url):
             listing_location = element['secondaryDescription']['text']
 
             workplace_type = 'Remoto' if 'Remoto' in listing_location else 'Presencial/Hibrido'
+            listing_location = sub(r'\s*\(\bPresencial\b\)|\s*\(\bHíbrido\b\)|\s*\(\bRemoto\b\)',
+                                   '', listing_location.split(',')[0].strip())
             if filter_listing(sub(r'[\[\]\(\),./\\| !?#]+', ' ', unidecode(listing_title).lower()), listing_location, workplace_type):
                 if 'detailData' not in element['logo']['attributes'][0]:
                     continue
-                listing_location = sub(r'\s*\(\bPresencial\b\)|\s*\(\bHíbrido\b\)|\s*\(\bRemoto\b\)',
-                                       '', listing_location.split(',')[0].strip())
 
                 company_name = element['primaryDescription']['text']
                 company_id = element['logo']['attributes'][0]['detailData']['*companyLogo'].replace(

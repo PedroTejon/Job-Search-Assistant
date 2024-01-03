@@ -48,11 +48,11 @@ def filter_listing(title, location, workplace_type) -> bool:
         city = location.split(', ')[0]
 
     if workplace_type == 'Presencial/Hibrido':
-        if 'city' in locals() and len(filters['cities']) and not any(map(lambda x: x == city, filters['cities'])):
+        if 'city' in locals() and not any(map(lambda x: x == city, filters['cities'])):
             return False
-        if 'state' in locals() and len(filters['states']) and not any(map(lambda x: x == state, filters['states'])):
+        if 'state' in locals() and not any(map(lambda x: x == state, filters['states'])):
             return False
-        if 'country' in locals() and len(filters['countries']) and not any(map(lambda x: x == country, filters['countries'])):
+        if 'country' in locals() and not any(map(lambda x: x == country, filters['countries'])):
             return False
 
     if any(map(lambda x: x in title.split(), filters['exclude_words'])):
