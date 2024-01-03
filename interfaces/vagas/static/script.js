@@ -80,7 +80,7 @@ function search(cur_query) {
     if (search_value !== '') {
         if (search_value !== cur_query) 
             url += '&query=' + search_value;
-        else (search_value)
+        else if (search_value)
             url += '&query=' + cur_query;
     }
 
