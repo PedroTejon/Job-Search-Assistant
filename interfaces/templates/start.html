@@ -7,8 +7,8 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>{{ tab_title }} | Job Search Assistant</title>
-        <script src="{% static 'script.js' %}"></script>
-        <link rel="stylesheet" href="{% static 'style.css' %}">
+        <script src="{% static tab_title|lower|add:'.js' %}"></script>
+        <link rel="stylesheet" href="{% static tab_title|lower|add:'.css' %}">
         <script src="https://kit.fontawesome.com/fb813e9d63.js" crossorigin="anonymous"></script>
     </head>
     <body>
