@@ -208,3 +208,32 @@ function show(listing_index) {
     }
     
 }
+
+if (!window.highlighter) {
+    highlighter = {};
+    highlighter.get_highlighted = function() {
+        let text = '';
+        if (window.getSelection)
+            text = window.getSelection();
+        else if (document.getSelection)
+            text = document.getSelection();
+        else if (document.selection)
+            text = document.selection.createRange().text;
+        
+        return text;
+    }
+}
+
+window.addEventListener("mouseup", function() {
+    let highlighted_text = highlighter.get_highlighted();
+    let menu = document.querySelector('#highlight_tools')
+    if (!highlighted_text.isCollapsed && highlighted_text.type != 'None' && highlighted_text.focusNode.parentElement.classList.contains('listing_title'))
+        menu.style = 'position: absolute; left:' + (highlighter.posX ) + 'px; top: ' + (highlighter.posY - 35) + 'px'
+    else
+        menu.style = 'display: none'
+});
+
+window.addEventListener("mousedown", function(e){
+    highlighter.posX = e.pageX;
+    highlighter.posY = e.pageY;
+});
