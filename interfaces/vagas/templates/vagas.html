@@ -15,8 +15,16 @@
                 <label for="query_new">Vagas dispensadas:</label>
                 <input id="query_dismissed" type="checkbox" {{ get_dismissed | yesno:"checked," }}>
             </div>
-            
-            <button id="extract_button" onclick="extract_listings()"><i class="fa-solid fa-plus"></i></button> 
+
+            <div id="extraction_section">
+                <div id="extraction_results"></div>
+                <div id="progress_bar_container">
+                    <div id="extraction_progress_bar">
+                        <div id="extraction_progress_bar_value"></div>
+                    </div>
+                </div>
+                <button id="extract_button" onclick="extract_listings()"><i class="fa-solid fa-plus"></i></button> 
+            </div>
         </div>
         <div id="listings_view">
             <div id="highlight_tools" style="display: none;">
@@ -145,6 +153,7 @@
     {{listings|json_script:"listings"}}
     <script defer>
         listings = JSON.parse(document.getElementById('listings').textContent);
+        get_listings_extraction_status()
         if (listings.length > 0) {
             show(0);
 

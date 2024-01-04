@@ -84,7 +84,17 @@ function get_listings_extraction_status() {
     .then((response) => response.json())
     .then((data) => {
         results = data['results']
-        if (!results['linkedin']['status'] && !results['glassdoor']['status'] && !results['catho']['status'] && !results['vagas_com']['status'])
+        console.log(data)
+        if  (results['linkedin']['status'] || results['glassdoor']['status'] || results['catho']['status'] || results['vagas_com']['status']) {
+            if (!update_func) 
+                update_func = window.setInterval(get_listings_extraction_status, 1000)
+            let progress_bar_container = document.getElementById('progress_bar_container')
+            if (progress_bar_container.style.visibility = 'hidden')
+                progress_bar_container.style.visibility = 'visible'
+
+            document.getElementById('extraction_results').textContent = results['linkedin']['new_listings'] + results['glassdoor']['new_listings'] + results['catho']['new_listings'] + results['vagas_com']['new_listings'];
+        }
+        else if (update_func)
             clearTimeout(update_func);
     })
 }
