@@ -13,6 +13,8 @@ from modules.catho import get_jobs as catho_extraction
 from modules.glassdoor import get_jobs as glassdoor_extraction
 from modules.linkedin import get_jobs as linkedin_extraction
 from modules.vagas_com import get_jobs as vagas_com_extraction
+from modules.utils import reload_filters
+
 
 threads = {
     'linkedin': {
@@ -121,22 +123,24 @@ def get_listings(queries_str, page, tabs) -> dict:
 @csrf_exempt
 def start_listing_extraction(request):
     global threads
-    if not thread_is_running('linkedin_extraction'):
+    if not thread_is_running('linkedin_extraction') and not thread_is_running('glassdoor_extraction') and not thread_is_running('catho_extraction') and not thread_is_running('vagas_com_extraction'):
+        reload_filters()
+        
         threads['linkedin']['queue'] = Queue()
         threads['linkedin']['thread'] = Thread(target=linkedin_extraction, name='linkedin_extraction', args=[
                                                threads['linkedin']['queue']])
         threads['linkedin']['thread'].start()
-    if not thread_is_running('glassdoor_extraction'):
+
         threads['glassdoor']['queue'] = Queue()
         threads['glassdoor']['thread'] = Thread(target=glassdoor_extraction, name='glassdoor_extraction', args=[
                                                 threads['glassdoor']['queue']])
         threads['glassdoor']['thread'].start()
-    if not thread_is_running('catho_extraction'):
+
         threads['catho']['queue'] = Queue()
         threads['catho']['thread'] = Thread(target=catho_extraction, name='catho_extraction', args=[
                                             threads['catho']['queue']])
         threads['catho']['thread'].start()
-    if not thread_is_running('vagas_com_extraction'):
+
         threads['vagas_com']['queue'] = Queue()
         threads['vagas_com']['thread'] = Thread(target=vagas_com_extraction, name='vagas_com_extraction', args=[
                                                 threads['vagas_com']['queue']])
@@ -147,7 +151,7 @@ def start_listing_extraction(request):
 
 def get_listing_extraction_status(request):
     return JsonResponse({
-        'status': 200, 
+        'status': 200,
         'results': {
             'linkedin': {
                 'status': threads['linkedin']['thread'].is_alive() if threads['linkedin']['thread'] is not None else False,

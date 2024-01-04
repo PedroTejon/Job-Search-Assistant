@@ -6,6 +6,12 @@ with open('filters.json', 'r', encoding='utf-8') as f:
     filters = load(f)
 
 
+def reload_filters():
+    global filters
+    with open('filters.json', 'r', encoding='utf-8') as f:
+        filters = load(f)
+
+
 def company_exists_by_id(c_id, platform) -> bool:
     if platform == 'linkedin':
         return Company.objects.filter(platforms__linkedin__id__exact=c_id).exists()
