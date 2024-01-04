@@ -224,16 +224,36 @@ if (!window.highlighter) {
     }
 }
 
-window.addEventListener("mouseup", function() {
-    let highlighted_text = highlighter.get_highlighted();
-    let menu = document.querySelector('#highlight_tools')
-    if (!highlighted_text.isCollapsed && highlighted_text.type != 'None' && highlighted_text.focusNode.parentElement.classList.contains('listing_title'))
-        menu.style = 'position: absolute; left:' + (highlighter.posX ) + 'px; top: ' + (highlighter.posY - 35) + 'px'
-    else
-        menu.style = 'display: none'
-});
-
+var last_text = null
 window.addEventListener("mousedown", function(e){
-    highlighter.posX = e.pageX;
-    highlighter.posY = e.pageY;
+    let menu = document.getElementById('highlight_tools')
+    if (e.target.classList.contains('listing_title')) {
+        highlighter.posX = e.pageX;
+        highlighter.posY = e.pageY;
+        window.addEventListener("mouseup", function() {
+            let menu = document.getElementById('highlight_tools');
+            let highlight = highlighter.get_highlighted();
+            let highlighted_text = highlight.toString().trim();
+            let filter_word_button = document.getElementById('filter_word_button');
+            if (highlighted_text.length > 0 && highlighted_text !== last_text) {
+                if (~highlighted_text.indexOf(' '))
+                    filter_word_button.disabled = true;
+                else if (filter_word_button.disabled)
+                    filter_word_button.disabled = false;
+                if (!highlight.isCollapsed && highlight.type != 'None')
+                    menu.style = 'position: absolute; left:' + (highlighter.posX ) + 'px; top: ' + (highlighter.posY - 35) + 'px';
+                last_text = highlighted_text
+            }
+            else if (highlighted_text === last_text) {
+                last_text = null;
+                menu.style = 'display: none';
+            }
+            else
+                menu.style = 'display: none';
+        }, 
+        { once: true });
+    } else if (menu.style !== 'display: none') {
+        menu.style = 'display: none';
+        last_text = null;
+    }
 });

@@ -20,8 +20,8 @@
         </div>
         <div id="listings_view">
             <div id="highlight_tools" style="display: none;">
-                <button>Filtrar Palavra</button>
-                <button>Filtrar Termo</button>
+                <button id="filter_word_button" title="Filtrar palavra única"><i class="fa-solid fa-underline"></i></button>
+                <button id="filter_term_button" title="Filtrar termo/sequência de caracteres"><i class="fa-solid fa-highlighter"></i></button>
             </div>
             <div id="listings_sidebar">
                 {% for listing in listings %}
