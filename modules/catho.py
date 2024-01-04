@@ -27,6 +27,7 @@ COOKIES = ';'.join([f"{cookie['name']}={cookie['value']}" for cookie in cookies_
 token = get_bearer_token()
 with open('data/local_storage.json', 'r', encoding='utf-8') as f:
     build_id = load(f)['catho_build_id']
+queue = None
 
 
 def filter_listing(title, listing_locations_ids, location_ids):
@@ -116,6 +117,7 @@ def get_recommended_listings(location_ids):
                 listing = Listing()
                 listing.title = listing_details['titulo']
                 listing.description = listing_details['descricao']
+                listing.location = [city['cidade'] for city in listing_details['vagas'] if str(city['cidadeId']) in location_ids['cities']][0]
                 listing.publication_date = listing_details['dataAtualizacao']
                 listing.platform = 'Catho'
                 listing.platform_id = listing_id
@@ -151,6 +153,8 @@ def get_recommended_listings(location_ids):
                 listing.company = company
                 listing.company_name = company_name
                 listing.save()
+
+                queue.put(1)
 
 
 def get_location_ids() -> dict:
@@ -236,7 +240,10 @@ def get_location_ids() -> dict:
     return location_ids
 
 
-def get_jobs():
+def get_jobs(curr_queue):
+    global queue
+    queue = curr_queue
+    
     location_ids = get_location_ids()
 
     get_recommended_listings(location_ids)

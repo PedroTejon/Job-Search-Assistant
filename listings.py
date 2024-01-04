@@ -1,5 +1,6 @@
 # pylint: disable=C0413
 import os
+from queue import Queue
 
 import django
 
@@ -15,10 +16,10 @@ from modules.vagas_com import get_jobs as vagas_com
 
 def main():
     # configs = load(open('config.json', 'r', encoding='utf-8'))
-    linkedin()
-    glassdoor()
-    catho()
-    vagas_com()
+    linkedin(Queue())
+    glassdoor(Queue())
+    catho(Queue())
+    vagas_com(Queue())
 
 
 if __name__ == '__main__':

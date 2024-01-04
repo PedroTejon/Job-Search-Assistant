@@ -27,6 +27,7 @@ with open('data/cookies.json', 'rb') as f:
 COOKIES = ';'.join([f"{cookie['name']}={cookie['value']}" for cookie in cookies_json]) + \
     '; session_id=99be0cd2-0098-4f6e-9206-b4555d5c5172'
 token = get_bearer_token()
+queue = None
 
 
 def filter_title(title):
@@ -98,6 +99,8 @@ def get_companies_listings():
                     listing.publication_date = data.strftime('%Y-%m-%dT%H:%M:%S')
                     listing.save()
 
+                    queue.put(1)
+
             page += 1
 
         company.platforms['vagas_com']['last_check'] = now().strftime('%Y-%m-%dT%H:%M:%S')
@@ -157,6 +160,8 @@ def get_recommended_listings():
                 company_name=company_name,
                 platform_id=listing_id,
                 platform='Vagas.com').save()
+            
+            queue.put(1)
 
     for listing in content['vagas_do_dia']:
         assert False, 'not implemented'
@@ -180,6 +185,8 @@ def get_recommended_listings():
                 platform_id=listing_id,
                 platform='Vagas.com',
             ).save()
+
+            queue.put(1)
 
 
 def get_followed_companies():
@@ -218,7 +225,10 @@ def get_followed_companies():
         company.save()
 
 
-def get_jobs():
+def get_jobs(curr_queue):
+    global queue
+    queue = curr_queue
+
     get_followed_companies()
 
     get_companies_listings()

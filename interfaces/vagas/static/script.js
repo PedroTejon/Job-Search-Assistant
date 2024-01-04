@@ -1,5 +1,6 @@
 let current_listing = null
 let current_index = 0
+let update_func = null
 
 function applied_to_listing() {
     let dismiss_button = document.getElementById('dismissed_button')
@@ -52,22 +53,40 @@ function nullify_listing() {
     let applied_button = document.getElementById('applied_button')
 
     fetch('http://localhost:8000/vagas/nullify_listing?id=' + current_listing.id, {method: 'POST'})
-        .then((response) => response.json())
-        .then((data) => {
-            listings[current_index].applied_to = null;
-            current_listing = listings[current_index];
-            let listing_status = document.querySelector(`#listing_${current_index} .listing_status`)
+    .then((response) => response.json())
+    .then((data) => {
+        listings[current_index].applied_to = null;
+        current_listing = listings[current_index];
+        let listing_status = document.querySelector(`#listing_${current_index} .listing_status`)
 
-            if (listing_status.classList.contains('fa-x'))
-                listing_status.classList.remove('fa-x')
-            if (listing_status.classList.contains('fa-check'))
-                listing_status.classList.remove('fa-check')
+        if (listing_status.classList.contains('fa-x'))
+            listing_status.classList.remove('fa-x')
+        if (listing_status.classList.contains('fa-check'))
+            listing_status.classList.remove('fa-check')
 
-            if (applied_button.classList.contains('button_disabled'))
-                applied_button.classList.remove('button_disabled')
-            if (dismiss_button.classList.contains('button_disabled'))
-                dismiss_button.classList.remove('button_disabled')
-        })
+        if (applied_button.classList.contains('button_disabled'))
+            applied_button.classList.remove('button_disabled')
+        if (dismiss_button.classList.contains('button_disabled'))
+            dismiss_button.classList.remove('button_disabled')
+    })
+}
+
+function extract_listings() {
+    fetch('http://localhost:8000/vagas/start_listing_extraction', {method: 'POST'})
+    .then((response) => response.json())
+    .then((data) => {
+        update_func = window.setInterval(get_listings_extraction_status, 1000)
+    })
+}
+
+function get_listings_extraction_status() {
+    fetch('http://localhost:8000/vagas/get_listing_extraction_status')
+    .then((response) => response.json())
+    .then((data) => {
+        results = data['results']
+        if (!results['linkedin']['status'] && !results['glassdoor']['status'] && !results['catho']['status'] && !results['vagas_com']['status'])
+            clearTimeout(update_func);
+    })
 }
 
 function search(cur_query) {

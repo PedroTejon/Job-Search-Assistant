@@ -25,6 +25,7 @@ with open('data/cookies.json', 'rb') as f:
     cookies_json = load(f)['linkedin']
 COOKIES = ';'.join([f"{cookie['name']}={cookie['value']}" for cookie in cookies_json])
 token = get_csrf_token()
+queue = None
 
 
 def get_companies_pfps(companies_json):
@@ -121,6 +122,8 @@ def get_job_listings(url):
                     platform_id=listing_id,
                     platform='LinkedIn'
                 ))
+
+                queue.put(1)
 
         if curr_count >= total_job_listings:
             break
@@ -312,7 +315,10 @@ def get_followed_companies():
         curr_index += 100
 
 
-def get_jobs():
+def get_jobs(curr_queue):
+    global queue
+    queue = curr_queue
+
     get_followed_companies()
 
     get_companies_listings()

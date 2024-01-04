@@ -32,10 +32,50 @@ body {
 }
 
 #listings_filters {
-    width: 100%;
+    width: 97.5vw;
+
+    display: grid; 
+    grid-template-columns: 21vw auto auto;
     flex-grow: 1;
+    align-items: center;
+
+    padding: 2.5vh;
 
     border-bottom: 1px black solid;
+}
+
+#search_bar {    
+    height: 95%;
+    width: 17.5vw;
+
+    border: none;
+    border-radius: 1vh;
+
+    outline: none;
+}
+
+#search_button {
+    height: 100%;
+    
+    background-color: transparent;
+
+    border: none;
+
+    cursor: pointer
+}
+
+#extract_button {
+    display: flex;
+    justify-self: flex-end;
+    grid-column: 3;
+
+    padding: .5em;
+
+    border: none;
+
+    background-color: transparent;
+
+    cursor: pointer;
 }
 
 #listings_view {
@@ -102,12 +142,14 @@ body {
     gap: 5px;
 }
 
-
-
 #listings_pagination {
     display: flex;
     justify-content: center;
     gap: 0.5dvw;
+}
+
+a, a:visited, a:hover, a:active {
+    color: inherit;
 }
 
 #listing_details {

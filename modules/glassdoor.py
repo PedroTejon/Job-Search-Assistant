@@ -16,6 +16,7 @@ with open('data/local_storage.json', 'rb') as f:
 with open('data/cookies.json', 'rb') as f:
     cookies_json = load(f)['glassdoor']
 COOKIES = ';'.join([f"{cookie['name']}={cookie['value']}" for cookie in cookies_json])
+queue = None
 
 
 def job_listings_request(cursor, query, operation, variables):
@@ -167,6 +168,8 @@ def get_listing_details(listing):
     listing.publication_date = content['job']['discoverDate']
     listing.save()
 
+    queue.put(1)
+
     sleep(.5)
 
 
@@ -196,7 +199,10 @@ def get_followed_companies():
         sleep(.5)
 
 
-def get_jobs():
+def get_jobs(curr_queue):
+    global queue
+    queue = curr_queue
+
     get_followed_companies()
 
     get_companies_listings()

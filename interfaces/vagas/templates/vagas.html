@@ -1,0 +1,172 @@
+{% load static %}
+
+{% include "start.html" %}
+    <div id="listings_section">
+        <div id="listings_filters">
+            <div style="height: 100%; width: 20vw; border: 1px solid black;border-radius: 1vh; grid-column: 1;">
+                <input id="search_bar" type="text" value="{{query}}">
+                <button id="search_button" onclick="search('{{query}}')"><i class="fa-solid fa-magnifying-glass"></i></button>
+            </div>
+            <div style="grid-column: 2;">
+                <label for="query_new">Vagas não avaliadas:</label>
+                <input id="query_new" type="checkbox" {{ get_new | yesno:"checked," }}>
+                <label for="query_new">Vagas inscritas:</label>
+                <input id="query_applied" type="checkbox" {{ get_applied | yesno:"checked," }}>
+                <label for="query_new">Vagas dispensadas:</label>
+                <input id="query_dismissed" type="checkbox" {{ get_dismissed | yesno:"checked," }}>
+            </div>
+            
+            <button id="extract_button" onclick="extract_listings()"><i class="fa-solid fa-plus"></i></button> 
+        </div>
+        <div id="listings_view">
+            <div id="highlight_tools" style="display: none;">
+                <button>Filtrar Palavra</button>
+                <button>Filtrar Termo</button>
+            </div>
+            <div id="listings_sidebar">
+                {% for listing in listings %}
+                    <div class="listing" id="listing_{{forloop.counter0}}" onclick="show({{forloop.counter0}})">
+                        <p class="listing_title">{{listing.title}}</p>
+                        <p class="listing_company">{{listing.company_name}}</p>
+                        {% if listing.workplace_type != 'Remoto' %}
+                            <p class="listing_condition">{{listing.location}}</p>
+                            <div class="icon_container">
+                                <i class="fa-solid fa-briefcase" title="Presencial/Híbrido"></i>
+                        {% else %}
+                            <p class="listing_condition">Remoto</p>
+                            <div class="icon_container">
+                                <i class="fa-solid fa-laptop" title="Remoto"></i>
+                        {% endif %}
+                        {% if listing.platform == 'Glassdoor' %}
+                            <img class="logo_img" src="{% static 'glassdoor.svg' %}" width="16" height="16" color="black" title="Vaga postada no Glassdoor">
+                        {% elif listing.platform == 'LinkedIn' %}
+                            <i class="fa-brands fa-linkedin" title="Vaga postada no LinkedIn"></i>
+                        {% elif listing.platform == 'Catho' %}
+                            <img class="logo_img" src="{% static 'catho.svg' %}" width="16" height="16" color="black" title="Vaga postada na Catho">
+                        {% elif listing.platform == 'Vagas.com' %}
+                            <img class="logo_img" src="{% static 'vagas_com.svg' %}" width="16" height="16" color="black" title="Vaga postada no Vagas.com">
+                        {% endif %}
+                        {% if listing.applied_to is None %} 
+                            <i class="fa-solid listing_status"></i>
+                        {% elif listing.applied %}
+                            <i class="fa-solid fa-check listing_status"></i>
+                        {% elif not listing.applied %}
+                            <i class="fa-solid fa-x listing_status"></i>
+                        {% endif %}
+
+                        </div>
+                    </div>
+                {% endfor %}
+                <div id="listings_pagination">
+                    {% if page != 1 and 1 not in pages %}
+                        {% if query %}
+                            <a href="http://localhost:8000/vagas/?page=1&query={{query}}"> 1 </a> ...
+                        {% else %}
+                            <a href="http://localhost:8000/vagas/?page=1"> 1 </a> ...
+                        {% endif %}
+                    {% endif %}
+
+                    {% for num_page in pages %}
+                        {% if num_page == page %}
+                            {% if query %}
+                                <a href="http://localhost:8000/vagas/?page={{num_page}}&query={{query}}"><b>{{num_page}}</b></a> 
+                            {% else %}
+                                <a href="http://localhost:8000/vagas/?page={{num_page}}"><b>{{num_page}}</b></a> 
+                            {% endif %}
+                        {% else %}
+                            {% if query %}
+                                <a href="http://localhost:8000/vagas/?page={{num_page}}&query={{query}}">{{num_page}}</a> 
+                            {% else %}
+                                <a href="http://localhost:8000/vagas/?page={{num_page}}">{{num_page}}</a> 
+                            {% endif %}
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if page != total_pages and total_pages not in pages and page < total_pages %}
+                        {% if query %}
+                        ... <a href="http://localhost:8000/vagas/?page={{total_pages}}&query={{query}}"> {{total_pages}}</a>
+                        {% else %}
+                        ... <a href="http://localhost:8000/vagas/?page={{total_pages}}"> {{total_pages}}</a>
+                        {% endif %}
+                    
+                    {% endif %}
+                </div>
+            </div>
+            <div id="listing_details" style="display: none"> 
+                <div style="width:auto; height: auto; display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
+                    <div style="width: auto; height: auto;">
+                        <p id="listing_title_det"></p>
+                        <p id="platform_id"></p>
+                        <div style="display: flex; flex-direction: row; column-gap: 1vw;">
+                            <div style="display: flex; flex-direction: row; column-gap: 0.5vw;">
+                                <i class="fa-solid fa-building" title="Empresa que publicou a vaga"></i>
+                                <p id="listing_company_det"></p>
+                            </div>
+                            <div style="display: flex; flex-direction: row; column-gap: 0.5vw;">
+                                <i class="fa-solid fa-location-dot" title="Local de trabalho"></i>
+                                <p id="listing_location_det"></p>
+                            </div>
+                            <div style="display: flex; flex-direction: row; column-gap: 0.5vw;">
+                                <i id="listing_workplace_type_ico" class="fa-solid" title="Vaga presencial/híbrida"></i>
+                                <p id="listing_workplace_type_det"></p>
+                            </div>
+                            
+                        </div>
+                        <div style="display: flex; flex-direction: row; column-gap: 1vw;">
+                            <div style="display: flex; flex-direction: row; column-gap: 0.5vw;">
+                                <img id="platform_logo" width="16" height="16">
+                                <p id="platform_name"></p>
+                            </div>
+
+                            <div style="display: flex; flex-direction: row; column-gap: 0.5vw;">
+                                <i class="fa-solid fa-calendar" title="Data de publicação da vaga"></i>
+                                <p id="listing_publish_date_det"></p>
+                            </div>
+                            <div style="display: flex; flex-direction: row; column-gap: 0.5vw;">
+                                <i class="fa-solid fa-users" title="Candidatos inscritos na vaga"></i>
+                                <p id="listing_applies_det"></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="apply_section">
+                        <a id="apply_button" target="_blank">Candidatar-se</a>
+                        <button id="applied_button" onclick="applied_to_listing()"><i class="fa-solid fa-check"></i></button>
+                        <button id="dismissed_button" onclick="dismiss_listing()"><i class="fa-solid fa-x"></i></button>
+                    </div>
+                </div>
+                <br>    
+                <hr>
+                <br>
+                <p id="listing_description_det"></p>
+            </div>
+        </div>
+    </div>
+    
+    {{listings|json_script:"listings"}}
+    <script defer>
+        listings = JSON.parse(document.getElementById('listings').textContent);
+        if (listings.length > 0) {
+            show(0);
+
+            for (let i = 0; i < listings.length; i++) {
+                let listing_status = document.querySelector(`#listing_${i} .listing_status`)
+                let current_listing = listings[i];
+                if (current_listing.applied_to) {
+                    listing_status.classList.add('fa-check')
+                    if (listing_status.classList.contains('fa-x'))
+                        listing_status.classList.remove('fa-x')
+                } else if (current_listing.applied_to === false) {
+                    listing_status.classList.add('fa-x')
+                    if (listing_status.classList.contains('fa-check'))
+                        listing_status.classList.remove('fa-check')
+                } else {
+                    if (listing_status.classList.contains('fa-x'))
+                        listing_status.classList.remove('fa-x')
+                    if (listing_status.classList.contains('fa-check'))
+                        listing_status.classList.remove('fa-check')
+                }
+            }
+        }
+        
+    </script>
+{% include "end.html" %}
