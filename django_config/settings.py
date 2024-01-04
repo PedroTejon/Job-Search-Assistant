@@ -39,6 +39,7 @@ CORS_ORIGIN_WHITELIST = [
 INSTALLED_APPS = [
     'corsheaders',
     'interfaces.vagas',
+    'interfaces.dashboard',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -63,7 +64,7 @@ ROOT_URLCONF = 'django_config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': ['interfaces/'],
+        'DIRS': [BASE_DIR / 'interfaces/templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -125,6 +126,11 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 STATIC_URL = 'static/'
+
+DIRS = (
+    BASE_DIR / 'interfaces/templates/',
+)
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field

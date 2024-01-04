@@ -19,7 +19,8 @@ from django.urls import include, path
 from django.views.generic.base import RedirectView
 
 urlpatterns = [
-    path("", RedirectView.as_view(url='vagas/', permanent=False)),
+    path("", RedirectView.as_view(url='dashboard/', permanent=False)),
+    path("dashboard/", include('interfaces.dashboard.urls')),
     path("vagas/", include('interfaces.vagas.urls')),
     path("admin/", admin.site.urls),
 ]
