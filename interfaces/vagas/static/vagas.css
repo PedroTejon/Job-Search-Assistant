@@ -66,13 +66,15 @@ body {
 
 #extraction_section {
     height: 100%;
-    width: 10vw;
+    width: 15vw;
 
     display: flex;
     justify-self: flex-end;
     justify-content: space-between;
     align-items: center;
     grid-column: 3;
+
+    margin-right: 3vw;
 }
 
 #extract_button {
@@ -84,32 +86,67 @@ body {
 
     cursor: pointer;
 }
- 
-#progress_bar_container {
-    height: 1vh;
-    width: 100%;
 
+#extraction_progress_menu {
+    height: auto;
+    width: 15vw;
+    
     visibility: hidden;
+    display: grid;
+    grid-template-columns: auto auto auto;
+    align-content: center;
+    gap: 1.2vh;
+
+    position: absolute;
+    right: 3.25vw;
+    top: 17.2vh;
+    z-index: 10;
+    padding: 1vw;
+    
+    background-color: white;
+    
+    border: 1px black solid;
+}
+
+#progress_bar_overall {
+    visibility: hidden;
+}
+
+.progress_bar_container {
+    height: 1vh;
+    width: 8vw;
+
     display: flex;
     padding: 1vh;
 
     cursor: pointer;
+
+    &.disabled .extraction_progress_bar {
+        background-color: rgba(218, 219, 220, 0.2);
+        animation: none;
+    }
+
+    &.disabled .extraction_progress_bar_value {
+        background-color: rgba(214, 214, 214, 0.808);
+        animation: none;
+    }
 }
 
-#extraction_progress_bar {
+.extraction_progress_bar {
     height: 8px;
     width: 100%;
 
     overflow: hidden;
 
     background-color: rgba(5, 114, 206, 0.2);
-
 }
 
-#extraction_progress_bar_value {
+.extraction_progress_bar_value {
     width: 100%;
     height: 100%;
+
     background-color: rgb(5, 114, 206);
+
     animation: indeterminateAnimation 1s infinite linear;
     transform-origin: 0% 50%;
 }

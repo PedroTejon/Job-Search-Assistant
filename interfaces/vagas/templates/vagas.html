@@ -18,12 +18,45 @@
 
             <div id="extraction_section">
                 <div id="extraction_results"></div>
-                <div id="progress_bar_container">
-                    <div id="extraction_progress_bar">
-                        <div id="extraction_progress_bar_value"></div>
+                <div id="progress_bar_overall" class="progress_bar_container" onclick="show_extraction_progress_menu()">
+                    <div class="extraction_progress_bar">
+                        <div class="extraction_progress_bar_value"></div>
                     </div>
                 </div>
                 <button id="extract_button" onclick="extract_listings()"><i class="fa-solid fa-plus"></i></button> 
+                <div id="extraction_progress_menu">
+                    <span id="new_listings_linkedin" style="grid-column: 1; justify-self: center"></span>
+                    <div id="progress_linkedin" class="progress_bar_container" style="width: 8vw; grid-column: 2;">
+                        <div class="extraction_progress_bar">
+                            <div class="extraction_progress_bar_value"></div>
+                        </div>
+                    </div>
+                    <i class="fa-brands fa-linkedin" style="grid-column: 3; font-size: 24px;"></i>
+
+                    <span id="new_listings_glassdoor" style="grid-column: 1; justify-self: center"></span>
+                    <div id="progress_glassdoor" class="progress_bar_container" style="width: 8vw; grid-column: 2;">
+                        <div class="extraction_progress_bar">
+                            <div class="extraction_progress_bar_value"></div>
+                        </div>
+                    </div>
+                    <img class="logo_img" src="{% static 'glassdoor.svg' %}" width="16" height="16" color="black" style="grid-column: 3; font-size: 24px; align-self: center;"></i>
+
+                    <span id="new_listings_catho" style="grid-column: 1; justify-self: center"></span>
+                    <div id="progress_catho" class="progress_bar_container" style="width: 8vw; grid-column: 2;">
+                        <div class="extraction_progress_bar">
+                            <div class="extraction_progress_bar_value"></div>
+                        </div>
+                    </div>
+                    <img class="logo_img" src="{% static 'catho.svg' %}" width="16" height="16" color="black" style="grid-column: 3; font-size: 24px; align-self: center;"></i>
+
+                    <span id="new_listings_vagas_com" style="grid-column: 1; justify-self: center;"></span>
+                    <div id="progress_vagas_com" class="progress_bar_container" style="width: 8vw; grid-column: 2;">
+                        <div class="extraction_progress_bar">
+                            <div class="extraction_progress_bar_value"></div>
+                        </div>
+                    </div>
+                    <img class="logo_img" src="{% static 'vagas_com.svg' %}" width="16" height="16" color="black" style="grid-column: 3; font-size: 24px; align-self: center"></i>
+                </div>
             </div>
         </div>
         <div id="listings_view">

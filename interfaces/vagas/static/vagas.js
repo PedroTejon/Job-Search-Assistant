@@ -85,18 +85,63 @@ function get_listings_extraction_status() {
     .then((data) => {
         results = data['results']
         console.log(data)
+        let progress_bar_overall = document.getElementById('progress_bar_overall')
+        let progress_bar_linkedin = document.getElementById('progress_linkedin')
+        let progress_bar_glassdoor = document.getElementById('progress_glassdoor')
+        let progress_bar_catho = document.getElementById('progress_catho')
+        let progress_bar_vagas_com = document.getElementById('progress_vagas_com')
         if  (results['linkedin']['status'] || results['glassdoor']['status'] || results['catho']['status'] || results['vagas_com']['status']) {
             if (!update_func) 
                 update_func = window.setInterval(get_listings_extraction_status, 1000)
-            let progress_bar_container = document.getElementById('progress_bar_container')
-            if (progress_bar_container.style.visibility = 'hidden')
-                progress_bar_container.style.visibility = 'visible'
+            
+            
+            if (progress_bar_overall.style.visibility = 'hidden')
+                progress_bar_overall.style.visibility = 'visible'
+            if (progress_bar_overall.classList.contains('disabled'))
+                progress_bar_overall.classList.remove('disabled')
 
-            document.getElementById('extraction_results').textContent = results['linkedin']['new_listings'] + results['glassdoor']['new_listings'] + results['catho']['new_listings'] + results['vagas_com']['new_listings'];
+            if (results['linkedin']['status'] && progress_bar_linkedin.classList.contains('disabled'))
+                progress_bar_linkedin.classList.remove('disabled')
+            else if (!results['linkedin']['status'])
+                progress_bar_linkedin.classList.add('disabled')
+            
+            if (results['glassdoor']['status'] && progress_bar_glassdoor.classList.contains('disabled'))
+                progress_bar_glassdoor.classList.remove('disabled')
+            else if (!results['glassdoor']['status'])
+                progress_bar_glassdoor.classList.add('disabled')
+            
+            if (results['catho']['status'] && progress_bar_catho.classList.contains('disabled'))
+                progress_bar_catho.classList.remove('disabled')
+            else if (!results['catho']['status'])
+                progress_bar_catho.classList.add('disabled')
+            
+            if (results['vagas_com']['status'] && progress_bar_vagas_com.classList.contains('disabled'))
+                progress_bar_vagas_com.classList.remove('disabled')
+            else if (!results['vagas_com']['status'])
+                progress_bar_vagas_com.classList.add('disabled')
+
+            document.getElementById('new_listings_linkedin').textContent = '+' + results['linkedin']['new_listings'];
+            document.getElementById('new_listings_glassdoor').textContent = '+' + results['glassdoor']['new_listings'];
+            document.getElementById('new_listings_catho').textContent = '+' + results['catho']['new_listings'];
+            document.getElementById('new_listings_vagas_com').textContent = '+' + results['vagas_com']['new_listings'];
+
+            document.getElementById('extraction_results').textContent = '+' + (results['linkedin']['new_listings'] + results['glassdoor']['new_listings'] + results['catho']['new_listings'] + results['vagas_com']['new_listings']);
         }
-        else if (update_func)
+        else if (update_func) {
+            progress_bar_overall.classList.add('disabled')
+            progress_bar_linkedin.classList.add('disabled')
+            progress_bar_glassdoor.classList.add('disabled')
+            progress_bar_catho.classList.add('disabled')
+            progress_bar_vagas_com.classList.add('disabled')
             clearTimeout(update_func);
+        }
     })
+}
+
+function show_extraction_progress_menu() {
+    let extraction_progress_menu = document.getElementById('extraction_progress_menu');
+
+    extraction_progress_menu.style.visibility = extraction_progress_menu.style.visibility == 'hidden' ? 'visible' : 'hidden';
 }
 
 function search(cur_query) {
