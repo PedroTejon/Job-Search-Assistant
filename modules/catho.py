@@ -1,5 +1,8 @@
 from json import load
+from os.path import split as path_split
+from queue import Queue
 from re import sub
+from sys import exc_info
 from time import sleep
 
 from cloudscraper import create_scraper
@@ -7,7 +10,7 @@ from unidecode import unidecode
 
 from interfaces.vagas.models import Listing
 from modules.exceptions import MaxRetriesException
-from modules.utils import get_company_by_name, listing_exists
+from modules.utils import get_company_by_name, listing_exists, reload_filters
 
 
 def get_bearer_token():
@@ -18,7 +21,7 @@ def get_bearer_token():
     return ''
 
 
-with open('filters.json', 'rb') as f:
+with open('data/filters.json', 'rb') as f:
     filters = load(f)
 with open('data/cookies.json', 'r', encoding='utf-8') as f:
     cookies_json = load(f)['catho']
@@ -27,7 +30,19 @@ COOKIES = ';'.join([f"{cookie['name']}={cookie['value']}" for cookie in cookies_
 token = get_bearer_token()
 with open('data/local_storage.json', 'r', encoding='utf-8') as f:
     build_id = load(f)['catho_build_id']
-queue = None
+queue: Queue = None
+log_queue: Queue = None
+
+
+def reload_if_configs_changed():
+    if log_queue.qsize() > 0:
+        temp_logs = []
+        for _ in range(log_queue.qsize()):
+            log = log_queue.get()
+            if log['type'] == 'reload_request':
+                reload_filters()
+            else:
+                temp_logs.append(log)
 
 
 def filter_listing(title, listing_locations_ids, location_ids):
@@ -113,11 +128,13 @@ def get_recommended_listings(location_ids):
 
             listing_details = listing_resp['jobAdData']
 
+            reload_if_configs_changed()
             if filter_listing(sub(r'[\[\]\(\),./\\| ]+', ' ', unidecode(listing_details['titulo']).lower()), [listing['cidadeId'] for listing in listing_details['vagas']], location_ids):
                 listing = Listing()
                 listing.title = listing_details['titulo']
                 listing.description = listing_details['descricao']
-                listing.location = [city['cidade'] for city in listing_details['vagas'] if str(city['cidadeId']) in location_ids['cities']][0]
+                listing.location = [city['cidade'] for city in listing_details['vagas']
+                                    if str(city['cidadeId']) in location_ids['cities']][0]
                 listing.publication_date = listing_details['dataAtualizacao']
                 listing.platform = 'Catho'
                 listing.platform_id = listing_id
@@ -240,10 +257,15 @@ def get_location_ids() -> dict:
     return location_ids
 
 
-def get_jobs(curr_queue):
-    global queue
+def get_jobs(curr_queue, curr_log_queue):
+    global queue, log_queue
     queue = curr_queue
-    
-    location_ids = get_location_ids()
+    log_queue = curr_log_queue
 
-    get_recommended_listings(location_ids)
+    location_ids = get_location_ids()
+    try:
+        get_recommended_listings(location_ids)
+    except Exception:  # pylint: disable=W0718
+        exc_class, _, exc_data = exc_info()
+        file_name = path_split(exc_data.tb_frame.f_code.co_filename)[1]
+        log_queue.put({'type': 'error', 'exception': exc_class.__name__, 'file_name': file_name, 'file_line': exc_data.tb_lineno})

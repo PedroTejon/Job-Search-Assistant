@@ -1,5 +1,8 @@
 from json import load
+from os.path import split as path_split
+from queue import Queue
 from re import sub
+from sys import exc_info
 from time import sleep
 
 from bs4 import BeautifulSoup
@@ -9,7 +12,8 @@ from unidecode import unidecode
 
 from interfaces.vagas.models import Company, Listing
 from modules.exceptions import MaxRetriesException
-from modules.utils import filter_listing, get_company_by_name, listing_exists
+from modules.utils import (filter_listing, get_company_by_name, listing_exists,
+                           reload_filters)
 
 
 def get_bearer_token():
@@ -20,14 +24,26 @@ def get_bearer_token():
     return ''
 
 
-with open('filters.json', 'rb') as f:
+with open('data/filters.json', 'rb') as f:
     filters = load(f)
 with open('data/cookies.json', 'rb') as f:
     cookies_json = load(f)['vagas.com']
 COOKIES = ';'.join([f"{cookie['name']}={cookie['value']}" for cookie in cookies_json]) + \
     '; session_id=99be0cd2-0098-4f6e-9206-b4555d5c5172'
 token = get_bearer_token()
-queue = None
+queue: Queue = None
+log_queue: Queue = None
+
+
+def reload_if_configs_changed():
+    if log_queue.qsize() > 0:
+        temp_logs = []
+        for _ in range(log_queue.qsize()):
+            log = log_queue.get()
+            if log['type'] == 'reload_request':
+                reload_filters()
+            else:
+                temp_logs.append(log)
 
 
 def filter_title(title):
@@ -78,6 +94,7 @@ def get_companies_listings():
                 listing.title = listing_soup.find('h1', {'class': 'job-shortdescription__title'}).get_text(strip=True)
                 listing.location = listing_soup.find('span', {'class': 'info-localizacao'}).get_text(strip=True)
                 listing.workplace_type = 'Remoto' if listing.location == '100% Home Office' else 'Presencial/Hibrido'
+                reload_if_configs_changed()
                 if filter_location(listing.location, listing.workplace_type):
                     listing.company = company
                     listing.company_name = company.platforms['vagas_com']['name']
@@ -144,6 +161,7 @@ def get_recommended_listings():
         listing_title = listing['cargo']
         listing_location = listing['local_de_trabalho']
         listing_worktype = 'Remoto' if listing['modelo_local_trabalho'] == '100% Home Office' else 'Presencial/Hibrido'
+        reload_if_configs_changed()
         if filter_listing(sub(r'[\[\]\(\),./\\| ]+', ' ', unidecode(listing_title).lower()), listing_location, listing_worktype) and not listing['exclusividade_para_pcd']:
             listing_id = listing['id']
 
@@ -160,7 +178,7 @@ def get_recommended_listings():
                 company_name=company_name,
                 platform_id=listing_id,
                 platform='Vagas.com').save()
-            
+
             queue.put(1)
 
     for listing in content['vagas_do_dia']:
@@ -168,6 +186,7 @@ def get_recommended_listings():
         listing_title = listing['cargo']
         listing_location = listing['local_de_trabalho']
         listing_worktype = 'Remoto' if listing['modelo_local_trabalho'] == '100% Home Office' else 'Presencial/Hibrido'
+        reload_if_configs_changed()
         if filter_listing(sub(r'[\[\]\(\),./\\| ]+', ' ', unidecode(listing_title).lower()), listing_location, listing_worktype) and not listing['exclusividade_para_pcd']:
             listing_id = listing['id']
 
@@ -225,12 +244,18 @@ def get_followed_companies():
         company.save()
 
 
-def get_jobs(curr_queue):
-    global queue
+def get_jobs(curr_queue, curr_log_queue):
+    global queue, log_queue
     queue = curr_queue
+    log_queue = curr_log_queue
 
-    get_followed_companies()
+    try:
+        get_followed_companies()
 
-    get_companies_listings()
+        get_companies_listings()
 
-    get_recommended_listings()
+        get_recommended_listings()
+    except Exception:  # pylint: disable=W0718
+        exc_class, _, exc_data = exc_info()
+        file_name = path_split(exc_data.tb_frame.f_code.co_filename)[1]
+        log_queue.put({'type': 'error', 'exception': exc_class.__name__, 'file_name': file_name, 'file_line': exc_data.tb_lineno})

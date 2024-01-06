@@ -130,6 +130,16 @@ body {
         background-color: rgba(214, 214, 214, 0.808);
         animation: none;
     }
+
+    &.errored .extraction_progress_bar {
+        background-color: red !important;
+        animation: none;
+    }
+
+    &.errored .extraction_progress_bar_value {
+        background-color: red !important;
+        animation: none;
+    }
 }
 
 .extraction_progress_bar {

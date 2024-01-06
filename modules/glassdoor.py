@@ -1,5 +1,8 @@
 from json import load
+from os.path import split as path_split
+from queue import Queue
 from re import sub
+from sys import exc_info
 from time import sleep
 
 from cloudscraper import create_scraper
@@ -9,14 +12,26 @@ from unidecode import unidecode
 from interfaces.vagas.models import Company, Listing
 from modules.exceptions import MaxRetriesException
 from modules.utils import (company_exists_by_id, filter_listing,
-                           get_company_by_name, listing_exists)
+                           get_company_by_name, listing_exists, reload_filters)
 
 with open('data/local_storage.json', 'rb') as f:
     token = load(f)['glassdoor_csrf']
 with open('data/cookies.json', 'rb') as f:
     cookies_json = load(f)['glassdoor']
 COOKIES = ';'.join([f"{cookie['name']}={cookie['value']}" for cookie in cookies_json])
-queue = None
+queue: Queue = None
+log_queue: Queue = None
+
+
+def reload_if_configs_changed():
+    if log_queue.qsize() > 0:
+        temp_logs = []
+        for _ in range(log_queue.qsize()):
+            log = log_queue.get()
+            if log['type'] == 'reload_request':
+                reload_filters()
+            else:
+                temp_logs.append(log)
 
 
 def job_listings_request(cursor, query, operation, variables):
@@ -68,6 +83,7 @@ def extract_job_listings(job_listings: list):
         listing_worktype = 'Remoto' if 'remoto' in listing_location else 'Presencial/Hibrido'
 
         company_name = listing_header['employerNameFromSearch']
+        reload_if_configs_changed()
         if filter_listing(sub(r'[\[\]\(\),./\\| ]+', ' ', unidecode(listing_title).lower()), listing_location, listing_worktype):
             if (company := get_company_by_name(company_name, 'glassdoor')).platforms['glassdoor']['name'] is None:
                 company.platforms['glassdoor']['name'] = company_name
@@ -199,12 +215,18 @@ def get_followed_companies():
         sleep(.5)
 
 
-def get_jobs(curr_queue):
-    global queue
+def get_jobs(curr_queue, curr_log_queue):
+    global queue, log_queue
     queue = curr_queue
+    log_queue = curr_log_queue
 
-    get_followed_companies()
+    try:
+        get_followed_companies()
 
-    get_companies_listings()
+        get_companies_listings()
 
-    get_recommended_listings()
+        get_recommended_listings()
+    except Exception:  # pylint: disable=W0718
+        exc_class, _, exc_data = exc_info()
+        file_name = path_split(exc_data.tb_frame.f_code.co_filename)[1]
+        log_queue.put({'type': 'error', 'exception': exc_class.__name__, 'file_name': file_name, 'file_line': exc_data.tb_lineno})
