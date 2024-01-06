@@ -1,9 +1,20 @@
-from json import load
+from json import dump, load
+from os import listdir
 
 from interfaces.vagas.models import Company, Listing
 
-with open('data/filters.json', 'r', encoding='utf-8') as f:
-    filters = load(f)
+if 'filters.json' not in listdir('data'):
+    filters = {
+        "exclude_words": [],
+        "exclude_terms": [],
+        "cities": [],
+        "states": [],
+        "countries": []
+    }
+    dump(filters, 'data/filters.json', ensure_ascii=False)
+else:
+    with open('data/filters.json', 'r', encoding='utf-8') as f:
+        filters = load(f)
 
 
 def reload_filters():
