@@ -99,27 +99,7 @@ function get_listings_extraction_status() {
                 progress_bar_overall.style.visibility = 'visible'
             if (progress_bar_overall.classList.contains('disabled'))
                 progress_bar_overall.classList.remove('disabled')
-
-            if (results['linkedin']['status'] && progress_bar_linkedin.classList.contains('disabled'))
-                progress_bar_linkedin.classList.remove('disabled')
-            else if (!results['linkedin']['status'])
-                progress_bar_linkedin.classList.add('disabled')
-            
-            if (results['glassdoor']['status'] && progress_bar_glassdoor.classList.contains('disabled'))
-                progress_bar_glassdoor.classList.remove('disabled')
-            else if (!results['glassdoor']['status'])
-                progress_bar_glassdoor.classList.add('disabled')
-            
-            if (results['catho']['status'] && progress_bar_catho.classList.contains('disabled'))
-                progress_bar_catho.classList.remove('disabled')
-            else if (!results['catho']['status'])
-                progress_bar_catho.classList.add('disabled')
-            
-            if (results['vagas_com']['status'] && progress_bar_vagas_com.classList.contains('disabled'))
-                progress_bar_vagas_com.classList.remove('disabled')
-            else if (!results['vagas_com']['status'])
-                progress_bar_vagas_com.classList.add('disabled')
-
+        
             document.getElementById('new_listings_linkedin').textContent = '+' + results['linkedin']['new_listings'];
             document.getElementById('new_listings_glassdoor').textContent = '+' + results['glassdoor']['new_listings'];
             document.getElementById('new_listings_catho').textContent = '+' + results['catho']['new_listings'];
@@ -129,13 +109,31 @@ function get_listings_extraction_status() {
         }
         else if (update_func) {
             progress_bar_overall.classList.add('disabled')
-            progress_bar_linkedin.classList.add('disabled')
-            progress_bar_glassdoor.classList.add('disabled')
-            progress_bar_catho.classList.add('disabled')
-            progress_bar_vagas_com.classList.add('disabled')
             clearTimeout(update_func);
         }
+
+        alternate_progress_bar(results, 'linkedin', progress_bar_linkedin)
+        alternate_progress_bar(results, 'glassdoor', progress_bar_glassdoor)
+        alternate_progress_bar(results, 'catho', progress_bar_catho)
+        alternate_progress_bar(results, 'vagas_com', progress_bar_vagas_com)
     })
+}
+
+
+function alternate_progress_bar(results, platform, progress_element) {
+    if (results[platform]['status'] && progress_element.classList.contains('disabled'))
+        progress_element.classList.remove('disabled')
+    else if (!results[platform]['status'])
+        progress_element.classList.add('disabled')
+
+    if ('exception' in results[platform]) {
+        progress_element.classList.add('errored')
+        progress_element.title = results[platform]['exception']
+    }
+    else if (progress_element.classList.contains('errored')) {
+        progress_element.classList.remove('errored')
+        progress_element.removeAttribute('title')
+    }
 }
 
 function show_extraction_progress_menu() {

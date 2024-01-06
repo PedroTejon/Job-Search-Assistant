@@ -16,10 +16,10 @@ from modules.vagas_com import get_jobs as vagas_com
 
 def main():
     # configs = load(open('config.json', 'r', encoding='utf-8'))
-    linkedin(Queue())
-    glassdoor(Queue())
-    catho(Queue())
-    vagas_com(Queue())
+    linkedin(Queue(), Queue())
+    glassdoor(Queue(), Queue())
+    catho(Queue(), Queue())
+    vagas_com(Queue(), Queue())
 
 
 if __name__ == '__main__':

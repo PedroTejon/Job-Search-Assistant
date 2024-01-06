@@ -1,6 +1,9 @@
 from datetime import datetime
 from json import load
+from os.path import split as path_split
+from queue import Queue
 from re import sub
+from sys import exc_info
 from time import sleep
 
 from cloudscraper import create_scraper
@@ -10,7 +13,7 @@ from unidecode import unidecode
 from interfaces.vagas.models import Company, Listing
 from modules.exceptions import MaxRetriesException
 from modules.utils import (company_exists_by_id, filter_listing,
-                           get_company_by_name, listing_exists)
+                           get_company_by_name, listing_exists, reload_filters)
 
 
 def get_csrf_token():
@@ -25,7 +28,19 @@ with open('data/cookies.json', 'rb') as f:
     cookies_json = load(f)['linkedin']
 COOKIES = ';'.join([f"{cookie['name']}={cookie['value']}" for cookie in cookies_json])
 token = get_csrf_token()
-queue = None
+queue: Queue = None
+log_queue: Queue = None
+
+
+def reload_if_configs_changed():
+    if log_queue.qsize() > 0:
+        temp_logs = []
+        for _ in range(log_queue.qsize()):
+            log = log_queue.get()
+            if log['type'] == 'reload_request':
+                reload_filters()
+            else:
+                temp_logs.append(log)
 
 
 def get_companies_pfps(companies_json):
@@ -99,6 +114,8 @@ def get_job_listings(url):
             workplace_type = 'Remoto' if 'Remoto' in listing_location else 'Presencial/Hibrido'
             listing_location = sub(r'\s*\(\bPresencial\b\)|\s*\(\bHíbrido\b\)|\s*\(\bRemoto\b\)',
                                    '', listing_location.split(',')[0].strip())
+
+            reload_if_configs_changed()
             if filter_listing(sub(r'[\[\]\(\),./\\| !?#]+', ' ', unidecode(listing_title).lower()), listing_location, workplace_type):
                 if 'detailData' not in element['logo']['attributes'][0]:
                     continue
@@ -137,8 +154,7 @@ def get_recommended_listings():
 
 
 def get_companies_listings():
-    companies = list(filter(lambda x: not x.checked_recently(
-        'linkedin') and x.followed, Company.objects.all()))
+    companies = list(filter(lambda x: not x.checked_recently('linkedin') and x.followed, Company.objects.all()))
     if companies:
         for company in companies:
             get_job_listings(
@@ -315,14 +331,20 @@ def get_followed_companies():
         curr_index += 100
 
 
-def get_jobs(curr_queue):
-    global queue
+def get_jobs(curr_queue, curr_log_queue):
+    global queue, log_queue
     queue = curr_queue
+    log_queue = curr_log_queue
 
-    get_followed_companies()
+    try:
+        get_followed_companies()
 
-    get_companies_listings()
+        get_companies_listings()
 
-    get_recommended_listings()
+        get_recommended_listings()
 
-    get_remote_listings()
+        get_remote_listings()
+    except Exception:  # pylint: disable=W0718
+        exc_class, _, exc_data = exc_info()
+        file_name = path_split(exc_data.tb_frame.f_code.co_filename)[1]
+        log_queue.put({'type': 'error', 'exception': exc_class.__name__, 'file_name': file_name, 'file_line': exc_data.tb_lineno})

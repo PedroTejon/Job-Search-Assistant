@@ -12,26 +12,29 @@ from interfaces.vagas.models import Listing
 from modules.catho import get_jobs as catho_extraction
 from modules.glassdoor import get_jobs as glassdoor_extraction
 from modules.linkedin import get_jobs as linkedin_extraction
-from modules.vagas_com import get_jobs as vagas_com_extraction
 from modules.utils import reload_filters
-
+from modules.vagas_com import get_jobs as vagas_com_extraction
 
 threads = {
     'linkedin': {
         'thread': None,
-        'queue': None
+        'queue': None,
+        'log_queue': None
     },
     'glassdoor': {
         'thread': None,
-        'queue': None
+        'queue': None,
+        'log_queue': None
     },
     'catho': {
         'thread': None,
-        'queue': None
+        'queue': None,
+        'log_queue': None
     },
     'vagas_com': {
         'thread': None,
-        'queue': None
+        'queue': None,
+        'log_queue': None
     }
 }
 
@@ -125,52 +128,81 @@ def start_listing_extraction(request):
     global threads
     if not thread_is_running('linkedin_extraction') and not thread_is_running('glassdoor_extraction') and not thread_is_running('catho_extraction') and not thread_is_running('vagas_com_extraction'):
         reload_filters()
-        
+
         threads['linkedin']['queue'] = Queue()
+        threads['linkedin']['log_queue'] = Queue()
         threads['linkedin']['thread'] = Thread(target=linkedin_extraction, name='linkedin_extraction', args=[
-                                               threads['linkedin']['queue']])
+                                               threads['linkedin']['queue'],
+                                               threads['linkedin']['log_queue']])
         threads['linkedin']['thread'].start()
 
         threads['glassdoor']['queue'] = Queue()
+        threads['glassdoor']['log_queue'] = Queue()
         threads['glassdoor']['thread'] = Thread(target=glassdoor_extraction, name='glassdoor_extraction', args=[
-                                                threads['glassdoor']['queue']])
+                                                threads['glassdoor']['queue'],
+                                                threads['glassdoor']['log_queue']])
         threads['glassdoor']['thread'].start()
 
         threads['catho']['queue'] = Queue()
+        threads['catho']['log_queue'] = Queue()
         threads['catho']['thread'] = Thread(target=catho_extraction, name='catho_extraction', args=[
-                                            threads['catho']['queue']])
+                                            threads['catho']['queue'],
+                                            threads['catho']['log_queue']])
         threads['catho']['thread'].start()
 
         threads['vagas_com']['queue'] = Queue()
+        threads['vagas_com']['log_queue'] = Queue()
         threads['vagas_com']['thread'] = Thread(target=vagas_com_extraction, name='vagas_com_extraction', args=[
-                                                threads['vagas_com']['queue']])
+                                                threads['vagas_com']['queue'],
+                                                threads['vagas_com']['log_queue']])
         threads['vagas_com']['thread'].start()
 
-    return JsonResponse({'status': 200})
+        return JsonResponse({'status': 200})
+
+    return JsonResponse({'status': 409}, status=409)
 
 
 def get_listing_extraction_status(request):
-    return JsonResponse({
+    response_body = {
         'status': 200,
         'results': {
             'linkedin': {
-                'status': threads['linkedin']['thread'].is_alive() if threads['linkedin']['thread'] is not None else False,
-                'new_listings': threads['linkedin']['queue'].qsize()
+                'status': False,
+                'new_listings': 0
             },
             'glassdoor': {
-                'status': threads['glassdoor']['thread'].is_alive() if threads['glassdoor']['thread'] is not None else False,
-                'new_listings': threads['glassdoor']['queue'].qsize()
+                'status': False,
+                'new_listings': 0
             },
             'catho': {
-                'status': threads['catho']['thread'].is_alive() if threads['catho']['thread'] is not None else False,
-                'new_listings': threads['catho']['queue'].qsize()
+                'status': False,
+                'new_listings': 0
             },
             'vagas_com': {
-                'status': threads['vagas_com']['thread'].is_alive() if threads['vagas_com']['thread'] is not None else False,
-                'new_listings': threads['vagas_com']['queue'].qsize()
+                'status': False,
+                'new_listings': 0
             }
         }
-    })
+    }
+
+    for platform in ['linkedin', 'glassdoor', 'catho', 'vagas_com']:
+        if threads[platform]['queue'] is not None:
+            response_body['results'][platform]['status'] = threads[platform]['thread'].is_alive() if threads[platform]['thread'] is not None else False
+            response_body['results'][platform]['new_listings'] = threads[platform]['queue'].qsize()
+
+            if threads[platform]['log_queue'].qsize() > 0:
+                temp_logs = []
+                for _ in range(threads[platform]['log_queue'].qsize()):
+                    log = threads[platform]['log_queue'].get()
+                    if log['type'] == 'error':
+                        response_body['results'][platform]['exception'] = f"{log['exception']}: {log['file_name']}, linha {log['file_line']}"
+
+                    temp_logs.append(log)
+
+                for log in temp_logs[::-1]:
+                    threads[platform]['log_queue'].put(log)
+
+    return JsonResponse(response_body)
 
 
 def thread_is_running(name):
