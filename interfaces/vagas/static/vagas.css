@@ -9,6 +9,10 @@ body {
     overflow: hidden;
 }
 
+a, a:visited, a:hover, a:active {
+    color: inherit;
+}
+
 #app_container {
     width: 100%;
     height: 100%;
@@ -32,21 +36,22 @@ body {
 }
 
 #listings_filters {
-    width: 97.5vw;
+    width: 97.5dvw;
 
     display: grid; 
-    grid-template-columns: 21vw auto auto;
+    grid-template-columns: 21dvw auto auto;
     flex-grow: 1;
     align-items: center;
 
-    padding: 2.5vh;
+    padding: 2.5dvh;
 
+    border-top: 1px black solid;
     border-bottom: 1px black solid;
 }
 
 #search_bar_container {
     height: 100%;
-    width: 20vw;
+    width: 20dvw;
     
     display: flex;
     justify-content: space-between;
@@ -54,7 +59,7 @@ body {
     grid-column: 1;
 
     border: 1px solid black;
-    border-radius: 1vh;
+    border-radius: 1dvh;
 }
 
 #search_bar {    
@@ -62,7 +67,7 @@ body {
     flex-grow: 1;
 
     border: none;
-    border-radius: 1vh;
+    border-radius: 1dvh;
 
     outline: none;
 }
@@ -77,9 +82,24 @@ body {
     cursor: pointer
 }
 
+#querying_filter_menu {
+    display: none;
+    flex-direction: column;
+
+    position: sticky;
+    top: 0%;
+    padding: 1vh;
+
+    background-color: white;
+
+    overflow: hidden;
+
+    border-bottom: 1px solid black;
+}
+
 #extraction_section {
     height: 100%;
-    width: 15vw;
+    width: 15dvw;
 
     display: flex;
     justify-self: flex-end;
@@ -87,11 +107,11 @@ body {
     align-items: center;
     grid-column: 3;
 
-    margin-right: 3vw;
+    margin-right: 3dvw;
 }
 
-#extract_button {
-    padding: 1vh;
+#extract_button, #filter_menu_button {
+    padding: 1dvh;
 
     border: none;
 
@@ -102,19 +122,19 @@ body {
 
 #extraction_progress_menu {
     height: auto;
-    width: 15vw;
+    width: 15dvw;
     
     visibility: hidden;
     display: grid;
     grid-template-columns: auto auto auto;
     align-content: center;
-    gap: 1.2vh;
+    gap: 1.2dvh;
 
     position: absolute;
-    right: 3.25vw;
-    top: 17.2vh;
+    right: 3.25dvw;
+    top: 17.2dvh;
     z-index: 10;
-    padding: 1vw;
+    padding: 1dvw;
     
     background-color: white;
     
@@ -126,13 +146,15 @@ body {
 }
 
 .progress_bar_container {
-    height: 1vh;
-    width: 8vw;
+    height: 1dvh;
+    width: 8dvw;
 
     display: flex;
-    padding: 1vh;
+    padding: 1dvh;
 
-    cursor: pointer;
+    &[id=progress_bar_overall] {
+        cursor: pointer;
+    }
 
     &.disabled .extraction_progress_bar {
         background-color: rgba(218, 219, 220, 0.2);
@@ -196,7 +218,7 @@ body {
 }
 
 #listings_sidebar {
-    width: 25vw;
+    width: 25dvw;
     height: 100%;
 
     overflow: scroll;
@@ -268,10 +290,6 @@ body {
     display: flex;
     justify-content: center;
     gap: 0.5dvw;
-}
-
-a, a:visited, a:hover, a:active {
-    color: inherit;
 }
 
 #listing_details {

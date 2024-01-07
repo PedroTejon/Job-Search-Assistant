@@ -26,9 +26,8 @@ function applied_to_listing() {
 }
 
 function apply_new_filter(filter_type) {
-    console.log(last_text, filter_type);
     if (confirm('Deseja adicionar isto aos filtros mesmo? As vagas com estas características já presentes no banco de dados serão marcadas como "Dispensada" automaticamente.')) {
-        fetch('http://localhost:8000/vagas/apply_new_filter?filtered=' + last_text + "&filter_type=" + filter_type, {method: 'POST'})
+        fetch('http://localhost:8000/vagas/apply_new_filter?filtered=' + last_text + '&filter_type=' + filter_type, {method: 'POST'})
         .then((response) => response.json())
         .then((data) => {
             
@@ -129,7 +128,6 @@ function get_listings_extraction_status() {
         alternate_progress_bar(results, 'vagas_com', progress_bar_vagas_com)
     })
 }
-
 
 function alternate_progress_bar(results, platform, progress_element) {
     if (results[platform]['status'] && progress_element.classList.contains('disabled'))
@@ -271,6 +269,15 @@ function show(listing_index) {
             dismiss_button.classList.remove('button_disabled')
     }
     
+}
+
+function show_filter_menu() {
+    let filter_menu = document.getElementById('querying_filter_menu')
+    if (filter_menu.style.display == 'none') {
+        filter_menu.style.display = 'flex';
+    } else {
+        filter_menu.style.display = 'none';
+    }
 }
 
 if (!window.highlighter) {

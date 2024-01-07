@@ -7,13 +7,9 @@
                 <input id="search_bar" type="text" value="{{query}}">
                 <button id="search_button" onclick="search('{{query}}')"><i class="fa-solid fa-magnifying-glass"></i></button>
             </div>
+
             <div style="grid-column: 2;">
-                <label for="query_new">Vagas não avaliadas:</label>
-                <input id="query_new" type="checkbox" {{ get_new | yesno:"checked," }}>
-                <label for="query_new">Vagas inscritas:</label>
-                <input id="query_applied" type="checkbox" {{ get_applied | yesno:"checked," }}>
-                <label for="query_new">Vagas dispensadas:</label>
-                <input id="query_dismissed" type="checkbox" {{ get_dismissed | yesno:"checked," }}>
+                <button id="filter_menu_button" onclick="show_filter_menu()"><i class="fa-solid fa-filter"></i></button>
             </div>
 
             <div id="extraction_section">
@@ -65,6 +61,16 @@
                 <button id="filter_term_button" title="Proibir termo/sequência de caracteres" onclick="apply_new_filter('exclude_terms')"><i class="fa-solid fa-highlighter"></i></button>
             </div>
             <div id="listings_sidebar">
+                <div id="querying_filter_menu">
+                    <div style="display: grid; grid-template-columns: auto auto; column-gap: 1vw; justify-items: left;">
+                        <label for="query_new">Vagas não avaliadas:</label>
+                        <input id="query_new" type="checkbox" {{ get_new | yesno:"checked," }}>
+                        <label for="query_applied">Vagas inscritas:</label>
+                        <input id="query_applied" type="checkbox" {{ get_applied | yesno:"checked," }}>
+                        <label for="query_dismissed">Vagas dispensadas:</label>
+                        <input id="query_dismissed" type="checkbox" {{ get_dismissed | yesno:"checked," }}>
+                    </div>
+                </div>
                 {% for listing in listings %}
                     <div class="listing" id="listing_{{forloop.counter0}}" onclick="show({{forloop.counter0}})">
                         <p class="listing_title">{{listing.title}}</p>
