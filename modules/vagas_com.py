@@ -46,17 +46,20 @@ def reload_if_configs_changed():
 
 def filter_title(title, company_name):
     title = asciify_text(title)
+
     if any(map(lambda x: x in title.split(), filters['title_exclude_words'])):
         return False
 
     if any(map(lambda x: x in title, filters['title_exclude_terms'])):
         return False
 
-    if any(map(lambda x: x in company_name.split(), filters['company_exclude_words'])):
-        return False
+    if company_name is not None:
+        company_name = asciify_text(company_name)
+        if any(map(lambda x: x in company_name.split(), filters['company_exclude_words'])):
+            return False
 
-    if any(map(lambda x: x in company_name, filters['company_exclude_terms'])):
-        return False
+        if any(map(lambda x: x in company_name, filters['company_exclude_terms'])):
+            return False
 
     return True
 
@@ -85,7 +88,7 @@ def get_companies_listings():
             soup = BeautifulSoup(response.text, 'html.parser')
 
             listing_urls = [link['href'] for link in soup.find_all('a', {'class': 'link-detalhes-vaga'})
-                            if not listing_exists(link['data-id-vaga']) and filter_title(asciify_text(link.get_text(strip=True)), asciify_text(company))]
+                            if not listing_exists(link['data-id-vaga']) and filter_title(link.get_text(strip=True), company.platforms['vagas_com']['name'])]
             if not listing_urls:
                 break
 
