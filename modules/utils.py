@@ -1,12 +1,17 @@
 from json import dump, load
 from os import listdir
+from re import sub
+
+from unidecode import unidecode
 
 from interfaces.vagas.models import Company, Listing
 
 if 'filters.json' not in listdir('data'):
     filters = {
-        "exclude_words": [],
-        "exclude_terms": [],
+        "title_exclude_words": [],
+        "title_exclude_terms": [],
+        "company_exclude_words": [],
+        "company_exclude_terms": [],
         "cities": [],
         "states": [],
         "countries": []
@@ -52,11 +57,15 @@ def get_company_by_name(c_name, platform) -> Company:
         return Company()
 
 
+def asciify_text(text):
+    return sub(r'[\[\]\(\),./\\| !?#]+', ' ', unidecode(text).lower())
+
+
 def listing_exists(c_id) -> bool:
     return Listing.objects.filter(platform_id__exact=c_id).exists()
 
 
-def filter_listing(title, location, workplace_type) -> bool:
+def filter_listing(title, location, workplace_type, company_name) -> bool:
     if location.count(',') == 2:
         city, state, country = location.split(', ')
     elif location.count(',') == 1:
@@ -72,10 +81,16 @@ def filter_listing(title, location, workplace_type) -> bool:
         if 'country' in locals() and not any(map(lambda x: x == country, filters['countries'])):
             return False
 
-    if any(map(lambda x: x in title.split(), filters['exclude_words'])):
+    if any(map(lambda x: x in title.split(), filters['title_exclude_words'])):
         return False
 
-    if any(map(lambda x: x in title, filters['exclude_terms'])):
+    if any(map(lambda x: x in title, filters['title_exclude_terms'])):
+        return False
+
+    if any(map(lambda x: x in company_name.split(), filters['company_exclude_words'])):
+        return False
+
+    if any(map(lambda x: x in company_name, filters['company_exclude_terms'])):
         return False
 
     return True

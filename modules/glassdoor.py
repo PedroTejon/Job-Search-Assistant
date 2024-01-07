@@ -1,17 +1,15 @@
 from json import load
 from os.path import split as path_split
 from queue import Queue
-from re import sub
 from sys import exc_info
 from time import sleep
 
 from cloudscraper import create_scraper
 from django.utils.timezone import now
-from unidecode import unidecode
 
 from interfaces.vagas.models import Company, Listing
 from modules.exceptions import MaxRetriesException
-from modules.utils import (company_exists_by_id, filter_listing,
+from modules.utils import (asciify_text, company_exists_by_id, filter_listing,
                            get_company_by_name, listing_exists, reload_filters)
 
 with open('data/local_storage.json', 'rb') as f:
@@ -84,7 +82,7 @@ def extract_job_listings(job_listings: list):
 
         company_name = listing_header['employerNameFromSearch']
         reload_if_configs_changed()
-        if filter_listing(sub(r'[\[\]\(\),./\\| ]+', ' ', unidecode(listing_title).lower()), listing_location, listing_worktype):
+        if filter_listing(asciify_text(listing_title), listing_location, listing_worktype, asciify_text(company_name)):
             if (company := get_company_by_name(company_name, 'glassdoor')).platforms['glassdoor']['name'] is None:
                 company.platforms['glassdoor']['name'] = company_name
                 if 'employer' in listing['jobview']['header']:

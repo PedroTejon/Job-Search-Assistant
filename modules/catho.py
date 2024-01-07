@@ -1,16 +1,14 @@
 from json import load
 from os.path import split as path_split
 from queue import Queue
-from re import sub
 from sys import exc_info
 from time import sleep
 
 from cloudscraper import create_scraper
-from unidecode import unidecode
 
 from interfaces.vagas.models import Listing
 from modules.exceptions import MaxRetriesException
-from modules.utils import get_company_by_name, listing_exists, reload_filters
+from modules.utils import asciify_text, get_company_by_name, listing_exists, reload_filters
 
 
 def get_bearer_token():
@@ -45,11 +43,17 @@ def reload_if_configs_changed():
                 temp_logs.append(log)
 
 
-def filter_listing(title, listing_locations_ids, location_ids):
-    if any(map(lambda x: x in title.split(), filters['exclude_words'])):
+def filter_listing(title, listing_locations_ids, location_ids, company_name):
+    if any(map(lambda x: x in title.split(), filters['title_exclude_words'])):
         return False
 
-    if any(map(lambda x: x in title, filters['exclude_terms'])):
+    if any(map(lambda x: x in title, filters['title_exclude_terms'])):
+        return False
+
+    if any(map(lambda x: x in company_name.split(), filters['company_exclude_words'])):
+        return False
+
+    if any(map(lambda x: x in company_name, filters['company_exclude_terms'])):
         return False
 
     if not any(int(city) in listing_locations_ids for city in location_ids['cities']):
@@ -127,9 +131,11 @@ def get_recommended_listings(location_ids):
             listing_resp = listing_resp.json()['pageProps']
 
             listing_details = listing_resp['jobAdData']
+            company_name = listing_details['contratante']['nome'] if not listing_details['contratante']['confidencial'] else 'Confidencial'
 
             reload_if_configs_changed()
-            if filter_listing(sub(r'[\[\]\(\),./\\| ]+', ' ', unidecode(listing_details['titulo']).lower()), [listing['cidadeId'] for listing in listing_details['vagas']], location_ids):
+            listing_city_ids = [listing['cidadeId'] for listing in listing_details['vagas']]
+            if filter_listing(asciify_text(listing_details['titulo']), listing_city_ids, location_ids, asciify_text(company_name)):
                 listing = Listing()
                 listing.title = listing_details['titulo']
                 listing.description = listing_details['descricao']
@@ -158,8 +164,6 @@ def get_recommended_listings(location_ids):
                     'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0'
                 }).json()['balance']
 
-                company_name = listing_details['contratante']['nome'] if not listing_details[
-                    'contratante']['confidencial'] else 'Confidencial'
                 if (company := get_company_by_name(company_name, 'catho')).platforms['catho']['name'] is None:
                     company.platforms['catho']['name'] = company_name
                     company.platforms['catho']['id'] = listing_details['empId'] if not listing_details['contratante']['confidencial'] else 'Confidencial'

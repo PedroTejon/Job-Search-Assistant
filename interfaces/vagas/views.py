@@ -1,6 +1,5 @@
 from json import dump, load
 from queue import Queue
-from re import sub
 from threading import Thread
 from threading import enumerate as enum_threads
 
@@ -9,13 +8,12 @@ from django.http import HttpResponse, JsonResponse
 from django.template import loader
 from django.views.decorators.csrf import csrf_exempt
 from numpy import arange, split
-from unidecode import unidecode
 
 from interfaces.vagas.models import Listing
 from modules.catho import get_jobs as catho_extraction
 from modules.glassdoor import get_jobs as glassdoor_extraction
 from modules.linkedin import get_jobs as linkedin_extraction
-from modules.utils import reload_filters
+from modules.utils import asciify_text, reload_filters
 from modules.vagas_com import get_jobs as vagas_com_extraction
 
 threads = {
@@ -98,7 +96,7 @@ def nullify_listing(request):
 @csrf_exempt
 def apply_new_filter(request):
     filtered = request.GET.get('filtered').lower()
-    filter_type = request.GET.get('filter_type', 'exclude_words')
+    filter_type = request.GET.get('filter_type', 'title_exclude_words')
 
     with open('data/filters.json', 'r', encoding='utf-8') as f:
         filters = load(f)
@@ -110,10 +108,11 @@ def apply_new_filter(request):
         if threads[platform]['thread'] is not None and threads[platform]['thread'].is_alive():
             threads[platform]['log_queue'].put({'type': 'reload_request'})
 
-    listings = Listing.objects.all()
+    listings = Listing.objects.all().filter(applied_to__exact=None)
     for listing in listings:
-        title = sub(r'[\[\]\(\),./\\| !?#]+', ' ', unidecode(listing.title).lower())
-        if (any(word in title.split() for word in filters['exclude_words']) or any(term in title for term in filters['exclude_terms'])) and (listing.applied_to is None or listing.applied_to):
+        title = asciify_text(listing.title)
+        company_name = asciify_text(listing.company_name)
+        if (any(word in title.split() for word in filters['title_exclude_words']) or any(term in title for term in filters['title_exclude_terms']) or any(word in company_name.split() for word in filters['company_exclude_words']) or any(term in company_name for term in filters['company_exclude_terms'])) and (listing.applied_to is None or listing.applied_to):
             listing.applied_to = False
             listing.save()
 
@@ -140,12 +139,12 @@ def get_listings(queries_str, page, tabs) -> dict:
 
     try:
         if not queries:
-            pages = split(Listing.objects.filter(query).values(), arange(50, Listing.objects.filter(query).count(), 50))
+            pages = split(Listing.objects.filter(query).order_by('-id').values(), arange(50, Listing.objects.filter(query).count(), 50))
             listings = list(list(pages)[page - 1])
         else:
             for term in queries:
                 query &= Q(title__contains=term)
-            pages = split(Listing.objects.filter(query).values(), arange(50, Listing.objects.filter(query).count(), 50))
+            pages = split(Listing.objects.filter(query).order_by('-id').values(), arange(50, Listing.objects.filter(query).count(), 50))
             listings = list(list(pages)[page - 1])
 
         paginations = list(range(max(1, page - 4), min(page + 5, len(pages) + 1)))

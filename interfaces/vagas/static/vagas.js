@@ -27,7 +27,7 @@ function applied_to_listing() {
 
 function apply_new_filter(filter_type) {
     if (confirm('Deseja adicionar isto aos filtros mesmo? As vagas com estas características já presentes no banco de dados serão marcadas como "Dispensada" automaticamente.')) {
-        fetch('http://localhost:8000/vagas/apply_new_filter?filtered=' + last_text + '&filter_type=' + filter_type, {method: 'POST'})
+        fetch('http://localhost:8000/vagas/apply_new_filter?filtered=' + last_text + '&filter_type=' + highlight_mode + '_' + filter_type, {method: 'POST'})
         .then((response) => response.json())
         .then((data) => {
             
@@ -296,10 +296,16 @@ if (!window.highlighter) {
 }
 
 var last_text = null
+var highlight_mode = null
 window.addEventListener("mousedown", function(e){
     let menu = document.getElementById('highlight_tools')
     
-    if (e.target.classList.contains('listing_title')) {
+    if (e.target.classList.contains('listing_title') || e.target.classList.contains('listing_company')) {
+        if (e.target.classList.contains('listing_title'))
+            highlight_mode = 'title'
+        else
+            highlight_mode = 'company'
+
         highlighter.posX = e.pageX;
         highlighter.posY = e.pageY;
         window.addEventListener("mouseup", function() {

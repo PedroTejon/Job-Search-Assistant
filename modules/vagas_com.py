@@ -1,18 +1,16 @@
 from json import load
 from os.path import split as path_split
 from queue import Queue
-from re import sub
 from sys import exc_info
 from time import sleep
 
 from bs4 import BeautifulSoup
 from cloudscraper import create_scraper
 from django.utils.timezone import datetime, now, timedelta
-from unidecode import unidecode
 
 from interfaces.vagas.models import Company, Listing
 from modules.exceptions import MaxRetriesException
-from modules.utils import (filter_listing, get_company_by_name, listing_exists,
+from modules.utils import (asciify_text, filter_listing, get_company_by_name, listing_exists,
                            reload_filters)
 
 
@@ -46,12 +44,18 @@ def reload_if_configs_changed():
                 temp_logs.append(log)
 
 
-def filter_title(title):
-    title = sub(r'[\[\]\(\),./\\| ]+', ' ', unidecode(title).lower())
-    if any(map(lambda x: x in title.split(), filters['exclude_words'])):
+def filter_title(title, company_name):
+    title = asciify_text(title)
+    if any(map(lambda x: x in title.split(), filters['title_exclude_words'])):
         return False
 
-    if any(map(lambda x: x in title, filters['exclude_terms'])):
+    if any(map(lambda x: x in title, filters['title_exclude_terms'])):
+        return False
+
+    if any(map(lambda x: x in company_name.split(), filters['company_exclude_words'])):
+        return False
+
+    if any(map(lambda x: x in company_name, filters['company_exclude_terms'])):
         return False
 
     return True
@@ -81,7 +85,7 @@ def get_companies_listings():
             soup = BeautifulSoup(response.text, 'html.parser')
 
             listing_urls = [link['href'] for link in soup.find_all('a', {'class': 'link-detalhes-vaga'})
-                            if not listing_exists(link['data-id-vaga']) and filter_title(sub(r'[\[\]\(\),./\\| ]+', ' ', unidecode(link.get_text(strip=True)).lower()))]
+                            if not listing_exists(link['data-id-vaga']) and filter_title(asciify_text(link.get_text(strip=True)), asciify_text(company))]
             if not listing_urls:
                 break
 
@@ -161,8 +165,9 @@ def get_recommended_listings():
         listing_title = listing['cargo']
         listing_location = listing['local_de_trabalho']
         listing_worktype = 'Remoto' if listing['modelo_local_trabalho'] == '100% Home Office' else 'Presencial/Hibrido'
+        company_name = listing['nome_da_empresa']
         reload_if_configs_changed()
-        if filter_listing(sub(r'[\[\]\(\),./\\| ]+', ' ', unidecode(listing_title).lower()), listing_location, listing_worktype) and not listing['exclusividade_para_pcd']:
+        if filter_listing(asciify_text(listing_title), listing_location, listing_worktype, asciify_text(company_name)) and not listing['exclusividade_para_pcd']:
             listing_id = listing['id']
 
             company_name = listing['nome_da_empresa']
@@ -187,7 +192,7 @@ def get_recommended_listings():
         listing_location = listing['local_de_trabalho']
         listing_worktype = 'Remoto' if listing['modelo_local_trabalho'] == '100% Home Office' else 'Presencial/Hibrido'
         reload_if_configs_changed()
-        if filter_listing(sub(r'[\[\]\(\),./\\| ]+', ' ', unidecode(listing_title).lower()), listing_location, listing_worktype) and not listing['exclusividade_para_pcd']:
+        if filter_listing(asciify_text(listing_title), listing_location, listing_worktype, asciify_text(company_name)) and not listing['exclusividade_para_pcd']:
             listing_id = listing['id']
 
             company_name = listing['nome_da_empresa']
@@ -219,8 +224,7 @@ def get_followed_companies():
         for platform in company.platforms:
             if company.platforms[platform]['name'] not in [None, 'not_found']:
                 sleep(0.5)
-                formatted_name = sub(r'[\[\]\(\),./\\|#]+', '', unidecode(
-                    company.platforms[platform]['name'])).lower().replace(' ', '-')
+                formatted_name = asciify_text(company.platforms[platform]['name']).replace(' ', '-')
                 response = session.get(
                     f'https://www.vagas.com.br/empregos/{formatted_name}', allow_redirects=False)
 
