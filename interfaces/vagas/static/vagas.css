@@ -44,9 +44,22 @@ body {
     border-bottom: 1px black solid;
 }
 
+#search_bar_container {
+    height: 100%;
+    width: 20vw;
+    
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    grid-column: 1;
+
+    border: 1px solid black;
+    border-radius: 1vh;
+}
+
 #search_bar {    
-    height: 95%;
-    width: 17.5vw;
+    height: 92.5%;
+    flex-grow: 1;
 
     border: none;
     border-radius: 1vh;
@@ -157,11 +170,12 @@ body {
 
     background-color: rgb(5, 114, 206);
 
-    animation: indeterminateAnimation 1s infinite linear;
+    animation: ind_progress_bar 1s infinite linear;
     transform-origin: 0% 50%;
 }
 
-@keyframes indeterminateAnimation {
+/* found on the web, dont remember where */
+@keyframes ind_progress_bar {
     0% {
         transform:  translateX(0) scaleX(0);
     }

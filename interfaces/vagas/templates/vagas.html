@@ -3,7 +3,7 @@
 {% include "start.html" %}
     <div id="listings_section">
         <div id="listings_filters">
-            <div style="height: 100%; width: 20vw; border: 1px solid black;border-radius: 1vh; grid-column: 1;">
+            <div id="search_bar_container">
                 <input id="search_bar" type="text" value="{{query}}">
                 <button id="search_button" onclick="search('{{query}}')"><i class="fa-solid fa-magnifying-glass"></i></button>
             </div>
