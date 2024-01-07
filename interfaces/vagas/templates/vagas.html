@@ -61,8 +61,8 @@
         </div>
         <div id="listings_view">
             <div id="highlight_tools" style="display: none;">
-                <button id="filter_word_button" title="Proibir palavra única"><i class="fa-solid fa-underline"></i></button>
-                <button id="filter_term_button" title="Proibir termo/sequência de caracteres"><i class="fa-solid fa-highlighter"></i></button>
+                <button id="filter_word_button" title="Proibir palavra única" onclick="apply_new_filter('exclude_words')"><i class="fa-solid fa-underline"></i></button>
+                <button id="filter_term_button" title="Proibir termo/sequência de caracteres" onclick="apply_new_filter('exclude_terms')"><i class="fa-solid fa-highlighter"></i></button>
             </div>
             <div id="listings_sidebar">
                 {% for listing in listings %}

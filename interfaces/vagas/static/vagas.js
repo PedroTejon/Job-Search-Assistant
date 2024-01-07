@@ -25,6 +25,17 @@ function applied_to_listing() {
         nullify_listing()
 }
 
+function apply_new_filter(filter_type) {
+    console.log(last_text, filter_type);
+    if (confirm('Deseja adicionar isto aos filtros mesmo? As vagas com estas características já presentes no banco de dados serão marcadas como "Dispensada" automaticamente.')) {
+        fetch('http://localhost:8000/vagas/apply_new_filter?filtered=' + last_text + "&filter_type=" + filter_type, {method: 'POST'})
+        .then((response) => response.json())
+        .then((data) => {
+            
+        })
+    }
+}
+
 function dismiss_listing() {
     let dismiss_button = document.getElementById('dismissed_button')
     let applied_button = document.getElementById('applied_button')
@@ -280,6 +291,7 @@ if (!window.highlighter) {
 var last_text = null
 window.addEventListener("mousedown", function(e){
     let menu = document.getElementById('highlight_tools')
+    
     if (e.target.classList.contains('listing_title')) {
         highlighter.posX = e.pageX;
         highlighter.posY = e.pageY;
@@ -288,24 +300,20 @@ window.addEventListener("mousedown", function(e){
             let highlight = highlighter.get_highlighted();
             let highlighted_text = highlight.toString().trim();
             let filter_word_button = document.getElementById('filter_word_button');
-            if (highlighted_text.length > 0 && highlighted_text !== last_text) {
+            if (highlighted_text.length > 0 && highlighted_text !== last_text && highlight.type == 'Range') {
                 if (~highlighted_text.indexOf(' '))
                     filter_word_button.disabled = true;
                 else if (filter_word_button.disabled)
-                    filter_word_button.disabled = false;
-                if (!highlight.isCollapsed && highlight.type != 'None')
-                    menu.style = 'position: absolute; left:' + (highlighter.posX ) + 'px; top: ' + (highlighter.posY - 35) + 'px';
+                    filter_word_button.disabled = false;                
+                menu.style = 'position: absolute; left:' + (highlighter.posX ) + 'px; top: ' + (highlighter.posY - 35) + 'px';
                 last_text = highlighted_text
             }
-            else if (highlighted_text === last_text) {
+            else {
                 last_text = null;
                 menu.style = 'display: none';
             }
-            else
-                menu.style = 'display: none';
-        }, 
-        { once: true });
-    } else if (menu.style !== 'display: none') {
+        }, { once: true });
+    } else if (menu.style !== 'display: none' && !['filter_word_button', 'filter_term_button'].includes(e.target.id) && !['filter_word_button', 'filter_term_button'].includes(e.target.parentElement.id)) {
         menu.style = 'display: none';
         last_text = null;
     }

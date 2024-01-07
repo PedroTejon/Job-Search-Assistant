@@ -1,4 +1,6 @@
+from json import dump, load
 from queue import Queue
+from re import sub
 from threading import Thread
 from threading import enumerate as enum_threads
 
@@ -7,6 +9,7 @@ from django.http import HttpResponse, JsonResponse
 from django.template import loader
 from django.views.decorators.csrf import csrf_exempt
 from numpy import arange, split
+from unidecode import unidecode
 
 from interfaces.vagas.models import Listing
 from modules.catho import get_jobs as catho_extraction
@@ -92,6 +95,34 @@ def nullify_listing(request):
     return JsonResponse({'status': 404})
 
 
+@csrf_exempt
+def apply_new_filter(request):
+    filtered = request.GET.get('filtered').lower()
+    filter_type = request.GET.get('filter_type', 'exclude_words')
+
+    with open('data/filters.json', 'r', encoding='utf-8') as f:
+        filters = load(f)
+
+    if filtered not in filters[filter_type]:
+        filters[filter_type].append(filtered)
+
+    for platform in ['linkedin', 'glassdoor', 'catho', 'vagas_com']:
+        if threads[platform]['thread'] is not None and threads[platform]['thread'].is_alive():
+            threads[platform]['log_queue'].put({'type': 'reload_request'})
+
+    listings = Listing.objects.all()
+    for listing in listings:
+        title = sub(r'[\[\]\(\),./\\| !?#]+', ' ', unidecode(listing.title).lower())
+        if (any(word in title.split() for word in filters['exclude_words']) or any(term in title for term in filters['exclude_terms'])) and (listing.applied_to is None or listing.applied_to):
+            listing.applied_to = False
+            listing.save()
+
+    with open('data/filters.json', 'w', encoding='utf-8') as f:
+        dump(filters, f, ensure_ascii=False)
+
+    return JsonResponse({'status': 200})
+
+
 def get_listings(queries_str, page, tabs) -> dict:
     queries = queries_str.split()
     query = Q()
@@ -124,7 +155,7 @@ def get_listings(queries_str, page, tabs) -> dict:
 
 
 @csrf_exempt
-def start_listing_extraction(request):
+def start_listing_extraction(request):  # pylint: disable=W0613
     global threads
     if not thread_is_running('linkedin_extraction') and not thread_is_running('glassdoor_extraction') and not thread_is_running('catho_extraction') and not thread_is_running('vagas_com_extraction'):
         reload_filters()
@@ -162,7 +193,7 @@ def start_listing_extraction(request):
     return JsonResponse({'status': 409}, status=409)
 
 
-def get_listing_extraction_status(request):
+def get_listing_extraction_status(request):  # pylint: disable=W0613
     response_body = {
         'status': 200,
         'results': {
