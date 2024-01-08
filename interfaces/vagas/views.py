@@ -8,6 +8,7 @@ from django.http import HttpResponse, JsonResponse
 from django.template import loader
 from django.views.decorators.csrf import csrf_exempt
 from numpy import arange, split
+from unidecode import unidecode
 
 from interfaces.vagas.models import Listing
 from modules.catho import get_jobs as catho_extraction
@@ -123,7 +124,7 @@ def apply_new_filter(request):
 
 
 def get_listings(queries_str, page, tabs) -> dict:
-    queries = queries_str.split()
+    queries = unidecode(queries_str).lower().split()
     query = Q()
 
     # [0] = Applied, [1] = Dismissed, [2] = Not Avaliated
@@ -143,10 +144,8 @@ def get_listings(queries_str, page, tabs) -> dict:
                           arange(50, Listing.objects.filter(query).count(), 50))
             listings = list(list(pages)[page - 1])
         else:
-            for term in queries:
-                query &= Q(title__contains=term)
-            pages = split(Listing.objects.filter(query).order_by('-id').values(),
-                          arange(50, Listing.objects.filter(query).count(), 50))
+            filtered_listings = [listing for listing in Listing.objects.filter(query).order_by('-id').values() for term in queries if term in unidecode(listing['title']).lower()]
+            pages = split(filtered_listings, arange(50, len(filtered_listings), 50))
             listings = list(list(pages)[page - 1])
 
         paginations = range(max(1, page - 4), min(page + 5, len(pages) + 1))
