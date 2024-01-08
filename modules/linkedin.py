@@ -215,14 +215,11 @@ def get_listing_details(listing):
         after_text = listing_description[curr_index + attribute['length']:]
         if attribute['type']['$type'] == 'com.linkedin.pemberly.text.ListItem':
             listing_description = before_text + '<li>' + text + '</li>' + after_text
-            curr_index -= 6
         elif attribute['type']['$type'] == 'com.linkedin.pemberly.text.Bold':
             listing_description = before_text + '<b>' + text + '</b>' + \
                 listing_description[curr_index + attribute['length']:]
-            curr_index -= 4
         elif attribute['type']['$type'] == 'com.linkedin.pemberly.text.Italic':
             listing_description = before_text + '<i>' + text + '</i>' + after_text
-            curr_index -= 4
 
     listing.description = listing_description.replace('\n', '<br>')
 
