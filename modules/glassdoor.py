@@ -125,10 +125,9 @@ def get_companies_listings():
                 if tries > 3:
                     raise MaxRetriesException
 
-            cursor = list(filter(
-                lambda x, page=page: x['pageNumber'] > page, content['jobListings']['paginationCursors']))
+            cursor = next(filter(
+                lambda x, page=page: x['pageNumber'] > page, content['jobListings']['paginationCursors']), None)
             if cursor:
-                cursor = cursor[0]
                 page = cursor['pageNumber']
 
             extract_job_listings(content['jobListings']['jobListings'])
@@ -147,12 +146,10 @@ def get_recommended_listings():
 
         content = response.json()[0]['data']
 
-        cursor = list(filter(
-            lambda x, page=page: x['pageNumber'] > page + 1, content['jobListings']['paginationCursors']))
+        cursor = next(filter(
+            lambda x, page=page: x['pageNumber'] > page + 1, content['jobListings']['paginationCursors']), None)
         if not cursor:
             break
-
-        cursor = cursor[0]
 
         extract_job_listings(content['jobListings']['jobListings'])
 
@@ -226,5 +223,5 @@ def get_jobs(curr_queue, curr_log_queue):
         get_recommended_listings()
     except Exception:  # pylint: disable=W0718
         exc_class, _, exc_data = exc_info()
-        file_name = path_split(exc_data.tb_frame.f_code.co_filename)[1]
-        log_queue.put({'type': 'error', 'exception': exc_class.__name__, 'file_name': file_name, 'file_line': exc_data.tb_lineno})
+        file_name = path_split(exc_data.tb_next.tb_frame.f_code.co_filename)[1]
+        log_queue.put({'type': 'error', 'exception': exc_class.__name__, 'file_name': file_name, 'file_line': exc_data.tb_next.tb_lineno})

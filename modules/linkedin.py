@@ -249,8 +249,8 @@ def get_listing_details(listing):
         'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0'
     })
     if application_url_response.status_code == 200:
-        listing.application_url = list(filter(lambda element: 'companyApplyUrl' in element,
-                                       application_url_response.json()['included']))[0]['companyApplyUrl']
+        listing.application_url = next(filter(lambda element: 'companyApplyUrl' in element,
+                                       application_url_response.json()['included']))['companyApplyUrl']
 
     if listing.application_url is None or listing.application_url.startswith('https://www.linkedin.com/job-apply/'):
         listing.application_url = f'https://www.linkedin.com/jobs/view/{listing_id}/'
@@ -345,5 +345,5 @@ def get_jobs(curr_queue, curr_log_queue):
         get_remote_listings()
     except Exception:  # pylint: disable=W0718
         exc_class, _, exc_data = exc_info()
-        file_name = path_split(exc_data.tb_frame.f_code.co_filename)[1]
-        log_queue.put({'type': 'error', 'exception': exc_class.__name__, 'file_name': file_name, 'file_line': exc_data.tb_lineno})
+        file_name = path_split(exc_data.tb_next.tb_frame.f_code.co_filename)[1]
+        log_queue.put({'type': 'error', 'exception': exc_class.__name__, 'file_name': file_name, 'file_line': exc_data.tb_next.tb_lineno})

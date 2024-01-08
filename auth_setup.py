@@ -57,7 +57,7 @@ def setup():
 
             driver.goto('https://www.linkedin.com/', wait_until='load')
             content_soup = BeautifulSoup(driver.content(), 'html.parser')
-            element = list(filter(lambda el: '*miniProfile' in el.get_text(), content_soup.select('[id^=bpr-guid-]')))[0]
+            element = next(filter(lambda el: '*miniProfile' in el.get_text(), content_soup.select('[id^=bpr-guid-]')))
             profile_id = loads(element.get_text())['data']['*miniProfile'].replace('urn:li:fs_miniProfile:', '')
             local_storage['profile_id'] = profile_id
 

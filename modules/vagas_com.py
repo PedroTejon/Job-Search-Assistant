@@ -103,14 +103,18 @@ def get_companies_listings():
                 listing.workplace_type = 'Remoto' if listing.location == '100% Home Office' else 'Presencial/Hibrido'
                 reload_if_configs_changed()
                 if filter_location(listing.location, listing.workplace_type):
+                    listing.platform_id = listing_soup.find(
+                        'li', {'class': 'job-breadcrumb__item--id'}).get_text(strip=True)
+                    if listing_exists(listing.platform_id):
+                        continue
+
                     listing.company = company
                     listing.company_name = company.platforms['vagas_com']['name']
                     listing.description = listing_soup.find('div', {'class': 'job-description__text'}).text.strip() + \
                         listing_soup.find('div', {'class': 'job-company-presentation'}).text.strip() + \
                         'Benefícios:\n' + '\n'.join([benefit.get_text(
                             strip=True) for benefit in listing_soup.find_all('span', {'class': 'benefit-label'})])
-                    listing.platform_id = listing_soup.find(
-                        'li', {'class': 'job-breadcrumb__item--id'}).get_text(strip=True)
+                    
                     listing.platform = 'Vagas.com'
 
                     data = listing_soup.find('li', {'class': 'job-breadcrumb__item--published'}).get_text(strip=True)
@@ -172,6 +176,8 @@ def get_recommended_listings():
         reload_if_configs_changed()
         if filter_listing(asciify_text(listing_title), listing_location, listing_worktype, asciify_text(company_name)) and not listing['exclusividade_para_pcd']:
             listing_id = listing['id']
+            if listing_exists(listing_id):
+                continue
 
             company_name = listing['nome_da_empresa']
             if (company := get_company_by_name(company_name, 'vagas.com')).platforms['vagas_com']['name'] is None:
@@ -264,5 +270,5 @@ def get_jobs(curr_queue, curr_log_queue):
         get_recommended_listings()
     except Exception:  # pylint: disable=W0718
         exc_class, _, exc_data = exc_info()
-        file_name = path_split(exc_data.tb_frame.f_code.co_filename)[1]
-        log_queue.put({'type': 'error', 'exception': exc_class.__name__, 'file_name': file_name, 'file_line': exc_data.tb_lineno})
+        file_name = path_split(exc_data.tb_next.tb_frame.f_code.co_filename)[1]
+        log_queue.put({'type': 'error', 'exception': exc_class.__name__, 'file_name': file_name, 'file_line': exc_data.tb_next.tb_lineno})

@@ -211,10 +211,10 @@ def get_location_ids() -> dict:
                 f'https://seguro.catho.com.br/vagas/vagas-api/location/?locationName={city}', headers=request_headers)
 
             if response.status_code == 200:
-                value = list(filter(
-                    lambda entry, city=city: entry['name'] == city and entry['type'] == 'city', response.json()['data']))
+                value = next(filter(
+                    lambda entry, city=city: entry['name'] == city and entry['type'] == 'city', response.json()['data']), None)
                 if value:
-                    location_ids['cities'].append(value[0]['id'])
+                    location_ids['cities'].append(value['id'])
                 break
             tries += 1
             if tries > 3:
@@ -229,10 +229,10 @@ def get_location_ids() -> dict:
                 f'https://seguro.catho.com.br/vagas/vagas-api/location/?locationName={state}', headers=request_headers)
 
             if response.status_code == 200:
-                value = list(filter(
-                    lambda entry, state=state: entry['name'] == state and entry['type'] == 'state', response.json()['data']))
+                value = next(filter(
+                    lambda entry, state=state: entry['name'] == state and entry['type'] == 'state', response.json()['data']), None)
                 if value:
-                    location_ids['states'].append(value[0]['id'])
+                    location_ids['states'].append(value['id'])
                 break
             tries += 1
             if tries > 3:
@@ -247,10 +247,10 @@ def get_location_ids() -> dict:
                 f'https://seguro.catho.com.br/vagas/vagas-api/location/?locationName={country}', headers=request_headers)
 
             if response.status_code == 200:
-                value = list(filter(
-                    lambda entry, country=country: entry['name'] == country and entry['type'] == 'country', response.json()['data']))
+                value = next(filter(
+                    lambda entry, country=country: entry['name'] == country and entry['type'] == 'country', response.json()['data']), None)
                 if value:
-                    location_ids['countries'].append(value[0]['id'])
+                    location_ids['countries'].append(value['id'])
                 break
             tries += 1
             if tries > 3:
@@ -271,5 +271,5 @@ def get_jobs(curr_queue, curr_log_queue):
         get_recommended_listings(location_ids)
     except Exception:  # pylint: disable=W0718
         exc_class, _, exc_data = exc_info()
-        file_name = path_split(exc_data.tb_frame.f_code.co_filename)[1]
-        log_queue.put({'type': 'error', 'exception': exc_class.__name__, 'file_name': file_name, 'file_line': exc_data.tb_lineno})
+        file_name = path_split(exc_data.tb_next.tb_frame.f_code.co_filename)[1]
+        log_queue.put({'type': 'error', 'exception': exc_class.__name__, 'file_name': file_name, 'file_line': exc_data.tb_next.tb_lineno})

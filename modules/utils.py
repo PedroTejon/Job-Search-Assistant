@@ -22,6 +22,7 @@ else:
         filters = load(f)
 
 
+
 def reload_filters():
     global filters
     with open('data/filters.json', 'r', encoding='utf-8') as f:
@@ -58,7 +59,7 @@ def get_company_by_name(c_name, platform) -> Company:
 
 
 def asciify_text(text):
-    return sub(r'[\[\]\(\),./\\| !?#]+', ' ', unidecode(text).lower())
+    return sub(r'[\[\]\(\),./\\| !?#-]+', ' ', unidecode(text).lower())
 
 
 def listing_exists(c_id) -> bool:
