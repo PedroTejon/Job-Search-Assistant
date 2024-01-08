@@ -102,7 +102,7 @@ def apply_new_filter(request):
         filters = load(f)
 
     if filtered not in filters[filter_type]:
-        filters[filter_type].append(filtered)
+        filters[filter_type].append(asciify_text(filtered))
 
     for platform in ['linkedin', 'glassdoor', 'catho', 'vagas_com']:
         if threads[platform]['thread'] is not None and threads[platform]['thread'].is_alive():
@@ -147,7 +147,7 @@ def get_listings(queries_str, page, tabs) -> dict:
             pages = split(Listing.objects.filter(query).order_by('-id').values(), arange(50, Listing.objects.filter(query).count(), 50))
             listings = list(list(pages)[page - 1])
 
-        paginations = list(range(max(1, page - 4), min(page + 5, len(pages) + 1)))
+        paginations = range(max(1, page - 4), min(page + 5, len(pages) + 1))
         return {'listings': listings, 'page': page, 'pages': paginations, 'total_pages': len(pages), 'query': queries_str, 'get_applied': tabs[0], 'get_dismissed': tabs[1], 'get_new': tabs[2]}
     except IndexError:
         return {'listings': [], 'page': page, 'pages': [page], 'total_pages': 0, 'query': queries_str, 'get_applied': tabs[0], 'get_dismissed': tabs[1], 'get_new': tabs[2]}
