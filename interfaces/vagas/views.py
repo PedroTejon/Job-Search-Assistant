@@ -139,12 +139,14 @@ def get_listings(queries_str, page, tabs) -> dict:
 
     try:
         if not queries:
-            pages = split(Listing.objects.filter(query).order_by('-id').values(), arange(50, Listing.objects.filter(query).count(), 50))
+            pages = split(Listing.objects.filter(query).order_by('-id').values(),
+                          arange(50, Listing.objects.filter(query).count(), 50))
             listings = list(list(pages)[page - 1])
         else:
             for term in queries:
                 query &= Q(title__contains=term)
-            pages = split(Listing.objects.filter(query).order_by('-id').values(), arange(50, Listing.objects.filter(query).count(), 50))
+            pages = split(Listing.objects.filter(query).order_by('-id').values(),
+                          arange(50, Listing.objects.filter(query).count(), 50))
             listings = list(list(pages)[page - 1])
 
         paginations = range(max(1, page - 4), min(page + 5, len(pages) + 1))
@@ -217,7 +219,8 @@ def get_listing_extraction_status(request):  # pylint: disable=W0613
 
     for platform in ['linkedin', 'glassdoor', 'catho', 'vagas_com']:
         if threads[platform]['queue'] is not None:
-            response_body['results'][platform]['status'] = threads[platform]['thread'].is_alive() if threads[platform]['thread'] is not None else False
+            response_body['results'][platform]['status'] = threads[platform]['thread'].is_alive(
+            ) if threads[platform]['thread'] is not None else False
             response_body['results'][platform]['new_listings'] = threads[platform]['queue'].qsize()
 
             if threads[platform]['log_queue'].qsize() > 0:

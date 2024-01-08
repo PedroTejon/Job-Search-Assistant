@@ -10,8 +10,8 @@ from django.utils.timezone import datetime, now, timedelta
 
 from interfaces.vagas.models import Company, Listing
 from modules.exceptions import MaxRetriesException
-from modules.utils import (asciify_text, filter_listing, get_company_by_name, listing_exists,
-                           reload_filters)
+from modules.utils import (asciify_text, filter_listing, get_company_by_name,
+                           listing_exists, reload_filters)
 
 
 def get_bearer_token():
@@ -114,7 +114,7 @@ def get_companies_listings():
                         listing_soup.find('div', {'class': 'job-company-presentation'}).text.strip() + \
                         'Benefícios:\n' + '\n'.join([benefit.get_text(
                             strip=True) for benefit in listing_soup.find_all('span', {'class': 'benefit-label'})])
-                    
+
                     listing.platform = 'Vagas.com'
 
                     data = listing_soup.find('li', {'class': 'job-breadcrumb__item--published'}).get_text(strip=True)
@@ -271,4 +271,5 @@ def get_jobs(curr_queue, curr_log_queue):
     except Exception:  # pylint: disable=W0718
         exc_class, _, exc_data = exc_info()
         file_name = path_split(exc_data.tb_next.tb_frame.f_code.co_filename)[1]
-        log_queue.put({'type': 'error', 'exception': exc_class.__name__, 'file_name': file_name, 'file_line': exc_data.tb_next.tb_lineno})
+        log_queue.put({'type': 'error', 'exception': exc_class.__name__,
+                      'file_name': file_name, 'file_line': exc_data.tb_next.tb_lineno})

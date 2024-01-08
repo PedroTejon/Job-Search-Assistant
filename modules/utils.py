@@ -22,7 +22,6 @@ else:
         filters = load(f)
 
 
-
 def reload_filters():
     global filters
     with open('data/filters.json', 'r', encoding='utf-8') as f:
