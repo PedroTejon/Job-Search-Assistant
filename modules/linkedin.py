@@ -343,5 +343,7 @@ def get_jobs(curr_queue, curr_log_queue):
     except Exception:  # pylint: disable=W0718
         exc_class, _, exc_data = exc_info()
         file_name = path_split(exc_data.tb_next.tb_frame.f_code.co_filename)[1]
+        while exc_data.tb_next is not None and path_split(exc_data.tb_next.tb_frame.f_code.co_filename)[1]:
+            exc_data = exc_data.tb_next
         log_queue.put({'type': 'error', 'exception': exc_class.__name__,
-                      'file_name': file_name, 'file_line': exc_data.tb_next.tb_lineno})
+                       'file_name': file_name, 'file_line': exc_data.tb_lineno})
