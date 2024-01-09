@@ -77,13 +77,19 @@
     padding: 2.5%;
 
     & > summary {
-        font-weight: 700;
+        margin-bottom: 1vh;
+
+        font-weight: 600;
 
         cursor: pointer;
     }
 
     & input[type=text], & label {
         margin-left: 5%;
+    }
+
+    & input[type=checkbox] {
+        accent-color: #6767c2;
     }
 
     &:not(:last-of-type) {
@@ -104,7 +110,13 @@
 
 .query_multivalue_option {
     padding: .2em;
-    border: 1px solid black;
+
+    color: white;
+    font-weight: 14px;
+    font-weight: 600;
+
+    background-color: #6767c2;
+
     border-radius: .3em;
 }
 
@@ -254,7 +266,7 @@
     flex-direction: column;
 
     padding: 10px;
-    border-bottom: 2px gray solid;
+    border-bottom: 1px black solid;
 
     cursor: pointer;
 
@@ -283,6 +295,8 @@
 }
 
 .listing_company {
+    margin-bottom: 0.5vh;
+
     font-size: 14px;
 }
 
@@ -361,5 +375,5 @@
 }
 
 .button_disabled {
-    background-color: #453e90;
+    background-color: rgb(55, 47, 143);
 }

@@ -5,11 +5,11 @@
         <div id="listings_filters">
             <div id="search_bar_container">
                 <input id="search_bar" type="text" value="{{query}}">
-                <button id="search_button" onclick="search('{{query}}')"><i class="fa-solid fa-magnifying-glass"></i></button>
+                <button id="search_button" onclick="search('{{query}}')"><img src="{% static 'magnifying-glass.svg' %}" width="16" height="16"></button>
             </div>
 
             <div style="grid-column: 2;">
-                <button id="filter_menu_button" onclick="show_filter_menu()"><i class="fa-solid fa-filter"></i></button>
+                <button id="filter_menu_button" onclick="show_filter_menu()"><img src="{% static 'filter.svg' %}" width="16" height="16"></button>
             </div>
 
             <div id="extraction_section">
@@ -19,7 +19,7 @@
                         <div class="extraction_progress_bar_value"></div>
                     </div>
                 </div>
-                <button id="extract_button" onclick="extract_listings()"><i class="fa-solid fa-plus"></i></button> 
+                <button id="extract_button" onclick="extract_listings()"><img src="{% static 'plus.svg' %}" width="16" height="16"></button> 
                 <div id="extraction_progress_menu">
                     <span id="new_listings_linkedin" style="grid-column: 1; justify-self: center"></span>
                     <div id="progress_linkedin" class="progress_bar_container" style="width: 8vw; grid-column: 2;">
@@ -27,7 +27,7 @@
                             <div class="extraction_progress_bar_value"></div>
                         </div>
                     </div>
-                    <i class="fa-brands fa-linkedin" style="grid-column: 3; font-size: 24px;"></i>
+                    <img src="{% static 'linkedin.svg' %}" width="16" height="16" style="grid-column: 3; font-size: 24px;">
 
                     <span id="new_listings_glassdoor" style="grid-column: 1; justify-self: center"></span>
                     <div id="progress_glassdoor" class="progress_bar_container" style="width: 8vw; grid-column: 2;">
@@ -35,7 +35,7 @@
                             <div class="extraction_progress_bar_value"></div>
                         </div>
                     </div>
-                    <img class="logo_img" src="{% static 'glassdoor.svg' %}" width="16" height="16" color="black" style="grid-column: 3; font-size: 24px; align-self: center;"></i>
+                    <img src="{% static 'glassdoor.svg' %}" width="16" height="16" style="grid-column: 3; font-size: 24px; align-self: center;"></i>
 
                     <span id="new_listings_catho" style="grid-column: 1; justify-self: center"></span>
                     <div id="progress_catho" class="progress_bar_container" style="width: 8vw; grid-column: 2;">
@@ -43,7 +43,7 @@
                             <div class="extraction_progress_bar_value"></div>
                         </div>
                     </div>
-                    <img class="logo_img" src="{% static 'catho.svg' %}" width="16" height="16" color="black" style="grid-column: 3; font-size: 24px; align-self: center;"></i>
+                    <img src="{% static 'catho.svg' %}" width="16" height="16" style="grid-column: 3; font-size: 24px; align-self: center;"></i>
 
                     <span id="new_listings_vagas_com" style="grid-column: 1; justify-self: center;"></span>
                     <div id="progress_vagas_com" class="progress_bar_container" style="width: 8vw; grid-column: 2;">
@@ -51,21 +51,21 @@
                             <div class="extraction_progress_bar_value"></div>
                         </div>
                     </div>
-                    <img class="logo_img" src="{% static 'vagas_com.svg' %}" width="16" height="16" color="black" style="grid-column: 3; font-size: 24px; align-self: center"></i>
+                    <img src="{% static 'vagas_com.svg' %}" width="16" height="16" style="grid-column: 3; font-size: 24px; align-self: center"></i>
                 </div>
             </div>
         </div>
         <div id="listings_view">
             <div id="highlight_tools" style="display: none;">
-                <button id="filter_word_button" title="Proibir palavra única" onclick="apply_new_filter('exclude_words')"><i class="fa-solid fa-underline"></i></button>
-                <button id="filter_term_button" title="Proibir termo/sequência de caracteres" onclick="apply_new_filter('exclude_terms')"><i class="fa-solid fa-highlighter"></i></button>
+                <button id="filter_word_button" title="Proibir palavra única" onclick="apply_new_filter('exclude_words')"><img src="{% static 'underline.svg' %}" width="16" height="16"></button>
+                <button id="filter_term_button" title="Proibir termo/sequência de caracteres" onclick="apply_new_filter('exclude_terms')"><img src="{% static 'highlighter.svg' %}" width="16" height="16"></button>
             </div>
             <div id="listings_sidebar" {% if listing_count == 0 %}style="display:flex;flex-direction:column;justify-content:space-between"{% endif %}>
                 
                 <div id="querying_filter_menu">
                     <span>Filtrar por:</span>
                     <details class="filter_section" open>
-                        <summary>Vaga:</summary>
+                        <summary>Vaga</summary>
                         <label for="query_new">Vagas não avaliadas:</label>
                         <input id="query_new" type="checkbox" {{ listing_properties.2 | yesno:"checked," }}>
                         <br>
@@ -83,7 +83,7 @@
                     </details>
                     <details class="filter_section" open>
                         <summary>Empresas:</summary>
-                        <input id="query_company_input" type="text" placeholder="Termo presente no nome">
+                        <input id="query_company_input" type="text" placeholder="Termo presente no nome" style="width: 85%">
                         <div id="query_company_container" class="query_multivalue_container">
                             {% for company in companies %}
                                 <span class="query_multivalue_option" onclick="remove_company('{{ company }}')">{{ company }}</span>
@@ -92,7 +92,7 @@
                     </details>
                     <details class="filter_section" open>
                         <summary>Cidades:</summary>
-                        <input id="query_city_input" type="text" placeholder="Nome da cidade">
+                        <input id="query_city_input" type="text" placeholder="Nome da cidade" style="width: 85%">
                         <div id="query_city_container" class="query_multivalue_container">
                             {% for city in cities %}
                                 <span class="query_multivalue_option" onclick="remove_city('{{ city }}')">{{ city }}</span>
@@ -104,32 +104,29 @@
                     <div class="listing" id="listing_{{forloop.counter0}}" onclick="show({{forloop.counter0}})">
                         <p class="listing_title">{{listing.title}}</p>
                         <p class="listing_company">{{listing.company_name}}</p>
-                        {% if listing.workplace_type != 'Remoto' %}
-                            <p class="listing_condition">{{listing.location}}</p>
+                        <p class="listing_condition">{{listing.workplace_type}}</p>
                             <div class="icon_container">
-                                <i class="fa-solid fa-briefcase" title="Presencial/Híbrido"></i>
-                        {% else %}
-                            <p class="listing_condition">Remoto</p>
-                            <div class="icon_container">
-                                <i class="fa-solid fa-laptop" title="Remoto"></i>
-                        {% endif %}
-                        {% if listing.platform == 'Glassdoor' %}
-                            <img class="logo_img" src="{% static 'glassdoor.svg' %}" width="16" height="16" color="black" title="Vaga postada no Glassdoor">
-                        {% elif listing.platform == 'LinkedIn' %}
-                            <i class="fa-brands fa-linkedin" title="Vaga postada no LinkedIn"></i>
-                        {% elif listing.platform == 'Catho' %}
-                            <img class="logo_img" src="{% static 'catho.svg' %}" width="16" height="16" color="black" title="Vaga postada na Catho">
-                        {% elif listing.platform == 'Vagas.com' %}
-                            <img class="logo_img" src="{% static 'vagas_com.svg' %}" width="16" height="16" color="black" title="Vaga postada no Vagas.com">
-                        {% endif %}
-                        {% if listing.applied_to is None %} 
-                            <i class="fa-solid listing_status"></i>
-                        {% elif listing.applied %}
-                            <i class="fa-solid fa-check listing_status"></i>
-                        {% elif not listing.applied %}
-                            <i class="fa-solid fa-x listing_status"></i>
-                        {% endif %}
-                        
+                            {% if listing.applied %}
+                                <img class="listing_status" src="{% static 'check.svg' %}" width="16" height="16">
+                            {% elif not listing.applied and listing.applied is not None %}
+                                <img class="listing_status" src="{% static 'x.svg' %}" width="16" height="16">
+                            {% else %}
+                                <img class="listing_status" src="{% static 'transparent.svg' %}" width="16" height="16">
+                            {% endif %}
+                            {% if listing.workplace_type != 'Remoto' %}
+                                <img src="{% static 'briefcase.svg' %}" width="16" height="16">
+                            {% else %}
+                                <img src="{% static 'laptop.svg' %}" width="16" height="16">
+                            {% endif %}
+                            {% if listing.platform == 'Glassdoor' %}
+                                <img src="{% static 'glassdoor.svg' %}" width="16" height="16" title="Vaga postada no Glassdoor">
+                            {% elif listing.platform == 'LinkedIn' %}
+                                <img src="{% static 'linkedin.svg' %}" width="16" height="16" title="Vaga postada no LinkedIn">
+                            {% elif listing.platform == 'Catho' %}
+                                <img src="{% static 'catho.svg' %}" width="16" height="16" title="Vaga postada na Catho">
+                            {% elif listing.platform == 'Vagas.com' %}
+                                <img src="{% static 'vagas_com.svg' %}" width="16" height="16" title="Vaga postada no Vagas.com">
+                            {% endif %} 
                         </div>
                     </div>
                 {% endfor %}
@@ -176,15 +173,15 @@
                         <p id="platform_id"></p>
                         <div style="display: flex; flex-direction: row; column-gap: 1vw;">
                             <div style="display: flex; flex-direction: row; column-gap: 0.5vw;">
-                                <i class="fa-solid fa-building" title="Empresa que publicou a vaga"></i>
+                                <img src="{% static 'building.svg' %}" width="16" height="16" title="Empresa que publicou a vaga">
                                 <p id="listing_company_det"></p>
                             </div>
                             <div style="display: flex; flex-direction: row; column-gap: 0.5vw;">
-                                <i class="fa-solid fa-location-dot" title="Local de trabalho"></i>
+                                <img src="{% static 'location-dot.svg' %}" width="16" height="16" title="Local de trabalho">
                                 <p id="listing_location_det"></p>
                             </div>
                             <div style="display: flex; flex-direction: row; column-gap: 0.5vw;">
-                                <i id="listing_workplace_type_ico" class="fa-solid" title="Vaga presencial/híbrida"></i>
+                                <img id="listing_workplace_type_ico" width="16" height="16" title="Vaga presencial/híbrida">
                                 <p id="listing_workplace_type_det"></p>
                             </div>
                             
@@ -196,19 +193,19 @@
                             </div>
 
                             <div style="display: flex; flex-direction: row; column-gap: 0.5vw;">
-                                <i class="fa-solid fa-calendar" title="Data de publicação da vaga"></i>
+                                <img src="{% static 'calendar.svg' %}" width="16" height="16"  title="Data de publicação da vaga">
                                 <p id="listing_publish_date_det"></p>
                             </div>
                             <div style="display: flex; flex-direction: row; column-gap: 0.5vw;">
-                                <i class="fa-solid fa-users" title="Candidatos inscritos na vaga"></i>
+                                <img src="{% static 'users.svg' %}" width="16" height="16" title="Candidatos inscritos na vaga">
                                 <p id="listing_applies_det"></p>
                             </div>
                         </div>
                     </div>
                     <div id="apply_section">
                         <a id="apply_button" target="_blank">Candidatar-se</a>
-                        <button id="applied_button" onclick="applied_to_listing()"><i class="fa-solid fa-check"></i></button>
-                        <button id="dismissed_button" onclick="dismiss_listing()"><i class="fa-solid fa-x"></i></button>
+                        <button id="applied_button" onclick="applied_to_listing()"><img style="filter: invert(100%)" class="listing_status" src="{% static 'check.svg' %}" width="16" height="16"></button>
+                        <button id="dismissed_button" onclick="dismiss_listing()"><img style="filter: invert(100%)" class="listing_status" src="{% static 'x.svg' %}" width="16" height="16"></button>
                     </div>
                 </div>
                 <br>    
@@ -231,20 +228,12 @@
             for (let i = 0; i < listings.length; i++) {
                 let listing_status = document.querySelector(`#listing_${i} .listing_status`)
                 let current_listing = listings[i];
-                if (current_listing.applied_to) {
-                    listing_status.classList.add('fa-check')
-                    if (listing_status.classList.contains('fa-x'))
-                        listing_status.classList.remove('fa-x')
-                } else if (current_listing.applied_to === false) {
-                    listing_status.classList.add('fa-x')
-                    if (listing_status.classList.contains('fa-check'))
-                        listing_status.classList.remove('fa-check')
-                } else {
-                    if (listing_status.classList.contains('fa-x'))
-                        listing_status.classList.remove('fa-x')
-                    if (listing_status.classList.contains('fa-check'))
-                        listing_status.classList.remove('fa-check')
-                }
+                if (current_listing.applied_to)
+                    listing_status.src = 'http://localhost:8000/static/check.svg'
+                else if (current_listing.applied_to === false)
+                    listing_status.src = 'http://localhost:8000/static/x.svg'
+                else
+                    listing_status.src = 'http://localhost:8000/static/transparent.svg'
             }
         }
                 

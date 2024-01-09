@@ -1,6 +1,12 @@
+@font-face {
+    font-family: 'Rubik';
+    src: url('Rubik-VariableFont_wght.ttf');
+}
+
 * {
     margin: 0;
     font-family: 'Rubik', sans-serif;
+    outline: none;
 }
 
 body {
@@ -45,4 +51,8 @@ details > summary::-webkit-details-marker {
 
         border-bottom: 2px solid #6767c2;
     }
+}
+
+::-moz-scrollbar-button, ::-webkit-scrollbar-button {
+    width: 0px;
 }
