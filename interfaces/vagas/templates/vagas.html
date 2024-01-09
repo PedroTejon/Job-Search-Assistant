@@ -60,16 +60,45 @@
                 <button id="filter_word_button" title="Proibir palavra única" onclick="apply_new_filter('exclude_words')"><i class="fa-solid fa-underline"></i></button>
                 <button id="filter_term_button" title="Proibir termo/sequência de caracteres" onclick="apply_new_filter('exclude_terms')"><i class="fa-solid fa-highlighter"></i></button>
             </div>
-            <div id="listings_sidebar">
+            <div id="listings_sidebar" {% if listing_count == 0 %}style="display:flex;flex-direction:column;justify-content:space-between"{% endif %}>
+                
                 <div id="querying_filter_menu">
-                    <div style="display: grid; grid-template-columns: auto auto; column-gap: 1vw; justify-items: left;">
+                    <span>Filtrar por:</span>
+                    <details class="filter_section" open>
+                        <summary>Vaga:</summary>
                         <label for="query_new">Vagas não avaliadas:</label>
-                        <input id="query_new" type="checkbox" {{ get_new | yesno:"checked," }}>
+                        <input id="query_new" type="checkbox" {{ listing_properties.2 | yesno:"checked," }}>
+                        <br>
                         <label for="query_applied">Vagas inscritas:</label>
-                        <input id="query_applied" type="checkbox" {{ get_applied | yesno:"checked," }}>
+                        <input id="query_applied" type="checkbox" {{ listing_properties.0 | yesno:"checked," }}>
+                        <br>
                         <label for="query_dismissed">Vagas dispensadas:</label>
-                        <input id="query_dismissed" type="checkbox" {{ get_dismissed | yesno:"checked," }}>
-                    </div>
+                        <input id="query_dismissed" type="checkbox" {{ listing_properties.1 | yesno:"checked," }}>
+                        <br>
+                        <label for="query_local_listings">Vagas presenciais/híbridas:</label>
+                        <input id="query_local_listings" type="checkbox" {{ listing_properties.3 | yesno:"checked," }}>
+                        <br>
+                        <label for="query_remote_listings">Vagas remotas:</label>
+                        <input id="query_remote_listings" type="checkbox" {{ listing_properties.4 | yesno:"checked," }}>
+                    </details>
+                    <details class="filter_section" open>
+                        <summary>Empresas:</summary>
+                        <input id="query_company_input" type="text" placeholder="Termo presente no nome">
+                        <div id="query_company_container" class="query_multivalue_container">
+                            {% for company in companies %}
+                                <span class="query_multivalue_option" onclick="remove_company('{{ company }}')">{{ company }}</span>
+                            {% endfor %}
+                        </div>
+                    </details>
+                    <details class="filter_section" open>
+                        <summary>Cidades:</summary>
+                        <input id="query_city_input" type="text" placeholder="Nome da cidade">
+                        <div id="query_city_container" class="query_multivalue_container">
+                            {% for city in cities %}
+                                <span class="query_multivalue_option" onclick="remove_city('{{ city }}')">{{ city }}</span>
+                            {% endfor %}
+                        </div>
+                    </details>
                 </div>
                 {% for listing in listings %}
                     <div class="listing" id="listing_{{forloop.counter0}}" onclick="show({{forloop.counter0}})">
@@ -100,10 +129,11 @@
                         {% elif not listing.applied %}
                             <i class="fa-solid fa-x listing_status"></i>
                         {% endif %}
-
+                        
                         </div>
                     </div>
                 {% endfor %}
+                {% if listing_count == 0 %}<br>{% endif %}
                 <div id="listings_pagination">
                     {% if page != 1 and 1 not in pages %}
                         {% if query %}
@@ -190,6 +220,8 @@
     </div>
     
     {{listings|json_script:"listings"}}
+    {{companies|json_script:"queried_companies"}}
+    {{cities|json_script:"queried_cities"}}
     <script defer>
         listings = JSON.parse(document.getElementById('listings').textContent);
         get_listings_extraction_status()
@@ -215,6 +247,35 @@
                 }
             }
         }
-        
+                
+        let queried_companies = JSON.parse(document.getElementById('queried_companies').textContent);
+        let queried_cities = JSON.parse(document.getElementById('queried_cities').textContent);
+        let query_company_input = document.getElementById('query_company_input')
+        query_company_input.addEventListener('keydown', function (e) {
+            let queried_company = query_company_input.value.trim()
+            if (e.code === 'Enter' && queried_company !== '' && !queried_companies.includes(queried_company)) {
+                queried_companies.push(queried_company)
+                
+                document.getElementById('query_company_container').innerHTML += `<span class="query_multivalue_option" onclick="remove_company('${queried_company}')">${queried_company}</span>`
+            }
+        });
+
+        let query_city_input = document.getElementById('query_city_input')
+        query_city_input.addEventListener('keydown', function (e) {
+            if (e.code === 'Enter') {
+                let queried_city = query_city_input.value.trim()
+                if (e.code === 'Enter' && queried_city !== '' && !queried_cities.includes(queried_city)) {
+                    queried_cities.push(queried_city)
+                    document.getElementById('query_city_container').innerHTML += `<span class="query_multivalue_option" onclick="remove_city('${queried_city}')">${queried_city}</span>`
+                }
+            }
+        });
+
+        let search_bar = document.getElementById('search_bar')
+        search_bar.addEventListener('keydown', function (e) {
+            if (e.code === 'Enter') {
+                search(search_bar.value)
+            }
+        });
     </script>
 {% include "end.html" %}

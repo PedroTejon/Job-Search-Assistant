@@ -2,6 +2,28 @@ let current_listing = null
 let current_index = 0
 let update_func = null
 
+function remove_city(removed_city) {
+    queried_cities = queried_cities.filter((city) => city != removed_city)
+
+    container = document.getElementById('query_city_container')
+    new_content = ''
+    for (let city of queried_cities) {
+        new_content += `<span class="query_multivalue_option" onclick="remove_city('${city}')">${city}</span>`
+    }
+    container.innerHTML = new_content
+}
+
+function remove_company(removed_company) {
+    queried_companies = queried_companies.filter((company) => company != removed_company)
+
+    container = document.getElementById('query_company_container')
+    new_content = ''
+    for (let company of queried_companies) {
+        new_content += `<span class="query_multivalue_option" onclick="remove_company('${company}')">${company}</span>`
+    }
+    container.innerHTML = new_content
+}
+
 function applied_to_listing() {
     let dismiss_button = document.getElementById('dismissed_button')
     let applied_button = document.getElementById('applied_button')
@@ -156,13 +178,21 @@ function search(cur_query) {
     let get_new = document.getElementById('query_new').checked
     let get_applied = document.getElementById('query_applied').checked
     let get_dismissed = document.getElementById('query_dismissed').checked
+    let get_local = document.getElementById('query_local_listings').checked
+    let get_remote = document.getElementById('query_remote_listings').checked
     
-    url = `http://localhost:8000/vagas/?page=1&new=${get_new}&applied=${get_applied}&dismissed=${get_dismissed}`;
+    url = `http://localhost:8000/vagas/?page=1&listing=[${get_applied},${get_dismissed},${get_new},${get_local},${get_remote}]`;
     if (search_value !== '') {
         if (search_value !== cur_query) 
             url += '&query=' + search_value;
         else if (search_value)
             url += '&query=' + cur_query;
+    }
+    if (queried_companies.length > 0) {
+        url += `&companies=["${queried_companies.join('","')}"]`
+    }
+    if (queried_cities.length > 0) {
+        url += `&cities=["${queried_cities.join('","')}}"]`
     }
 
     window.location.replace(url);

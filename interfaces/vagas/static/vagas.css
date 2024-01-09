@@ -13,6 +13,14 @@ a, a:visited, a:hover, a:active {
     color: inherit;
 }
 
+details > summary {
+    list-style: none;
+}
+
+details > summary::-webkit-details-marker {
+    display: none;
+}
+
 #app_container {
     width: 100%;
     height: 100%;
@@ -95,6 +103,46 @@ a, a:visited, a:hover, a:active {
     overflow: hidden;
 
     border-bottom: 1px solid black;
+
+    & > span {
+        font-weight: 700;
+        font-size: 18px;
+    }
+}
+
+.filter_section {
+    padding: 2.5%;
+
+    & > summary {
+        font-weight: 700;
+
+        cursor: pointer;
+    }
+
+    & input[type=text], & label {
+        margin-left: 5%;
+    }
+
+    &:not(:last-of-type) {
+        border-bottom: 1px solid black;
+    }
+}
+
+.query_multivalue_container {
+    max-height: 10dvh;
+
+    display: flex;
+    flex-wrap: wrap;
+    padding: 1dvh;
+    gap: 2%;
+    
+    overflow-y: auto;
+}
+
+.query_multivalue_option {
+    padding: .2em;
+    border: 1px solid black;
+    border-radius: .3em;
 }
 
 #extraction_section {
@@ -287,9 +335,11 @@ a, a:visited, a:hover, a:active {
 }
 
 #listings_pagination {
+    justify-self: flex-end;
     display: flex;
     justify-content: center;
     gap: 0.5dvw;
+    padding: 0.5dvw;
 }
 
 #listing_details {

@@ -1,4 +1,4 @@
-from json import dump, load
+from json import dump, load, loads
 from queue import Queue
 from threading import Thread
 from threading import enumerate as enum_threads
@@ -43,19 +43,19 @@ threads = {
 
 def index(request):
     template = loader.get_template('vagas.html')
-    queries_str = request.GET.get('query', '')
     page = int(request.GET.get('page', 1))
-    get_new = request.GET.get('new', True)
-    if isinstance(get_new, str):
-        get_new = get_new == 'true'
-    get_applied_to = request.GET.get('applied', False)
-    if isinstance(get_applied_to, str):
-        get_applied_to = get_applied_to == 'true'
-    get_dismissed = request.GET.get('dismissed', False)
-    if isinstance(get_dismissed, str):
-        get_dismissed = get_dismissed == 'true'
+    search_query = request.GET.get('query', '')
+    listing_query = request.GET.get('listing', [False, False, True, True, True])
+    if isinstance(listing_query, str):
+        listing_query = loads(listing_query)
+    companies_query = request.GET.get('companies', [])
+    if isinstance(companies_query, str):
+        companies_query = loads(companies_query)
+    cities_query = request.GET.get('cities', [])
+    if isinstance(cities_query, str):
+        cities_query = loads(cities_query)
 
-    return HttpResponse(template.render(get_listings(queries_str, page, [get_applied_to, get_dismissed, get_new]) | {'tab_title': 'Vagas'}, request))
+    return HttpResponse(template.render(get_listings(search_query, page, listing_query, companies_query, cities_query) | {'tab_title': 'Vagas'}, request))
 
 
 @csrf_exempt
@@ -123,35 +123,52 @@ def apply_new_filter(request):
     return JsonResponse({'status': 200})
 
 
-def get_listings(queries_str, page, tabs) -> dict:
+def get_listings(queries_str, page, listing_properties, companies, cities) -> dict:
     queries = unidecode(queries_str).lower().split()
-    query = Q()
+    listings_query = Q()
+    workplace_type_query = Q()
 
-    # [0] = Applied, [1] = Dismissed, [2] = Not Avaliated
-    if tabs[0]:
-        query |= Q(applied_to__exact=True)
-    if tabs[1]:
-        query |= Q(applied_to__exact=False)
-    if tabs[2]:
-        query |= Q(applied_to__exact=None)
+    # [0] = Applied, [1] = Dismissed, [2] = Not Avaliated, [3] = Local, [4] = Remote
+    if not any([listing_properties[0], listing_properties[1], listing_properties[2]]):
+        listing_properties[0] = False
+        listing_properties[1] = False
+        listing_properties[2] = True
 
-    if not any(tabs):
-        query |= Q(applied_to__exact=None)
+    if not any([listing_properties[3], listing_properties[4]]):
+        listing_properties[3] = True
+        listing_properties[4] = True
+
+    if listing_properties[0]:
+        listings_query |= Q(applied_to__exact=True)
+    if listing_properties[1]:
+        listings_query |= Q(applied_to__exact=False)
+    if listing_properties[2]:
+        listings_query |= Q(applied_to__exact=None)
+    if listing_properties[3]:
+        workplace_type_query |= Q(workplace_type__iexact='presencial/hibrido')
+    if listing_properties[4]:
+        workplace_type_query |= Q(workplace_type__iexact='remoto')
+
+    query = listings_query & workplace_type_query
 
     try:
         if not queries:
-            pages = split(Listing.objects.filter(query).order_by('-id').values(),
-                          arange(50, Listing.objects.filter(query).count(), 50))
-            listings = list(list(pages)[page - 1])
+            queried_listings = Listing.objects.filter(query).order_by('-id').values()
         else:
-            filtered_listings = [listing for listing in Listing.objects.filter(query).order_by('-id').values() for term in queries if term in unidecode(listing['title']).lower()]
-            pages = split(filtered_listings, arange(50, len(filtered_listings), 50))
-            listings = list(list(pages)[page - 1])
+            queried_listings = [listing for listing in Listing.objects.filter(query).order_by('-id').values() for term in queries if term in unidecode(listing['title']).lower()]
+
+        if companies:
+            queried_listings = [listing for listing in queried_listings for company in companies if unidecode(company).lower() in unidecode(listing['company_name']).lower()]
+        if cities:
+            queried_listings = [listing for listing in queried_listings for city in cities if unidecode(city).lower() in unidecode(listing['location']).lower()]
+
+        pages = split(queried_listings, arange(50, len(queried_listings), 50))
+        listings = list(list(pages)[page - 1])
 
         paginations = range(max(1, page - 4), min(page + 5, len(pages) + 1))
-        return {'listings': listings, 'page': page, 'pages': paginations, 'total_pages': len(pages), 'query': queries_str, 'get_applied': tabs[0], 'get_dismissed': tabs[1], 'get_new': tabs[2]}
+        return {'listings': listings, 'page': page, 'pages': paginations, 'total_pages': len(pages), 'query': queries_str, 'listing_properties': listing_properties, 'companies': companies, 'cities': cities, 'listing_count': len(listings)}
     except IndexError:
-        return {'listings': [], 'page': page, 'pages': [page], 'total_pages': 0, 'query': queries_str, 'get_applied': tabs[0], 'get_dismissed': tabs[1], 'get_new': tabs[2]}
+        return {'listings': [], 'page': page, 'pages': [page], 'total_pages': 0, 'query': queries_str, 'listing_properties': listing_properties, 'companies': companies, 'cities': cities, 'listing_count': 0}
 
 
 @csrf_exempt
