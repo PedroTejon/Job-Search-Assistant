@@ -126,7 +126,7 @@ def get_companies_listings():
                     raise MaxRetriesException
 
             cursor = next(filter(
-                lambda x, page=page: x['pageNumber'] > page, content['jobListings']['paginationCursors']), None)
+                lambda x, page=page: x['pageNumber'] > page, content['jobListings']['paginationCursors']), '')
             if cursor:
                 page = cursor['pageNumber']
 
