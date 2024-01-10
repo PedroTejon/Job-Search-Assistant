@@ -2,35 +2,27 @@ let current_listing = null
 let current_index = 0
 let update_func = null
 
-function remove_city(removed_city) {
-    queried_cities = queried_cities.filter((city) => city != removed_city)
+function remove_multivalue_query(removed_value, type) {
+    query_values[type] = query_values[type].filter((value) => value != removed_value)
 
-    container = document.getElementById('query_city_container')
+    container = document.getElementById(type + '_container')
     new_content = ''
-    for (let city of queried_cities) {
-        new_content += `<span class="query_multivalue_option" onclick="remove_city('${city}')">${city}</span>`
+    for (let value of query_values[type]) {
+        new_content += `<span class="query_multivalue_option" onclick="remove_multivalue_query('${value}', '${type}')">${value}</span>`
     }
     container.innerHTML = new_content
 }
 
-function remove_company(removed_company) {
-    queried_companies = queried_companies.filter((company) => company != removed_company)
+function remove_multivalue_filter(removed_value, type) {
+    console.log(filters)
+    filters[type] = filters[type].filter((value) => value != removed_value)
 
-    container = document.getElementById('query_company_container')
+    fetch('http://localhost:8000/vagas/remove_filter?removed_filter=' + removed_value + '&filter_type=' + type, {method: 'POST'})
+
+    container = document.getElementById(type + '_container')
     new_content = ''
-    for (let company of queried_companies) {
-        new_content += `<span class="query_multivalue_option" onclick="remove_company('${company}')">${company}</span>`
-    }
-    container.innerHTML = new_content
-}
-
-function remove_platform(removed_platform) {
-    queried_platforms = queried_platforms.filter((platform) => platform != removed_platform)
-
-    container = document.getElementById('query_platform_container')
-    new_content = ''
-    for (let platform of queried_platforms) {
-        new_content += `<span class="query_multivalue_option" onclick="remove_platform('${platform}')">${platform}</span>`
+    for (let value of filters[type]) {
+        new_content += `<span class="query_multivalue_option" onclick="remove_multivalue_filter('${value}', '${type}')">${value}</span>`
     }
     container.innerHTML = new_content
 }
@@ -58,10 +50,12 @@ function applied_to_listing() {
 
 function apply_new_filter(filter_type) {
     if (confirm('Deseja adicionar isto aos filtros mesmo? As vagas com estas características já presentes no banco de dados serão marcadas como "Dispensada" automaticamente.')) {
-        fetch('http://localhost:8000/vagas/apply_new_filter?filtered=' + last_text + '&filter_type=' + highlight_mode + '_' + filter_type, {method: 'POST'})
+        let type = highlight_mode + '_' + filter_type;
+        fetch('http://localhost:8000/vagas/apply_new_filter?filtered=' + last_text + '&filter_type=' + type, {method: 'POST'})
         .then((response) => response.json())
         .then((data) => {
-            
+            if (data.status != 409)
+                document.getElementById(type + '_container').innerHTML += `<span class="query_multivalue_option" onclick="remove_multivalue_filter('${data.asciified_text}', '${type}')">${data.asciified_text}</span>`
         })
     }
 }
@@ -120,7 +114,6 @@ function get_listings_extraction_status() {
     .then((response) => response.json())
     .then((data) => {
         results = data['results']
-        console.log(data)
         let progress_bar_overall = document.getElementById('progress_bar_overall')
         let progress_bar_linkedin = document.getElementById('progress_linkedin')
         let progress_bar_glassdoor = document.getElementById('progress_glassdoor')
@@ -177,6 +170,12 @@ function show_extraction_progress_menu() {
     extraction_progress_menu.style.visibility = extraction_progress_menu.style.visibility == 'hidden' ? 'visible' : 'hidden';
 }
 
+function show_extraction_settings_menu() {
+    let extraction_settings_menu = document.getElementById('extraction_settings_menu');
+
+    extraction_settings_menu.style.visibility = extraction_settings_menu.style.visibility == 'hidden' ? 'visible' : 'hidden';
+}
+
 function search(cur_query) {
     let search_value = document.getElementById('search_bar').value.trim();
     let get_new = document.getElementById('query_new').checked
@@ -192,14 +191,14 @@ function search(cur_query) {
         else if (search_value)
             url += '&query=' + cur_query;
     }
-    if (queried_companies.length > 0) {
-        url += `&companies=["${queried_companies.join('","')}"]`
+    if (query_values['query_company'].length > 0) {
+        url += `&companies=["${query_values['query_company'].join('","')}"]`
     }
-    if (queried_cities.length > 0) {
-        url += `&cities=["${queried_cities.join('","')}"]`
+    if (query_values['query_city'].length > 0) {
+        url += `&cities=["${query_values['query_city'].join('","')}"]`
     }
-    if (queried_platforms.length > 0) {
-        url += `&platforms=["${queried_platforms.join('","')}"]`
+    if (query_values['query_platform'].length > 0) {
+        url += `&platforms=["${query_values['query_platform'].join('","')}"]`
     }
 
     window.location.replace(url);
@@ -334,10 +333,11 @@ window.addEventListener("mousedown", function(e){
             let highlighted_text = highlight.toString().trim();
             let filter_word_button = document.getElementById('filter_word_button');
             if (highlighted_text.length > 0 && highlighted_text !== last_text && highlight.type == 'Range') {
-                if (~highlighted_text.indexOf(' '))
+                console.log(highlighted_text, highlighted_text.indexOf(' ') >= 0)
+                if (highlighted_text.indexOf(' ') >= 0)
                     filter_word_button.disabled = true;
                 else if (filter_word_button.disabled)
-                    filter_word_button.disabled = false;                
+                    filter_word_button.disabled = false;
                 menu.style = 'position: absolute; left:' + (highlighter.posX ) + 'px; top: ' + (highlighter.posY - 35) + 'px';
                 last_text = highlighted_text
             }

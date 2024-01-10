@@ -100,33 +100,63 @@ def nullify_listing(request):
 @csrf_exempt
 def apply_new_filter(request):
     filtered = request.GET.get('filtered').lower()
-    filter_type = request.GET.get('filter_type', 'title_exclude_words')
+    filter_type = request.GET.get('filter_type')
 
     with open('data/filters.json', 'r', encoding='utf-8') as f:
         filters = load(f)
 
-    if filtered not in filters[filter_type]:
-        filters[filter_type].append(asciify_text(filtered))
+    if filtered in filters[filter_type]:
+        return JsonResponse({'status': 409}, status=409)
+
+    asciified_text = asciify_text(filtered)
+    filters[filter_type].append(asciified_text)
+
+    if filter_type not in ['cities', 'states', 'countries']:
+        listings = Listing.objects.all().filter(applied_to__exact=None)
+        for listing in listings:
+            title = asciify_text(listing.title)
+            company_name = asciify_text(listing.company_name)
+            if (any(word in title.split() for word in filters['title_exclude_words']) or any(term in title for term in filters['title_exclude_terms']) or any(word in company_name.split() for word in filters['company_exclude_words']) or any(term in company_name for term in filters['company_exclude_terms'])) and (listing.applied_to is None or listing.applied_to):
+                listing.applied_to = False
+                listing.save()
+
+    with open('data/filters.json', 'w', encoding='utf-8') as f:
+        dump(filters, f, ensure_ascii=False)
 
     for platform in ['linkedin', 'glassdoor', 'catho', 'vagas_com']:
         if threads[platform]['thread'] is not None and threads[platform]['thread'].is_alive():
             threads[platform]['log_queue'].put({'type': 'reload_request'})
 
-    listings = Listing.objects.all().filter(applied_to__exact=None)
-    for listing in listings:
-        title = asciify_text(listing.title)
-        company_name = asciify_text(listing.company_name)
-        if (any(word in title.split() for word in filters['title_exclude_words']) or any(term in title for term in filters['title_exclude_terms']) or any(word in company_name.split() for word in filters['company_exclude_words']) or any(term in company_name for term in filters['company_exclude_terms'])) and (listing.applied_to is None or listing.applied_to):
-            listing.applied_to = False
-            listing.save()
+    return JsonResponse({'status': 200, 'asciified_text': asciified_text})
+
+
+@csrf_exempt
+def remove_filter(request):
+    removed_filter = request.GET.get('removed_filter').lower()
+    filter_type = request.GET.get('filter_type')
+
+    with open('data/filters.json', 'r', encoding='utf-8') as f:
+        filters = load(f)
+
+    if removed_filter not in filters[filter_type]:
+        return JsonResponse({'status': 404}, status=404)
+
+    filters[filter_type].remove(removed_filter)
 
     with open('data/filters.json', 'w', encoding='utf-8') as f:
         dump(filters, f, ensure_ascii=False)
+
+    for platform in ['linkedin', 'glassdoor', 'catho', 'vagas_com']:
+        if threads[platform]['thread'] is not None and threads[platform]['thread'].is_alive():
+            threads[platform]['log_queue'].put({'type': 'reload_request'})
 
     return JsonResponse({'status': 200})
 
 
 def get_listings(queries_str, page, listing_properties, companies, cities, platforms) -> dict:
+    with open('data/filters.json', 'r', encoding='utf-8') as f:
+        filters = load(f)
+
     queries = unidecode(queries_str).lower().split()
     listings_query = Q()
     workplace_type_query = Q()
@@ -171,9 +201,9 @@ def get_listings(queries_str, page, listing_properties, companies, cities, platf
         listings = list(list(pages)[page - 1])
 
         paginations = range(max(1, page - 4), min(page + 5, len(pages) + 1))
-        return {'listings': listings, 'page': page, 'pages': paginations, 'total_pages': len(pages), 'query': queries_str, 'listing_properties': listing_properties, 'companies': companies, 'cities': cities, 'platforms': platforms, 'listing_count': len(listings)}
+        return {'listings': listings, 'page': page, 'pages': paginations, 'total_pages': len(pages), 'query': queries_str, 'listing_properties': listing_properties, 'companies': companies, 'cities': cities, 'platforms': platforms, 'filters': filters,'listing_count': len(listings)}
     except IndexError:
-        return {'listings': [], 'page': page, 'pages': [page], 'total_pages': 0, 'query': queries_str, 'listing_properties': listing_properties, 'companies': companies, 'cities': cities, 'platforms': platforms, 'listing_count': 0}
+        return {'listings': [], 'page': page, 'pages': [page], 'total_pages': 0, 'query': queries_str, 'listing_properties': listing_properties, 'companies': companies, 'cities': cities, 'platforms': platforms, 'filters': filters, 'listing_count': 0}
 
 
 @csrf_exempt
