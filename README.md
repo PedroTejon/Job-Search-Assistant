@@ -46,9 +46,13 @@ Job Search Assistant currently supports these sources:
 
 <img src="./docs/forbidding_listings.gif" />
 
-You can also forbid listings from those spammy companies by highlighting their name with this feature!
+You can also use this feature to forbid listings from those spammy companies by highlighting their name!
 
 <img src="./docs/forbidding_companies.gif" />
+
+P.S.: Besides that, you can also manage what's forbidden and what's not on the extraction settings Menu, located besides the extraction button on the top right corner of the screen.
+
+<img src="./docs/extraction_settings_menu.png" />
 
 ---
 

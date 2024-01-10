@@ -47,9 +47,13 @@ Job Search Assistant atualmente tem integração com estas fontes:
 
 <img src="./docs/forbidding_listings.gif" />
 
-Você também pode proibir vagas daquelas empresas que ficam spammando seu LinkedIn ao selecionar o nome delas com essa funcionalidade!
+Você também pode usar essa funcionalidade para proibir vagas daquelas empresas que ficam spammando seu LinkedIn ao selecionar o nome delas!
 
 <img src="./docs/forbidding_companies.gif" />
+
+P.S.: Além disso, você pode gerenciar o que está proíbido ou não está no menu de configurações de extração, que fica do lado do botão de extração no topo superior direito da tela.
+
+<img src="./docs/extraction_settings_menu.png" />
 
 ---
 <br>
