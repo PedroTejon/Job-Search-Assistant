@@ -1,5 +1,5 @@
 # Job Search Assistant
-[![pt-br](https://img.shields.io/badge/lang-pt--br-green.svg)](https://github.com/PedroTejon/Job_Search_Assistant/README.pt-br.md)
+[![pt-br](https://img.shields.io/badge/lang-pt--br-green.svg)](./README.pt-br.md)
 
 A simple Django application developed to assist people currently looking for a job, joining many listing sources in one place. (May get a few more features soon!)
 
