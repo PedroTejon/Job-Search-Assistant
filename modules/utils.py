@@ -66,6 +66,7 @@ def listing_exists(c_id) -> bool:
 
 
 def filter_listing(title, location, workplace_type, company_name) -> bool:
+    location = asciify_text(location)
     if location.count(',') == 2:
         city, state, country = location.split(', ')
     elif location.count(',') == 1:
@@ -74,11 +75,11 @@ def filter_listing(title, location, workplace_type, company_name) -> bool:
         city = location.split(', ')[0]
 
     if workplace_type == 'Presencial/Hibrido':
-        if 'city' in locals() and not any(map(lambda x: x == city, filters['cities'])):
+        if 'city' in locals() and len(filters['cities']) and not any(map(lambda x: x == city, filters['cities'])):
             return False
-        if 'state' in locals() and not any(map(lambda x: x == state, filters['states'])):
+        if 'state' in locals() and len(filters['states']) and not any(map(lambda x: x == state, filters['states'])):
             return False
-        if 'country' in locals() and not any(map(lambda x: x == country, filters['countries'])):
+        if 'country' in locals() and len(filters['cities']) and not any(map(lambda x: x == country, filters['countries'])):
             return False
 
     if any(map(lambda x: x in title.split(), filters['title_exclude_words'])):

@@ -97,13 +97,14 @@
     }
 }
 
-.query_multivalue_container {
+.multivalue_container {
     max-height: 10dvh;
 
     display: flex;
     flex-wrap: wrap;
     padding: 1dvh;
-    gap: 2%;
+    column-gap: 3px;
+    row-gap: 3px;
     
     overflow-y: auto;
 }
@@ -133,7 +134,7 @@
     margin-right: 3dvw;
 }
 
-#extract_button, #filter_menu_button {
+#extract_button, #filter_menu_button, #extraction_settings_menu_button {
     padding: 1dvh;
 
     border: none;
@@ -143,14 +144,21 @@
     cursor: pointer;
 }
 
-#extraction_progress_menu {
+#extraction_progress_menu, #extraction_settings_menu {
     height: auto;
     width: 15dvw;
     
     visibility: hidden;
-    display: grid;
-    grid-template-columns: auto auto auto;
-    align-content: center;
+    &#extraction_progress_menu {
+        display: grid;
+        grid-template-columns: auto auto auto;
+        align-content: center;
+    }
+    &#extraction_settings_menu {
+        display: flex;
+        flex-direction: column;
+        align-content: center;
+    }
     gap: 1.2dvh;
 
     position: absolute;

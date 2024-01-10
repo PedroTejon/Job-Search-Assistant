@@ -20,6 +20,7 @@
                     </div>
                 </div>
                 <button id="extract_button" onclick="extract_listings()"><img src="{% static 'plus.svg' %}" width="16" height="16"></button> 
+                <button id="extraction_settings_menu_button" onclick="show_extraction_settings_menu()"><img src="{% static 'gear.svg' %}" width="16" height="16"></button>
                 <div id="extraction_progress_menu">
                     <span id="new_listings_linkedin" style="grid-column: 1; justify-self: center"></span>
                     <div id="progress_linkedin" class="progress_bar_container" style="width: 8vw; grid-column: 2;">
@@ -53,6 +54,71 @@
                     </div>
                     <img src="{% static 'vagas.com.svg' %}" width="16" height="16" style="grid-column: 3; font-size: 24px; align-self: center"></i>
                 </div>
+                <div id="extraction_settings_menu">
+                    <details class="filter_section">
+                        <summary>Palavras proíbidas no título:</summary>
+                        <input id="title_exclude_words_input" type="text" onkeydown="add_multivalue_filter(event)" placeholder="Palavra" style="width: 85%">
+                        <div id="title_exclude_words_container" class="multivalue_container">
+                            {% for word in filters.title_exclude_words %}
+                                <span class="query_multivalue_option" onclick="remove_multivalue_filter('{{ word }}', 'title_exclude_words')">{{ word }}</span>
+                            {% endfor %}
+                        </div>
+                    </details>
+                    <details class="filter_section">
+                        <summary>Termos proíbidos no título:</summary>
+                        <input id="title_exclude_terms_input" type="text" onkeydown="add_multivalue_filter(event)" placeholder="Termo" style="width: 85%">
+                        <div id="title_exclude_terms_container" class="multivalue_container">
+                            {% for term in filters.title_exclude_terms %}
+                                <span class="query_multivalue_option" onclick="remove_multivalue_filter('{{ term }}', 'title_exclude_terms')">{{ term }}</span>
+                            {% endfor %}
+                        </div>
+                    </details>
+                    <details class="filter_section">
+                        <summary>Palavras proíbidas no nome de empresas:</summary>
+                        <input id="company_exclude_words_input" type="text" onkeydown="add_multivalue_filter(event)" placeholder="Palavra" style="width: 85%">
+                        <div id="company_exclude_words_container" class="multivalue_container">
+                            {% for word in filters.company_exclude_words %}
+                                <span class="query_multivalue_option" onclick="remove_multivalue_filter('{{ word }}', 'company_exclude_words')">{{ word }}</span>
+                            {% endfor %}
+                        </div>
+                    </details>
+                    <details class="filter_section">
+                        <summary>Termos proíbidos no nome de empresas:</summary>
+                        <input id="company_exclude_terms_input" type="text" onkeydown="add_multivalue_filter(event)" placeholder="Termo" style="width: 85%">
+                        <div id="company_exclude_terms_container" class="multivalue_container">
+                            {% for term in filters.company_exclude_terms %}
+                                <span class="query_multivalue_option" onclick="remove_multivalue_filter('{{ term }}', 'company_exclude_terms')">{{ term }}</span>
+                            {% endfor %}
+                        </div>
+                    </details>
+                    <details class="filter_section">
+                        <summary>Cidades permitidas:</summary>
+                        <input id="cities_input" type="text" onkeydown="add_multivalue_filter(event)" placeholder="Nome" style="width: 85%">
+                        <div id="cities_container" class="multivalue_container">
+                            {% for city in filters.cities %}
+                                <span class="query_multivalue_option" onclick="remove_multivalue_filter('{{ city }}', 'cities')">{{ city }}</span>
+                            {% endfor %}
+                        </div>
+                    </details>
+                    <details class="filter_section">
+                        <summary>Estados permitidos:</summary>
+                        <input id="states_input" type="text" onkeydown="add_multivalue_filter(event)" placeholder="Nome" style="width: 85%">
+                        <div id="states_container" class="multivalue_container">
+                            {% for state in filters.states %}
+                                <span class="query_multivalue_option" onclick="remove_multivalue_filter('{{ state }}', 'states')">{{ state }}</span>
+                            {% endfor %}
+                        </div>
+                    </details>
+                    <details class="filter_section">
+                        <summary>Países permitidos:</summary>
+                        <input id="countries_input" type="text" onkeydown="add_multivalue_filter(event)" placeholder="Nome" style="width: 85%">
+                        <div id="countries_container" class="multivalue_container">
+                            {% for country in filters.countries %}
+                                <span class="query_multivalue_option" onclick="remove_multivalue_filter('{{ country }}', 'countries')">{{ country }}</span>
+                            {% endfor %}
+                        </div>
+                    </details>
+                </div>
             </div>
         </div>
         <div id="listings_view">
@@ -83,8 +149,8 @@
                     </details>
                     <details class="filter_section" open>
                         <summary>Empresas:</summary>
-                        <input id="query_company_input" type="text" placeholder="Termo presente no nome" style="width: 85%">
-                        <div id="query_company_container" class="query_multivalue_container">
+                        <input id="query_company_input" type="text" onkeydown="add_multivalue_query(event)" placeholder="Termo presente no nome" style="width: 85%">
+                        <div id="query_company_container" class="multivalue_container">
                             {% for company in companies %}
                                 <span class="query_multivalue_option" onclick="remove_company('{{ company }}')">{{ company }}</span>
                             {% endfor %}
@@ -92,8 +158,8 @@
                     </details>
                     <details class="filter_section" open>
                         <summary>Cidades:</summary>
-                        <input id="query_city_input" type="text" placeholder="Nome da cidade" style="width: 85%">
-                        <div id="query_city_container" class="query_multivalue_container">
+                        <input id="query_city_input" onkeydown="add_multivalue_query(event)" type="text" placeholder="Nome da cidade" style="width: 85%">
+                        <div id="query_city_container"  class="multivalue_container">
                             {% for city in cities %}
                                 <span class="query_multivalue_option" onclick="remove_city('{{ city }}')">{{ city }}</span>
                             {% endfor %}
@@ -108,7 +174,7 @@
                             <option value="Catho">Catho</option>
                             <option value="Vagas.com">Vagas.com</option>
                         </select>
-                        <div id="query_platform_container" class="query_multivalue_container">
+                        <div id="query_platform_container" class="multivalue_container">
                             {% for platform in platforms %}
                                 <span class="query_multivalue_option" onclick="remove_platform('{{ platform }}')">{{ platform }}</span>
                             {% endfor %}
@@ -239,6 +305,7 @@
     {{companies|json_script:"queried_companies"}}
     {{cities|json_script:"queried_cities"}}
     {{platforms|json_script:"queried_platforms"}}
+    {{filters|json_script:"filters"}}
     <script defer>
         listings = JSON.parse(document.getElementById('listings').textContent);
         get_listings_extraction_status()
@@ -257,41 +324,51 @@
             }
         }
                 
-        let queried_companies = JSON.parse(document.getElementById('queried_companies').textContent);
-        let queried_cities = JSON.parse(document.getElementById('queried_cities').textContent);
-        let queried_platforms = JSON.parse(document.getElementById('queried_platforms').textContent);
-        
-        let query_company_input = document.getElementById('query_company_input')
-        query_company_input.addEventListener('keydown', function (e) {
-            if (e.code === 'Enter') {
-                let queried_company = query_company_input.value.trim()
-                query_company_input.value = ''
-                if (queried_company !== '' && !queried_companies.includes(queried_company)) {
-                    queried_companies.push(queried_company)
-                    
-                    document.getElementById('query_company_container').innerHTML += `<span class="query_multivalue_option" onclick="remove_company('${queried_company}')">${queried_company}</span>`
-                }
-            }
-        });
+        let query_values = {
+            query_company: JSON.parse(document.getElementById('queried_companies').textContent),
+            query_city: JSON.parse(document.getElementById('queried_cities').textContent),
+            query_platform: JSON.parse(document.getElementById('queried_platforms').textContent)
+        }
 
-        let query_city_input = document.getElementById('query_city_input')
-        query_city_input.addEventListener('keydown', function (e) {
+        let filters = JSON.parse(document.getElementById('filters').textContent);
+
+        function add_multivalue_query(e) {
             if (e.code === 'Enter') {
-                let queried_city = query_city_input.value.trim()
-                query_city_input.value = ''
-                if (queried_city !== '' && !queried_cities.includes(queried_city)) {
-                    queried_cities.push(queried_city)
-                    document.getElementById('query_city_container').innerHTML += `<span class="query_multivalue_option" onclick="remove_city('${queried_city}')">${queried_city}</span>`
+                let value = e.target.value.trim()
+                let type = e.target.id.replace('_input', '')
+                e.target.value = ''
+                if (value !== '' && !query_values[type].includes(value)) {
+                    query_values[type].push(value)
+                    document.getElementById(type + '_container').innerHTML += `<span class="query_multivalue_option" onclick="remove_multivalue_query('${value}', '${type}')">${value}</span>`
                 }
             }
-        });
+        };
+
+        function add_multivalue_filter(e) {
+            if (e.code === 'Enter') {
+                let value = e.target.value.trim()
+                let type = e.target.id.replace('_input', '')
+                e.target.value = ''
+
+                if (!['cities', 'states', 'countries'].includes(type) && !confirm('Deseja adicionar isto aos filtros mesmo? As vagas com estas características já presentes no banco de dados serão marcadas como "Dispensada" automaticamente.')) {
+                    return
+                }
+                
+                fetch('http://localhost:8000/vagas/apply_new_filter?filtered=' + value + '&filter_type=' + type, {method: 'POST'})
+                .then((response) => response.json())
+                .then((data) => {
+                    if (data.status != 409)
+                        document.getElementById(type + '_container').innerHTML += `<span class="query_multivalue_option" onclick="remove_multivalue_filter('${data.asciified_text}', '${type}')">${data.asciified_text}</span>`
+                })
+            }
+        };
 
         let query_platform_input = document.getElementById('query_platform_input')
         query_platform_input.addEventListener('change', function (e) {
             let queried_platform = query_platform_input.value
             query_platform_input.value = '-'
-            if (queried_platform !== '-' && !queried_platforms.includes(queried_platform)) {
-                queried_platforms.push(queried_platform)
+            if (queried_platform !== '-' && !query_values['query_platform'].includes(queried_platform)) {
+                query_values['query_platform'].push(queried_platform)
                 document.getElementById('query_platform_container').innerHTML += `<span class="query_multivalue_option" onclick="remove_platform('${queried_platform}')">${queried_platform}</span>`
             }
             

@@ -213,7 +213,7 @@ def get_location_ids() -> dict:
 
             if response.status_code == 200:
                 value = next(filter(
-                    lambda entry, city=city: entry['name'] == city and entry['type'] == 'city', response.json()['data']), None)
+                    lambda entry, city=city: asciify_text(entry['name']) == city and entry['type'] == 'city', response.json()['data']), None)
                 if value:
                     location_ids['cities'].append(value['id'])
                 break
@@ -231,7 +231,7 @@ def get_location_ids() -> dict:
 
             if response.status_code == 200:
                 value = next(filter(
-                    lambda entry, state=state: entry['name'] == state and entry['type'] == 'state', response.json()['data']), None)
+                    lambda entry, state=state: asciify_text(entry['name']) == state and entry['type'] == 'state', response.json()['data']), None)
                 if value:
                     location_ids['states'].append(value['id'])
                 break
@@ -249,7 +249,7 @@ def get_location_ids() -> dict:
 
             if response.status_code == 200:
                 value = next(filter(
-                    lambda entry, country=country: entry['name'] == country and entry['type'] == 'country', response.json()['data']), None)
+                    lambda entry, country=country: asciify_text(entry['name']) == country and entry['type'] == 'country', response.json()['data']), None)
                 if value:
                     location_ids['countries'].append(value['id'])
                 break
