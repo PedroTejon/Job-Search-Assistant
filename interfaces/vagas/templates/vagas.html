@@ -14,13 +14,13 @@
 
             <div id="extraction_section">
                 <div id="extraction_results"></div>
-                <div id="progress_bar_overall" class="progress_bar_container" onclick="show_extraction_progress_menu()">
+                <div id="progress_bar_overall" class="progress_bar_container" onclick="show_floating_menu('extraction_progress_menu')">
                     <div class="extraction_progress_bar">
                         <div class="extraction_progress_bar_value"></div>
                     </div>
                 </div>
                 <button id="extract_button" onclick="extract_listings()"><img src="{% static 'plus.svg' %}" width="16" height="16"></button> 
-                <button id="extraction_settings_menu_button" onclick="show_extraction_settings_menu()"><img src="{% static 'gear.svg' %}" width="16" height="16"></button>
+                <button id="extraction_settings_menu_button" onclick="show_floating_menu('extraction_settings_menu')"><img src="{% static 'gear.svg' %}" width="16" height="16"></button>
                 <div id="extraction_progress_menu">
                     <span id="new_listings_linkedin" style="grid-column: 1; justify-self: center"></span>
                     <div id="progress_linkedin" class="progress_bar_container" style="width: 8vw; grid-column: 2;">
@@ -354,7 +354,6 @@
                 query_values['query_platform'].push(queried_platform)
                 document.getElementById('query_platform_container').innerHTML += `<span class="query_multivalue_option" onclick="remove_platform('${queried_platform}')">${queried_platform}</span>`
             }
-            
         });
 
         let search_bar = document.getElementById('search_bar')

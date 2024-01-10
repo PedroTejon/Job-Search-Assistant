@@ -1,6 +1,7 @@
-let current_listing = null
-let current_index = 0
-let update_func = null
+let current_listing = null;
+let current_index = 0;
+let update_func = null;
+let current_menu_id = null;
 
 function remove_multivalue_query(removed_value, type) {
     query_values[type] = query_values[type].filter((value) => value != removed_value)
@@ -164,16 +165,33 @@ function alternate_progress_bar(results, platform, progress_element) {
     }
 }
 
-function show_extraction_progress_menu() {
-    let extraction_progress_menu = document.getElementById('extraction_progress_menu');
-
-    extraction_progress_menu.style.visibility = extraction_progress_menu.style.visibility == 'hidden' ? 'visible' : 'hidden';
+function close_unfocused_menu(event) {
+    let menu = document.getElementById(current_menu_id)
+    if (event.target.id != current_menu_id && !menu.contains(event.target)) {
+        menu.style.visibility = 'hidden';
+        document.removeEventListener('mouseup', close_unfocused_menu)
+    }
 }
 
-function show_extraction_settings_menu() {
-    let extraction_settings_menu = document.getElementById('extraction_settings_menu');
+function show_floating_menu(id) {
+    let menu = document.getElementById(id);
+    console.log(menu, menu.style.visibility)
 
-    extraction_settings_menu.style.visibility = extraction_settings_menu.style.visibility == 'hidden' ? 'visible' : 'hidden';
+    if (menu.style.visibility != 'visible') {
+        menu.style.visibility = 'visible';
+
+        current_menu_id = id;
+        document.addEventListener('mouseup', close_unfocused_menu);
+    } else
+        menu.style.visibility = 'hidden';
+}
+
+function show_filter_menu() {
+    let filter_menu = document.getElementById('querying_filter_menu')
+    if (filter_menu.style.display == 'none') {
+        filter_menu.style.display = 'flex';
+    } else
+        filter_menu.style.display = 'none';
 }
 
 function search(cur_query) {
@@ -288,15 +306,6 @@ function show(listing_index) {
             dismiss_button.classList.remove('button_disabled')
     }
     
-}
-
-function show_filter_menu() {
-    let filter_menu = document.getElementById('querying_filter_menu')
-    if (filter_menu.style.display == 'none') {
-        filter_menu.style.display = 'flex';
-    } else {
-        filter_menu.style.display = 'none';
-    }
 }
 
 if (!window.highlighter) {
