@@ -40,6 +40,9 @@ Job Search Assistant atualmente tem integração com estas fontes:
 
 <img src="./docs/start_extraction.gif" />
 
+---
+<br>
+
 **Exclua vagas com certas características**: Se você está recebendo vagas relacionadas a coisas que você não possui interesse, você pode proibir certas vagas de serem recebidas no futuro ao selecionar palavras únicas no título ou termos (cadeias de caracteres que podem conter várias palavras ou que pode até ser encontrada dentro de outras palavras, se você não tomar cuidado) no título da vaga, e escolhendo qual opção você quer no menu que aparecerá.
 
 <img src="./docs/forbidding_listings.gif" />
@@ -48,6 +51,9 @@ Você também pode proibir vagas daquelas empresas que ficam spammando seu Linke
 
 <img src="./docs/forbidding_companies.gif" />
 
+---
+<br>
+
 **Consulte as vagas locais**: Após usar esse aplicativo por um tempo, você pode acabar acumulando tantas vagas que pode acabar ficando difícil navegar e encontrar a vaga certa para você, então você pode usar nossas opções de consulta para encontrá-la nesse mar de vagas!
 
 <img src="./docs/querying_listings.gif" />
@@ -55,8 +61,8 @@ Você também pode proibir vagas daquelas empresas que ficam spammando seu Linke
 Você também pode marcar vagas como "Inscrito" e "Dispensada", usando os botões à direita do botão de "Cadastre-se", para ajudar a diferenciá-las!
 
 ## Funcionalidades planejadas (To-Do)
-[X] Extração de vagas (LinkedIn, Glassdoor, Catho and Vagas.com)
-[X] GUI simples com Django
-[ ] Adicionar suporte para mais fontes
-[ ] Dashboard para visualizar mais estatísticas de sua jornada procurando emprego (com base nas vagas no banco de dados)
-[ ] Fazer um gerador de currículo simples de se usar que também atualiza automaticamente suas informações em sites suportados após mudanças
+- [x] Extração de vagas (LinkedIn, Glassdoor, Catho and Vagas.com)
+- [x] GUI simples com Django
+- [ ] Adicionar suporte para mais fontes
+- [ ] Dashboard para visualizar mais estatísticas de sua jornada procurando emprego (com base nas vagas no banco de dados)
+- [ ] Fazer um gerador de currículo simples de se usar que também atualiza automaticamente suas informações em sites suportados após mudanças
