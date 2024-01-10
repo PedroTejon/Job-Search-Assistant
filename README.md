@@ -37,15 +37,19 @@ Job Search Assistant currently supports these sources:
 ## Features
 
 **Get your freshest job listings**: After accessing the web application, click on the plus sign in the top right corner of the screen to get your latest batch of job listings!
+
 <img src="./docs/start_extraction.gif" />
 
 **Exclude listings with certain properties**: If you are getting job listings related to stuff you have no interest in, you can forbid certain listings from being chosen in the future by highlighting unique words or terms(strings of characters that may contain multiple words or may even be found inside another word, if you're not careful) on the listing's title, and choosing your option on the menu that pops up. 
+
 <img src="./docs/forbidding_listings.gif" />
 
 You can also forbid listings from those spammy companies by highlighting their name with this feature!
+
 <img src="./docs/forbidding_companies.gif" />
 
-**Query through your listings database**: After using this app for some time, you may accumulate so many listings that it may become hard to navigate and find the one you're looking for, so you can use our querying options to find it for you amidst the sea of listings! 
+**Query through your listings database**: After using this app for some time, you may accumulate so many listings that it may become hard to navigate and find the one you're looking for, so you can use our querying options to find it for you amidst the sea of listings!
+
 <img src="./docs/querying_listings.gif" />
 
 You may also mark listings as "Applied to" or "Dismissed", using the checkmark and x buttons to the right of the "Apply" button, to help distinguish them!

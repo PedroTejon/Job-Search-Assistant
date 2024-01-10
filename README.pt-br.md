@@ -37,15 +37,19 @@ Job Search Assistant atualmente tem integração com estas fontes:
 ## Funcionalidades
 
 **Obtenha as vagas mais fresquinhas**: Após acessar a aplicação web, clique no símbolo de mais no canto superior direito da tela para receber sua encomenda de vagas recentes!
+
 <img src="./docs/start_extraction.gif" />
 
 **Exclua vagas com certas características**: Se você está recebendo vagas relacionadas a coisas que você não possui interesse, você pode proibir certas vagas de serem recebidas no futuro ao selecionar palavras únicas no título ou termos (cadeias de caracteres que podem conter várias palavras ou que pode até ser encontrada dentro de outras palavras, se você não tomar cuidado) no título da vaga, e escolhendo qual opção você quer no menu que aparecerá.
+
 <img src="./docs/forbidding_listings.gif" />
 
 Você também pode proibir vagas daquelas empresas que ficam spammando seu LinkedIn ao selecionar o nome delas com essa funcionalidade!
+
 <img src="./docs/forbidding_companies.gif" />
 
 **Consulte as vagas locais**: Após usar esse aplicativo por um tempo, você pode acabar acumulando tantas vagas que pode acabar ficando difícil navegar e encontrar a vaga certa para você, então você pode usar nossas opções de consulta para encontrá-la nesse mar de vagas!
+
 <img src="./docs/querying_listings.gif" />
 
 Você também pode marcar vagas como "Inscrito" e "Dispensada", usando os botões à direita do botão de "Cadastre-se", para ajudar a diferenciá-las!
