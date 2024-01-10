@@ -104,7 +104,11 @@
                     <div class="listing" id="listing_{{forloop.counter0}}" onclick="show({{forloop.counter0}})">
                         <p class="listing_title">{{listing.title}}</p>
                         <p class="listing_company">{{listing.company_name}}</p>
-                        <p class="listing_condition">{{listing.workplace_type}}</p>
+                        {% if listing.workplace_type != 'Remoto' %}
+                            <p class="listing_condition">{{listing.location}}</p>
+                        {% else %}
+                            <p class="listing_condition">Remoto</p>
+                        {% endif %}
                             <div class="icon_container">
                             {% if listing.applied %}
                                 <img class="listing_status" src="{% static 'check.svg' %}" width="16" height="16">
@@ -241,11 +245,14 @@
         let queried_cities = JSON.parse(document.getElementById('queried_cities').textContent);
         let query_company_input = document.getElementById('query_company_input')
         query_company_input.addEventListener('keydown', function (e) {
-            let queried_company = query_company_input.value.trim()
-            if (e.code === 'Enter' && queried_company !== '' && !queried_companies.includes(queried_company)) {
-                queried_companies.push(queried_company)
-                
-                document.getElementById('query_company_container').innerHTML += `<span class="query_multivalue_option" onclick="remove_company('${queried_company}')">${queried_company}</span>`
+            if (e.code === 'Enter') {
+                let queried_company = query_company_input.value.trim()
+                query_company_input.value = ''
+                if (queried_company !== '' && !queried_companies.includes(queried_company)) {
+                    queried_companies.push(queried_company)
+                    
+                    document.getElementById('query_company_container').innerHTML += `<span class="query_multivalue_option" onclick="remove_company('${queried_company}')">${queried_company}</span>`
+                }
             }
         });
 
@@ -253,7 +260,8 @@
         query_city_input.addEventListener('keydown', function (e) {
             if (e.code === 'Enter') {
                 let queried_city = query_city_input.value.trim()
-                if (e.code === 'Enter' && queried_city !== '' && !queried_cities.includes(queried_city)) {
+                query_city_input.value = ''
+                if (queried_city !== '' && !queried_cities.includes(queried_city)) {
                     queried_cities.push(queried_city)
                     document.getElementById('query_city_container').innerHTML += `<span class="query_multivalue_option" onclick="remove_city('${queried_city}')">${queried_city}</span>`
                 }
