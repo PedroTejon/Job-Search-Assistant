@@ -218,36 +218,19 @@
                 {% if listing_count == 0 %}<br>{% endif %}
                 <div id="listings_pagination">
                     {% if page != 1 and 1 not in pages %}
-                        {% if query %}
-                            <a href="http://localhost:8000/vagas/?page=1&query={{query}}"> 1 </a> ...
-                        {% else %}
-                            <a href="http://localhost:8000/vagas/?page=1"> 1 </a> ...
-                        {% endif %}
+                        <a href="http://localhost:8000/vagas/?page=1{{full_query}}"> 1 </a> ...
                     {% endif %}
 
                     {% for num_page in pages %}
                         {% if num_page == page %}
-                            {% if query %}
-                                <a href="http://localhost:8000/vagas/?page={{num_page}}&query={{query}}"><b>{{num_page}}</b></a> 
-                            {% else %}
-                                <a href="http://localhost:8000/vagas/?page={{num_page}}"><b>{{num_page}}</b></a> 
-                            {% endif %}
+                            <a href="http://localhost:8000/vagas/?page={{num_page}}{{full_query}}"><b>{{num_page}}</b></a> 
                         {% else %}
-                            {% if query %}
-                                <a href="http://localhost:8000/vagas/?page={{num_page}}&query={{query}}">{{num_page}}</a> 
-                            {% else %}
-                                <a href="http://localhost:8000/vagas/?page={{num_page}}">{{num_page}}</a> 
-                            {% endif %}
+                            <a href="http://localhost:8000/vagas/?page={{num_page}}{{full_query}}">{{num_page}}</a> 
                         {% endif %}
                     {% endfor %}
 
                     {% if page != total_pages and total_pages not in pages and page < total_pages %}
-                        {% if query %}
-                        ... <a href="http://localhost:8000/vagas/?page={{total_pages}}&query={{query}}"> {{total_pages}}</a>
-                        {% else %}
-                        ... <a href="http://localhost:8000/vagas/?page={{total_pages}}"> {{total_pages}}</a>
-                        {% endif %}
-                    
+                        ... <a href="http://localhost:8000/vagas/?page={{total_pages}}{{full_query}}"> {{total_pages}}</a>
                     {% endif %}
                 </div>
             </div>

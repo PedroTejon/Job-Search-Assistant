@@ -1,5 +1,6 @@
 from json import dump, load, loads
 from queue import Queue
+from re import sub
 from threading import Thread
 from threading import enumerate as enum_threads
 
@@ -58,7 +59,8 @@ def index(request):
     if isinstance(platforms_query, str):
         platforms_query = loads(platforms_query)
 
-    return HttpResponse(template.render(get_listings(search_query, page, listing_query, companies_query, cities_query, platforms_query) | {'tab_title': 'Vagas'}, request))
+    full_query = sub(r'/vagas/\?[page=0-9]*', '', request.get_full_path())
+    return HttpResponse(template.render(get_listings(search_query, page, listing_query, companies_query, cities_query, platforms_query) | {'tab_title': 'Vagas', 'full_query': full_query}, request))
 
 
 @csrf_exempt
@@ -201,7 +203,7 @@ def get_listings(queries_str, page, listing_properties, companies, cities, platf
         listings = list(list(pages)[page - 1])
 
         paginations = range(max(1, page - 4), min(page + 5, len(pages) + 1))
-        return {'listings': listings, 'page': page, 'pages': paginations, 'total_pages': len(pages), 'query': queries_str, 'listing_properties': listing_properties, 'companies': companies, 'cities': cities, 'platforms': platforms, 'filters': filters,'listing_count': len(listings)}
+        return {'listings': listings, 'page': page, 'pages': paginations, 'total_pages': len(pages), 'query': queries_str, 'listing_properties': listing_properties, 'companies': companies, 'cities': cities, 'platforms': platforms, 'filters': filters, 'listing_count': len(listings)}
     except IndexError:
         return {'listings': [], 'page': page, 'pages': [page], 'total_pages': 0, 'query': queries_str, 'listing_properties': listing_properties, 'companies': companies, 'cities': cities, 'platforms': platforms, 'filters': filters, 'listing_count': 0}
 
