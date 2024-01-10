@@ -84,7 +84,7 @@
         cursor: pointer;
     }
 
-    & input[type=text], & label {
+    & input[type=text], select, & label {
         margin-left: 5%;
     }
 

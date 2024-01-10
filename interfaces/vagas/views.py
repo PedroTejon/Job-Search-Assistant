@@ -54,8 +54,11 @@ def index(request):
     cities_query = request.GET.get('cities', [])
     if isinstance(cities_query, str):
         cities_query = loads(cities_query)
+    platforms_query = request.GET.get('platforms', [])
+    if isinstance(platforms_query, str):
+        platforms_query = loads(platforms_query)
 
-    return HttpResponse(template.render(get_listings(search_query, page, listing_query, companies_query, cities_query) | {'tab_title': 'Vagas'}, request))
+    return HttpResponse(template.render(get_listings(search_query, page, listing_query, companies_query, cities_query, platforms_query) | {'tab_title': 'Vagas'}, request))
 
 
 @csrf_exempt
@@ -123,7 +126,7 @@ def apply_new_filter(request):
     return JsonResponse({'status': 200})
 
 
-def get_listings(queries_str, page, listing_properties, companies, cities) -> dict:
+def get_listings(queries_str, page, listing_properties, companies, cities, platforms) -> dict:
     queries = unidecode(queries_str).lower().split()
     listings_query = Q()
     workplace_type_query = Q()
@@ -161,14 +164,16 @@ def get_listings(queries_str, page, listing_properties, companies, cities) -> di
             queried_listings = [listing for listing in queried_listings for company in companies if unidecode(company).lower() in unidecode(listing['company_name']).lower()]
         if cities:
             queried_listings = [listing for listing in queried_listings for city in cities if unidecode(city).lower() in unidecode(listing['location']).lower()]
+        if platforms:
+            queried_listings = [listing for listing in queried_listings for platform in platforms if platform in listing['platform']]
 
         pages = split(queried_listings, arange(50, len(queried_listings), 50))
         listings = list(list(pages)[page - 1])
 
         paginations = range(max(1, page - 4), min(page + 5, len(pages) + 1))
-        return {'listings': listings, 'page': page, 'pages': paginations, 'total_pages': len(pages), 'query': queries_str, 'listing_properties': listing_properties, 'companies': companies, 'cities': cities, 'listing_count': len(listings)}
+        return {'listings': listings, 'page': page, 'pages': paginations, 'total_pages': len(pages), 'query': queries_str, 'listing_properties': listing_properties, 'companies': companies, 'cities': cities, 'platforms': platforms, 'listing_count': len(listings)}
     except IndexError:
-        return {'listings': [], 'page': page, 'pages': [page], 'total_pages': 0, 'query': queries_str, 'listing_properties': listing_properties, 'companies': companies, 'cities': cities, 'listing_count': 0}
+        return {'listings': [], 'page': page, 'pages': [page], 'total_pages': 0, 'query': queries_str, 'listing_properties': listing_properties, 'companies': companies, 'cities': cities, 'platforms': platforms, 'listing_count': 0}
 
 
 @csrf_exempt

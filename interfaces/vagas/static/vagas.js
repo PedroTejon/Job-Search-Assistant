@@ -24,6 +24,17 @@ function remove_company(removed_company) {
     container.innerHTML = new_content
 }
 
+function remove_platform(removed_platform) {
+    queried_platforms = queried_platforms.filter((platform) => platform != removed_platform)
+
+    container = document.getElementById('query_platform_container')
+    new_content = ''
+    for (let platform of queried_platforms) {
+        new_content += `<span class="query_multivalue_option" onclick="remove_platform('${platform}')">${platform}</span>`
+    }
+    container.innerHTML = new_content
+}
+
 function applied_to_listing() {
     let dismiss_button = document.getElementById('dismissed_button')
     let applied_button = document.getElementById('applied_button')
@@ -185,7 +196,10 @@ function search(cur_query) {
         url += `&companies=["${queried_companies.join('","')}"]`
     }
     if (queried_cities.length > 0) {
-        url += `&cities=["${queried_cities.join('","')}}"]`
+        url += `&cities=["${queried_cities.join('","')}"]`
+    }
+    if (queried_platforms.length > 0) {
+        url += `&platforms=["${queried_platforms.join('","')}"]`
     }
 
     window.location.replace(url);

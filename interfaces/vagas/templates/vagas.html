@@ -51,7 +51,7 @@
                             <div class="extraction_progress_bar_value"></div>
                         </div>
                     </div>
-                    <img src="{% static 'vagas_com.svg' %}" width="16" height="16" style="grid-column: 3; font-size: 24px; align-self: center"></i>
+                    <img src="{% static 'vagas.com.svg' %}" width="16" height="16" style="grid-column: 3; font-size: 24px; align-self: center"></i>
                 </div>
             </div>
         </div>
@@ -99,6 +99,21 @@
                             {% endfor %}
                         </div>
                     </details>
+                    <details class="filter_section" open>
+                        <summary>Plataformas:</summary>
+                        <select id="query_platform_input" style="width: 85%">
+                            <option value="-">-</option>
+                            <option value="LinkedIn">LinkedIn</option>
+                            <option value="Glassdoor">Glassdoor</option>
+                            <option value="Catho">Catho</option>
+                            <option value="Vagas.com">Vagas.com</option>
+                        </select>
+                        <div id="query_platform_container" class="query_multivalue_container">
+                            {% for platform in platforms %}
+                                <span class="query_multivalue_option" onclick="remove_platform('{{ platform }}')">{{ platform }}</span>
+                            {% endfor %}
+                        </div>
+                    </details>
                 </div>
                 {% for listing in listings %}
                     <div class="listing" id="listing_{{forloop.counter0}}" onclick="show({{forloop.counter0}})">
@@ -129,7 +144,7 @@
                             {% elif listing.platform == 'Catho' %}
                                 <img src="{% static 'catho.svg' %}" width="16" height="16" title="Vaga postada na Catho">
                             {% elif listing.platform == 'Vagas.com' %}
-                                <img src="{% static 'vagas_com.svg' %}" width="16" height="16" title="Vaga postada no Vagas.com">
+                                <img src="{% static 'vagas.com.svg' %}" width="16" height="16" title="Vaga postada no Vagas.com">
                             {% endif %} 
                         </div>
                     </div>
@@ -223,6 +238,7 @@
     {{listings|json_script:"listings"}}
     {{companies|json_script:"queried_companies"}}
     {{cities|json_script:"queried_cities"}}
+    {{platforms|json_script:"queried_platforms"}}
     <script defer>
         listings = JSON.parse(document.getElementById('listings').textContent);
         get_listings_extraction_status()
@@ -243,6 +259,8 @@
                 
         let queried_companies = JSON.parse(document.getElementById('queried_companies').textContent);
         let queried_cities = JSON.parse(document.getElementById('queried_cities').textContent);
+        let queried_platforms = JSON.parse(document.getElementById('queried_platforms').textContent);
+        
         let query_company_input = document.getElementById('query_company_input')
         query_company_input.addEventListener('keydown', function (e) {
             if (e.code === 'Enter') {
@@ -266,6 +284,17 @@
                     document.getElementById('query_city_container').innerHTML += `<span class="query_multivalue_option" onclick="remove_city('${queried_city}')">${queried_city}</span>`
                 }
             }
+        });
+
+        let query_platform_input = document.getElementById('query_platform_input')
+        query_platform_input.addEventListener('change', function (e) {
+            let queried_platform = query_platform_input.value
+            query_platform_input.value = '-'
+            if (queried_platform !== '-' && !queried_platforms.includes(queried_platform)) {
+                queried_platforms.push(queried_platform)
+                document.getElementById('query_platform_container').innerHTML += `<span class="query_multivalue_option" onclick="remove_platform('${queried_platform}')">${queried_platform}</span>`
+            }
+            
         });
 
         let search_bar = document.getElementById('search_bar')
