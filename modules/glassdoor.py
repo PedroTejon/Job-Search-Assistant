@@ -2,7 +2,6 @@ from json import load
 from os.path import split as path_split
 from queue import Queue
 from sys import exc_info
-from time import sleep
 
 from cloudscraper import create_scraper
 from django.utils.timezone import now
@@ -10,7 +9,8 @@ from django.utils.timezone import now
 from interfaces.vagas.models import Company, Listing
 from modules.exceptions import MaxRetriesException
 from modules.utils import (asciify_text, company_exists_by_id, filter_listing,
-                           get_company_by_name, listing_exists, reload_filters)
+                           get_company_by_name, listing_exists, reload_filters,
+                           sleep_r)
 
 with open('data/local_storage.json', 'rb') as f:
     token = load(f)['glassdoor_csrf']
@@ -107,7 +107,7 @@ def get_companies_listings():
         while cursor is None or cursor:
             tries = 1
             while tries <= 3:
-                sleep(.5)
+                sleep_r(.5)
                 response = job_listings_request(cursor, 'query JobSearchResultsQuery($excludeJobListingIds: [Long!], $keyword: String, $locationId: Int, $locationType: LocationTypeEnum, $numJobsToShow: Int!, $pageCursor: String, $pageNumber: Int, $filterParams: [FilterParams], $originalPageUrl: String, $seoFriendlyUrlInput: String, $parameterUrlInput: String, $seoUrl: Boolean) {\n  jobListings(\n    contextHolder: {searchParams: {excludeJobListingIds: $excludeJobListingIds, keyword: $keyword, locationId: $locationId, locationType: $locationType, numPerPage: $numJobsToShow, pageCursor: $pageCursor, pageNumber: $pageNumber, filterParams: $filterParams, originalPageUrl: $originalPageUrl, seoFriendlyUrlInput: $seoFriendlyUrlInput, parameterUrlInput: $parameterUrlInput, seoUrl: $seoUrl, searchType: SR}}\n  ) {\n    companyFilterOptions {\n      id\n      shortName\n      __typename\n    }\n    filterOptions\n    indeedCtk\n    jobListings {\n      ...JobView\n      __typename\n    }\n    jobListingSeoLinks {\n      linkItems {\n        position\n        url\n        __typename\n      }\n      __typename\n    }\n    jobSearchTrackingKey\n    jobsPageSeoData {\n      pageMetaDescription\n      pageTitle\n      __typename\n    }\n    paginationCursors {\n      cursor\n      pageNumber\n      __typename\n    }\n    indexablePageForSeo\n    searchResultsMetadata {\n      searchCriteria {\n        implicitLocation {\n          id\n          localizedDisplayName\n          type\n          __typename\n        }\n        keyword\n        location {\n          id\n          shortName\n          localizedShortName\n          localizedDisplayName\n          type\n          __typename\n        }\n        __typename\n      }\n      footerVO {\n        countryMenu {\n          childNavigationLinks {\n            id\n            link\n            textKey\n            __typename\n          }\n          __typename\n        }\n        __typename\n      }\n      helpCenterDomain\n      helpCenterLocale\n      jobAlert {\n        jobAlertExists\n        __typename\n      }\n      jobSerpFaq {\n        questions {\n          answer\n          question\n          __typename\n        }\n        __typename\n      }\n      jobSerpJobOutlook {\n        occupation\n        paragraph\n        heading\n        __typename\n      }\n      showMachineReadableJobs\n      __typename\n    }\n    serpSeoLinksVO {\n      relatedJobTitlesResults\n      searchedJobTitle\n      searchedKeyword\n      searchedLocationIdAsString\n      searchedLocationSeoName\n      searchedLocationType\n      topCityIdsToNameResults {\n        key\n        value\n        __typename\n      }\n      topEmployerIdsToNameResults {\n        key\n        value\n        __typename\n      }\n      topEmployerNameResults\n      topOccupationResults\n      __typename\n    }\n    totalJobsCount\n    __typename\n  }\n}\n\nfragment JobView on JobListingSearchResult {\n  jobview {\n    header {\n      adOrderId\n      advertiserType\n      adOrderSponsorshipLevel\n      ageInDays\n      divisionEmployerName\n      easyApply\n      employer {\n        id\n        name\n        shortName\n        __typename\n      }\n      employerNameFromSearch\n      goc\n      gocConfidence\n      gocId\n      jobCountryId\n      jobLink\n      jobResultTrackingKey\n      jobTitleText\n      locationName\n      locationType\n      locId\n      needsCommission\n      payCurrency\n      payPeriod\n      payPeriodAdjustedPay {\n        p10\n        p50\n        p90\n        __typename\n      }\n      rating\n      salarySource\n      savedJobId\n      seoJobLink\n      sponsored\n      __typename\n    }\n    job {\n      descriptionFragments\n      importConfigId\n      jobTitleId\n      jobTitleText\n      listingId\n      __typename\n    }\n    jobListingAdminDetails {\n      cpcVal\n      importConfigId\n      jobListingId\n      jobSourceId\n      userEligibleForAdminJobDetails\n      __typename\n    }\n    overview {\n      shortName\n      squareLogoUrl\n      __typename\n    }\n    __typename\n  }\n  __typename\n}\n', 'JobSearchResultsQuery', {
                     'excludeJobListingIds': [],
                     'filterParams': [{'filterKey': 'companyId', 'values': company.platforms['glassdoor']['id']}],
@@ -153,7 +153,7 @@ def get_recommended_listings():
 
         extract_job_listings(content['jobListings']['jobListings'])
 
-        sleep(.5)
+        sleep_r(.5)
 
 
 def get_listing_details(listing):
@@ -181,7 +181,7 @@ def get_listing_details(listing):
 
     queue.put(1)
 
-    sleep(.5)
+    sleep_r(.5)
 
 
 def get_followed_companies():
@@ -207,7 +207,7 @@ def get_followed_companies():
             company.platforms['glassdoor']['name'] = 'not_found'
 
         company.save()
-        sleep(.5)
+        sleep_r(.5)
 
 
 def get_jobs(curr_queue, curr_log_queue):

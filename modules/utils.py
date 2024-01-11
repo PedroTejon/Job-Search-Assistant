@@ -1,6 +1,8 @@
 from json import dump, load
 from os import listdir
+from random import randint
 from re import sub
+from time import sleep
 
 from unidecode import unidecode
 
@@ -20,6 +22,10 @@ if 'filters.json' not in listdir('data'):
 else:
     with open('data/filters.json', 'r', encoding='utf-8') as f:
         filters = load(f)
+
+
+def sleep_r(time):
+    sleep(time * (1 + randint(1, 20) / 100))
 
 
 def reload_filters():
@@ -75,11 +81,11 @@ def filter_listing(title, location, workplace_type, company_name) -> bool:
         city = location.split(', ')[0]
 
     if workplace_type == 'Presencial/Hibrido':
-        if 'city' in locals() and len(filters['cities']) and not any(map(lambda x: x == city, filters['cities'])):
+        if 'city' in locals() and len(filters['cities']) > 0 and not any(map(lambda x: x == city, filters['cities'])):
             return False
-        if 'state' in locals() and len(filters['states']) and not any(map(lambda x: x == state, filters['states'])):
+        if 'state' in locals() and len(filters['states']) > 0 and not any(map(lambda x: x == state, filters['states'])):
             return False
-        if 'country' in locals() and len(filters['cities']) and not any(map(lambda x: x == country, filters['countries'])):
+        if 'country' in locals() and len(filters['country']) > 0 and not any(map(lambda x: x == country, filters['countries'])):
             return False
 
     if any(map(lambda x: x in title.split(), filters['title_exclude_words'])):
