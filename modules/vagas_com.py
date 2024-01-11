@@ -2,7 +2,6 @@ from json import load
 from os.path import split as path_split
 from queue import Queue
 from sys import exc_info
-from time import sleep
 
 from bs4 import BeautifulSoup
 from cloudscraper import create_scraper
@@ -11,7 +10,7 @@ from django.utils.timezone import datetime, now, timedelta
 from interfaces.vagas.models import Company, Listing
 from modules.exceptions import MaxRetriesException
 from modules.utils import (asciify_text, filter_listing, get_company_by_name,
-                           listing_exists, reload_filters)
+                           listing_exists, reload_filters, sleep_r)
 
 
 def get_bearer_token():
@@ -82,7 +81,7 @@ def get_companies_listings():
         page = 1
 
         while True:
-            sleep(0.5)
+            sleep_r(0.5)
             response = session.get(
                 f"https://www.vagas.com.br/empregos/{company.platforms['vagas_com']['id']}?page={page}")
             soup = BeautifulSoup(response.text, 'html.parser')
@@ -93,7 +92,7 @@ def get_companies_listings():
                 break
 
             for url in listing_urls:
-                sleep(0.5)
+                sleep_r(0.5)
                 listing_response = session.get('https://www.vagas.com.br' + url)
                 listing_soup = BeautifulSoup(listing_response.text, 'html.parser')
 
@@ -232,7 +231,7 @@ def get_followed_companies():
     for company in filter(lambda x: x.platforms['vagas_com']['id'] is None and x.followed, companies):
         for platform in company.platforms:
             if company.platforms[platform]['name'] not in [None, 'not_found']:
-                sleep(0.5)
+                sleep_r(0.5)
                 formatted_name = asciify_text(company.platforms[platform]['name']).replace(' ', '-')
                 response = session.get(
                     f'https://www.vagas.com.br/empregos/{formatted_name}', allow_redirects=False)

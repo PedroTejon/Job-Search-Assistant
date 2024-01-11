@@ -2,14 +2,13 @@ from json import load
 from os.path import split as path_split
 from queue import Queue
 from sys import exc_info
-from time import sleep
 
 from cloudscraper import create_scraper
 
 from interfaces.vagas.models import Listing
 from modules.exceptions import MaxRetriesException
 from modules.utils import (asciify_text, get_company_by_name, listing_exists,
-                           reload_filters)
+                           reload_filters, sleep_r)
 
 
 def get_bearer_token():
@@ -66,7 +65,7 @@ def filter_listing(title, listing_locations_ids, location_ids, company_name):
 def get_recommended_listings(location_ids):
     listing_id = ''
     for _ in range(500):
-        sleep(0.5)
+        sleep_r(0.5)
         session = create_scraper(browser={
             'browser': 'chrome',
             'platform': 'windows',
@@ -221,7 +220,7 @@ def get_location_ids() -> dict:
             if tries > 3:
                 raise MaxRetriesException
 
-        sleep(0.2)
+        sleep_r(0.5)
 
     for state in filters['states']:
         tries = 1
@@ -239,7 +238,7 @@ def get_location_ids() -> dict:
             if tries > 3:
                 raise MaxRetriesException
 
-        sleep(0.2)
+        sleep_r(0.5)
 
     for country in filters['countries']:
         tries = 1
@@ -257,7 +256,7 @@ def get_location_ids() -> dict:
             if tries > 3:
                 raise MaxRetriesException
 
-        sleep(0.2)
+        sleep_r(0.5)
 
     return location_ids
 

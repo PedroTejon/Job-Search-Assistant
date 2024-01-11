@@ -4,7 +4,6 @@ from os.path import split as path_split
 from queue import Queue
 from re import sub
 from sys import exc_info
-from time import sleep
 
 from cloudscraper import create_scraper
 from django.utils.timezone import now
@@ -12,7 +11,8 @@ from django.utils.timezone import now
 from interfaces.vagas.models import Company, Listing
 from modules.exceptions import MaxRetriesException
 from modules.utils import (asciify_text, company_exists_by_id, filter_listing,
-                           get_company_by_name, listing_exists, reload_filters)
+                           get_company_by_name, listing_exists, reload_filters,
+                           sleep_r)
 
 
 def get_csrf_token():
@@ -92,7 +92,7 @@ def get_job_listings(url):
             'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0'})
 
         if response.status_code in [400, 429]:
-            sleep(1)
+            sleep_r(1)
             continue
 
         curr_count = total_job_listings
@@ -144,7 +144,7 @@ def get_job_listings(url):
         if curr_count >= total_job_listings:
             break
 
-        sleep(.5)
+        sleep_r(.5)
         page += 1
 
 
@@ -172,7 +172,7 @@ def get_listing_details(listing):
 
     tries = 1
     while tries <= 3:
-        sleep(0.2)
+        sleep_r(0.5)
 
         session = create_scraper(browser={
             'browser': 'chrome',
