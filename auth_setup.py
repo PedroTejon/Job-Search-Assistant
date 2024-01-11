@@ -4,8 +4,6 @@ from os import listdir
 from bs4 import BeautifulSoup
 from playwright.sync_api import Page, sync_playwright
 
-from modules.utils import sleep_r
-
 
 def initialize_puppet(headless=False) -> Page:
     playwright = sync_playwright().start()
@@ -83,7 +81,7 @@ def setup():
             cur_build_id_soup = BeautifulSoup(driver.content(), 'html.parser')
             build_id = loads(cur_build_id_soup.find('script', {'id': '__NEXT_DATA__'}).get_text())['buildId']
             local_storage['catho_build_id'] = build_id
-            sleep_r(1)
+            sleep(1)
 
         if input('Deseja logar com sua conta da Vagas.com? (Sim/Não) ').lower() in ['sim', 's']:
             cookies['vagas.com'] = []
