@@ -1,13 +1,13 @@
 # Job Search Assistant
-[![pt-br](https://img.shields.io/badge/lang-pt--br-green.svg)](./README.pt-br.md)
+[![en](https://img.shields.io/badge/lang-en-blue.svg)](./README.en.md)
 
-A simple Django application developed to assist people currently looking for a job, joining many listing sources in one place. (May get a few more features soon!)
+Uma aplicação em Django simples desenvolvida para ajudar pessoas atualmente à procura de trabalho, juntando vagas de diversas fontes de vagas diferentes em um só lugar. (Pode receber mais funções em breve!)
 
-This project's basic front-end was developed using HTML, CSS and JavaScript while the back-end was made with Python, Django and SQLite3 (for a simple data storage solution).
+O front-end básico desse projeto foi desenvolvido usando HTML, CSS e JavaScript, enquanto o back-end foi feito com Python, Django e SQLite3 (para uma solução de armazenamento simples).
 
-It's sources' integration modules were carefully made by analysing the inner workings between the client and server-side communication (API) on their websites, while implementing data extraction and web scraping techniques to gather the wanted data.
+Seus módulos de integração de fontes foram cuidadosamente feitos ao analisar o funcionamento interno da comunicação entre o lado cliente e servidor (API) dessas fontes, com a implementação de técnicas de extração de dados e web scraping para extrair os dados desejados.
  
-Job Search Assistant currently supports these sources:
+Job Search Assistant atualmente tem integração com estas fontes:
 - **LinkedIn**
 - **Glassdoor**
 - **Catho**
@@ -15,56 +15,74 @@ Job Search Assistant currently supports these sources:
 
 <br>
 
-> ⚠️ **Warning**: Although I've implemented precautionary measures to avoid making a lot of requests at the same time and abusing sources' TOS, I'm NOT responsible for anything that happens to you while using this. Use at your own volition.
+> ⚠️ **Aviso**: Embora eu tenha implementado medidas de precaução para evitar fazer muitas requisições e abusar do TOS das fontes, eu NÃO me responsabilizo por qualquer coisa que aconteça com você enquanto usa este aplicativo. Utilize-o ciente disto.
 
 
-## How to setup
-1. [Download](https://github.com/PedroTejon/Job-Search-Assistant/archive/refs/heads/main.zip) or clone this repository to a folder of your choice.
-2. Open a terminal window on the project folder and run the following commands to install the required Python packages:
+## Como instalar
+1. [Baixe](https://github.com/PedroTejon/Job-Search-Assistant/archive/refs/heads/main.zip) ou clone este repositório para um local de sua escolha.
+2. Abra uma janela de terminal na pasta do projeto e rode os seguintes comandos para instalar os pacotes Python necessários:
 ```cmd
     pip install -r requirements.txt
     playwright install
 ```
-3. Run the authentication setup script to log-in on the sources with the command:
+3. Rode seguinte comando para executar o script de autenticação e logar nas fontes de vagas desejadas:
 ```cmd
     python auth_setup.py
 ```
-4. Finally, start the application at http://localhost:8000 by running:
+4. Finalmente, depois de tudo isso, inicie a aplicação em http://localhost:8000 ao rodar:
 ```cmd
     python manage.py runserver
 ```
 
-## Features
+## Funcionalidades
 
-**Receive your freshest job listings**: After accessing the web application, click on the plus sign in the top right corner of the screen to get your latest batch of job listings!
+**Obtenha as vagas mais fresquinhas**: Após acessar a aplicação web, clique no símbolo de mais no canto superior direito da tela para receber sua encomenda de vagas recentes! Se for a primeira vez que você está executando essa função, lembre-se de adicionar filtros no menu de configurações antes de executá-la para obter vagas mais atraentes para você!
+
+> ⚠️ **Aviso** É recomendado executar isso uma vez a cada alguns dias, já que faz muitas requisições e não é como se você precisasse ter milhares de vagas ao mesmo tempo
 
 <img src="./docs/start_extraction.gif" />
 
----
+Os módulos de integração irão obter os seguintes grupos de vagas de suas fontes:
+- LinkedIn
+  - Vagas de empresas seguidas
+  - Vagas recomendadas
+  - Vagas remotas recomendadas
+- Glassdoor
+  - Vagas de empresas seguidas
+  - Vagas recomendadas
+- Catho
+  - Vagas recomendadas
+- Vagas.com
+  - Vagas de empresas seguidas
+  - Vagas recomendadas
 
-**Exclude listings with certain properties**: If you are getting job listings related to stuff you have no interest in, you can forbid certain listings from being chosen in the future by highlighting unique words or terms(strings of characters that may contain multiple words or may even be found inside another word, if you're not careful) on the listing's title, and choosing your option on the menu that pops up. 
+---
+<br>
+
+**Exclua vagas com certas características**: Se você está recebendo vagas relacionadas a coisas que você não possui interesse, você pode proibir certas vagas de serem recebidas no futuro ao selecionar palavras únicas no título ou termos (cadeias de caracteres que podem conter várias palavras ou que pode até ser encontrada dentro de outras palavras, se você não tomar cuidado) no título da vaga, e escolhendo qual opção você quer no menu que aparecerá.
 
 <img src="./docs/forbidding_listings.gif" />
 
-You can also use this feature to forbid listings from those spammy companies by highlighting their name!
+Você também pode usar essa funcionalidade para proibir vagas daquelas empresas que ficam spammando seu LinkedIn ao selecionar o nome delas!
 
 <img src="./docs/forbidding_companies.gif" />
 
-P.S.: Besides that, you can also manage what's forbidden and what's not on the extraction settings Menu, located besides the extraction button on the top right corner of the screen.
+P.S.: Além disso, você pode gerenciar o que está proíbido ou não está no menu de configurações de extração, que fica do lado do botão de extração no topo superior direito da tela.
 
 <img src="./docs/extraction_settings_menu.png" />
 
 ---
+<br>
 
-**Query through your listings database**: After using this app for some time, you may accumulate so many listings that it may become hard to navigate and find the one you're looking for, so you can use our querying options to find it for you amidst the sea of listings!
+**Consulte as vagas locais**: Após usar esse aplicativo por um tempo, você pode acabar acumulando tantas vagas que pode acabar ficando difícil navegar e encontrar a vaga certa para você, então você pode usar nossas opções de consulta para encontrá-la nesse mar de vagas!
 
 <img src="./docs/querying_listings.gif" />
 
-You may also mark listings as "Applied to" or "Dismissed", using the checkmark and x buttons to the right of the "Apply" button, to help distinguish them!
+Você também pode marcar vagas como "Inscrito" e "Dispensada", usando os botões à direita do botão de "Cadastre-se", para ajudar a diferenciá-las!
 
-## Planned features (To-Do)
-- [x] Listings extraction (LinkedIn, Glassdoor, Catho and Vagas.com)
-- [x] Simple GUI with Django
-- [ ] Add support to more sources
-- [ ] Dashboard for more stats related to your job search journey (based on listings in database)
-- [ ] Make an ease-of-use curriculum generator that also updates automatically your info on supported websites after changes
+## Funcionalidades planejadas (To-Do)
+- [x] Extração de vagas (LinkedIn, Glassdoor, Catho and Vagas.com)
+- [x] GUI simples com Django
+- [ ] Adicionar suporte para mais fontes
+- [ ] Dashboard para visualizar mais estatísticas de sua jornada procurando emprego (com base nas vagas no banco de dados)
+- [ ] Fazer um gerador de currículo simples de se usar que também atualiza automaticamente suas informações em sites suportados após mudanças
