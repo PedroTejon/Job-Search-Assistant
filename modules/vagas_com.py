@@ -9,7 +9,7 @@ from django.utils.timezone import datetime, now, timedelta
 
 from interfaces.vagas.models import Company, Listing
 from modules.exceptions import MaxRetriesException
-from modules.utils import (asciify_text, filter_listing, get_company_by_name,
+from modules.utils import (DEFAULT_HEADERS, asciify_text, filter_listing, get_company_by_name,
                            listing_exists, reload_filters, sleep_r)
 
 
@@ -30,6 +30,12 @@ COOKIES = ';'.join([f"{cookie['name']}={cookie['value']}" for cookie in cookies_
 token = get_bearer_token()
 queue: Queue = None
 log_queue: Queue = None
+MODULE_HEADERS = DEFAULT_HEADERS | {
+    'accept-language': 'pt-BR,pt;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+    'access-control-allow-origin': '*',
+    'authorization': f'Bearer {token}',
+    'cookie': COOKIES,
+}
 
 
 def reload_if_configs_changed():
@@ -72,7 +78,7 @@ def filter_location(location, workplace_type):
 
 def get_companies_listings():
     session = create_scraper(browser={
-        'browser': 'firefox',
+        'browser': 'chrome',
         'platform': 'windows',
         'mobile': False
     })
@@ -83,7 +89,7 @@ def get_companies_listings():
         while True:
             sleep_r(0.5)
             response = session.get(
-                f"https://www.vagas.com.br/empregos/{company.platforms['vagas_com']['id']}?page={page}")
+                f"https://www.vagas.com.br/empregos/{company.platforms['vagas_com']['id']}?page={page}", headers=MODULE_HEADERS)
             soup = BeautifulSoup(response.text, 'html.parser')
 
             listing_urls = [link['href'] for link in soup.find_all('a', {'class': 'link-detalhes-vaga'})
@@ -93,7 +99,7 @@ def get_companies_listings():
 
             for url in listing_urls:
                 sleep_r(0.5)
-                listing_response = session.get('https://www.vagas.com.br' + url)
+                listing_response = session.get('https://www.vagas.com.br' + url, headers=MODULE_HEADERS)
                 listing_soup = BeautifulSoup(listing_response.text, 'html.parser')
 
                 listing = Listing()
@@ -136,29 +142,14 @@ def get_companies_listings():
 
 def get_recommended_listings():
     session = create_scraper(browser={
-        'browser': 'firefox',
+        'browser': 'chrome',
         'platform': 'windows',
         'mobile': False
     })
 
     tries = 1
     while tries <= 3:
-        response = session.get('https://api-candidato.vagas.com.br/v1/perfis/paginas_personalizadas', headers={
-            'accept': 'application/json, text/plain, */*',
-            'accept-language': 'pt-BR,pt;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
-            'access-control-allow-origin': '*',
-            'authorization': f'Bearer {token}',
-            'cache-control': 'no-cache',
-            'cookie': COOKIES,
-            'pragma': 'no-cache',
-            'sec-ch-ua': '\"Not_A Brand\";v=\"8\", \"Chromium\";v=\"120\", \"Microsoft Edge\";v=\"120\"',
-            'sec-ch-ua-mobile': '?0',
-            'sec-ch-ua-platform': '\"Windows\"',
-            'sec-fetch-dest': 'empty',
-            'sec-fetch-mode': 'cors',
-            'sec-fetch-site': 'same-site',
-            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0'
-        })
+        response = session.get('https://api-candidato.vagas.com.br/v1/perfis/paginas_personalizadas', headers=MODULE_HEADERS)
 
         if response.status_code == 200:
             content = response.json()
@@ -223,7 +214,7 @@ def get_recommended_listings():
 
 def get_followed_companies():
     session = create_scraper(browser={
-        'browser': 'firefox',
+        'browser': 'chrome',
         'platform': 'windows',
         'mobile': False
     })

@@ -10,7 +10,7 @@ from django.utils.timezone import now
 
 from interfaces.vagas.models import Company, Listing
 from modules.exceptions import MaxRetriesException
-from modules.utils import (asciify_text, company_exists_by_id, filter_listing,
+from modules.utils import (DEFAULT_HEADERS, asciify_text, company_exists_by_id, filter_listing,
                            get_company_by_name, listing_exists, reload_filters,
                            sleep_r)
 
@@ -29,6 +29,15 @@ COOKIES = ';'.join([f"{cookie['name']}={cookie['value']}" for cookie in cookies_
 token = get_csrf_token()
 queue: Queue = None
 log_queue: Queue = None
+MODULE_HEADERS = DEFAULT_HEADERS | {
+    'accept': 'application/vnd.linkedin.normalized+json+2.1',
+    'csrf-token': token,
+    'cookie': COOKIES,
+    'x-li-deco-include-micro-schema': 'true',
+    'x-li-lang': 'pt_BR',
+    'x-li-track': '{\"clientVersion\":\"1.13.7689\",\"mpVersion\":\"1.13.7689\",\"osName\":\"web\",\"timezoneOffset\":-3,\"timezone\":\"America/Sao_Paulo\",\"deviceFormFactor\":\"DESKTOP\",\"mpName\":\"voyager-web\",\"displayDensity\":1.25,\"displayWidth\":1920,\"displayHeight\":1080}',
+    'x-restli-protocol-version': '2.0.0'
+}
 
 
 def reload_if_configs_changed():
@@ -70,26 +79,10 @@ def get_job_listings(url):
         if 40 < page:
             break
 
-        response = session.get(url + f'&start={25 * page}', headers={
-            'accept': 'application/vnd.linkedin.normalized+json+2.1',
-            'accept-language': 'pt-BR,pt;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
-            'cache-control': 'no-cache',
-            'csrf-token': token,
-            'cookie': COOKIES,
-            'pragma': 'no-cache',
-            'sec-ch-ua': '\"Microsoft Edge\";v=\"119\", \"Chromium\";v=\"119\", \"Not?A_Brand\";v=\"24\"',
-            'sec-ch-ua-mobile': '?0',
-            'sec-ch-ua-platform': '\"Windows\"',
-            'sec-fetch-dest': 'empty',
-            'sec-fetch-mode': 'cors',
-            'sec-fetch-site': 'same-origin',
-            'x-li-deco-include-micro-schema': 'true',
-            'x-li-lang': 'pt_BR',
+        response = session.get(url + f'&start={25 * page}', headers=MODULE_HEADERS | {
             'x-li-page-instance': 'urn:li:page:d_flagship3_search_srp_jobs;xhW+cLKCSmyQdAS+CI2l+Q==',
-            'x-li-pem-metadata': 'Voyager - Careers=jobs-search-results',
-            'x-li-track': '{\"clientVersion\":\"1.13.7689\",\"mpVersion\":\"1.13.7689\",\"osName\":\"web\",\"timezoneOffset\":-3,\"timezone\":\"America/Sao_Paulo\",\"deviceFormFactor\":\"DESKTOP\",\"mpName\":\"voyager-web\",\"displayDensity\":1.25,\"displayWidth\":1920,\"displayHeight\":1080}',
-            'x-restli-protocol-version': '2.0.0',
-            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0'})
+            'x-li-pem-metadata': 'Voyager - Careers=jobs-search-results'
+        })
 
         if response.status_code in [400, 429]:
             sleep_r(1)
@@ -180,24 +173,8 @@ def get_listing_details(listing):
             'mobile': False
         })
 
-        response = session.get(f'https://www.linkedin.com/voyager/api/jobs/jobPostings/{listing_id}?decorationId=com.linkedin.voyager.deco.jobs.web.shared.WebFullJobPosting-65&topN=1&topNRequestedFlavors=List(TOP_APPLICANT,IN_NETWORK,COMPANY_RECRUIT,SCHOOL_RECRUIT,HIDDEN_GEM,ACTIVELY_HIRING_COMPANY)', headers={
-            'cookie': COOKIES,
-            'accept': 'application/vnd.linkedin.normalized+json+2.1',
-            'accept-language': 'pt-BR,pt;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
-            'cache-control': 'no-cache',
-            'csrf-token': token,
-            'pragma': 'no-cache',
-            'sec-ch-ua': '\"Microsoft Edge\";v=\"119\", \"Chromium\";v=\"119\", \"Not?A_Brand\";v=\"24\"',
-            'sec-ch-ua-mobile': '?0',
-            'sec-ch-ua-platform': '\"Windows\"',
-            'sec-fetch-dest': 'empty',
-            'sec-fetch-mode': 'cors',
-            'sec-fetch-site': 'same-origin',
-            'x-li-lang': 'pt_BR',
+        response = session.get(f'https://www.linkedin.com/voyager/api/jobs/jobPostings/{listing_id}?decorationId=com.linkedin.voyager.deco.jobs.web.shared.WebFullJobPosting-65&topN=1&topNRequestedFlavors=List(TOP_APPLICANT,IN_NETWORK,COMPANY_RECRUIT,SCHOOL_RECRUIT,HIDDEN_GEM,ACTIVELY_HIRING_COMPANY)', headers=MODULE_HEADERS | {
             'x-li-page-instance': 'urn:li:page:d_flagship3_jobs_discovery_jymbii;ycV3lFUlTMONvjhem4yCrw==',
-            'x-li-track': '{\"clientVersion\":\"1.13.7689\",\"mpVersion\":\"1.13.7689\",\"osName\":\"web\",\"timezoneOffset\":-3,\"timezone\":\"America/Sao_Paulo\",\"deviceFormFactor\":\"DESKTOP\",\"mpName\":\"voyager-web\",\"displayDensity\":1.25,\"displayWidth\":1920,\"displayHeight\":1080}',
-            'x-restli-protocol-version': '2.0.0',
-            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0'
         })
 
         if response.status_code == 200:
@@ -226,24 +203,10 @@ def get_listing_details(listing):
     listing.applies = response['data']['applies']
     listing.publication_date = datetime.fromtimestamp(response['data']['listedAt'] / 1000).strftime('%Y-%m-%dT%H:%M:%S')
 
-    application_url_response = session.get(f'https://www.linkedin.com/voyager/api/graphql?includeWebMetadata=true&variables=(cardSectionTypes:List(TOP_CARD),jobPostingUrn:urn%3Ali%3Afsd_jobPosting%3A{listing_id},includeSecondaryActionsV2:true)&queryId=voyagerJobsDashJobPostingDetailSections.7a099d4cd4fe903e01deac5893fc08d0', headers={
-        'cookie': COOKIES,
-        'accept': 'application/vnd.linkedin.normalized+json+2.1',
-        'accept-language': 'pt-BR,pt;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
-        'cache-control': 'no-cache',
-        'csrf-token': token,
-        'pragma': 'no-cache',
-        'sec-ch-ua': '\"Microsoft Edge\";v=\"119\", \"Chromium\";v=\"119\", \"Not?A_Brand\";v=\"24\"',
-        'sec-ch-ua-mobile': '?0',
-        'sec-ch-ua-platform': '\"Windows\"',
-        'sec-fetch-dest': 'empty',
-        'sec-fetch-mode': 'cors',
-        'sec-fetch-site': 'same-origin',
-        'x-li-lang': 'pt_BR',
+    sleep_r(0.5)
+
+    application_url_response = session.get(f'https://www.linkedin.com/voyager/api/graphql?includeWebMetadata=true&variables=(cardSectionTypes:List(TOP_CARD),jobPostingUrn:urn%3Ali%3Afsd_jobPosting%3A{listing_id},includeSecondaryActionsV2:true)&queryId=voyagerJobsDashJobPostingDetailSections.7a099d4cd4fe903e01deac5893fc08d0', headers=MODULE_HEADERS | {
         'x-li-page-instance': 'urn:li:page:d_flagship3_jobs_discovery_jymbii;ycV3lFUlTMONvjhem4yCrw==',
-        'x-li-track': '{\"clientVersion\":\"1.13.7689\",\"mpVersion\":\"1.13.7689\",\"osName\":\"web\",\"timezoneOffset\":-3,\"timezone\":\"America/Sao_Paulo\",\"deviceFormFactor\":\"DESKTOP\",\"mpName\":\"voyager-web\",\"displayDensity\":1.25,\"displayWidth\":1920,\"displayHeight\":1080}',
-        'x-restli-protocol-version': '2.0.0',
-        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0'
     })
     if application_url_response.status_code == 200:
         listing.application_url = next(filter(lambda element: 'companyApplyUrl' in element,
@@ -274,23 +237,8 @@ def get_followed_companies():
     while curr_index < max_index:
         tries = 1
         while tries <= 3:
-            response = session.get(f'https://www.linkedin.com/voyager/api/graphql?variables=(start:{curr_index},count:100,paginationToken:null,pagedListComponent:urn%3Ali%3Afsd_profilePagedListComponent%3A%28{profile_id}%2CINTERESTS_VIEW_DETAILS%2Curn%3Ali%3Afsd_profileTabSection%3ACOMPANIES_INTERESTS%2CNONE%2Cpt_BR%29)&queryId=voyagerIdentityDashProfileComponents.3efef764c5f936e8a825b8674c814b0c', headers={
-                "accept": "application/vnd.linkedin.normalized+json+2.1",
-                "accept-language": "pt-BR,pt;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6",
-                "cache-control": "no-cache",
-                'cookie': COOKIES,
-                'csrf-token': token,
-                "pragma": "no-cache",
-                "sec-ch-ua": "\"Not_A Brand\";v=\"8\", \"Chromium\";v=\"120\", \"Microsoft Edge\";v=\"120\"",
-                "sec-ch-ua-mobile": "?0",
-                "sec-ch-ua-platform": "\"Windows\"",
-                "sec-fetch-dest": "empty",
-                "sec-fetch-mode": "cors",
-                "sec-fetch-site": "same-origin",
-                "x-li-lang": "en_US",
-                "x-li-page-instance": "urn:li:page:d_flagship3_profile_view_base_interests_details;SMBEUWK7RWSdHCxtKcrvaw==",
-                "x-li-track": "{\"clientVersion\":\"1.13.8499\",\"mpVersion\":\"1.13.8499\",\"osName\":\"web\",\"timezoneOffset\":-3,\"timezone\":\"America/Sao_Paulo\",\"deviceFormFactor\":\"DESKTOP\",\"mpName\":\"voyager-web\",\"displayDensity\":1.25,\"displayWidth\":1920,\"displayHeight\":1080}",
-                'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0'
+            response = session.get(f'https://www.linkedin.com/voyager/api/graphql?variables=(start:{curr_index},count:100,paginationToken:null,pagedListComponent:urn%3Ali%3Afsd_profilePagedListComponent%3A%28{profile_id}%2CINTERESTS_VIEW_DETAILS%2Curn%3Ali%3Afsd_profileTabSection%3ACOMPANIES_INTERESTS%2CNONE%2Cpt_BR%29)&queryId=voyagerIdentityDashProfileComponents.3efef764c5f936e8a825b8674c814b0c', headers=MODULE_HEADERS | {
+                'x-li-page-instance': 'urn:li:page:d_flagship3_profile_view_base_interests_details;SMBEUWK7RWSdHCxtKcrvaw==',
             })
 
             if response.status_code == 200:

@@ -23,6 +23,18 @@ else:
     with open('data/filters.json', 'r', encoding='utf-8') as f:
         filters = load(f)
 
+DEFAULT_HEADERS = {
+    'accept-language': 'pt-BR,pt;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+    'cache-control': 'no-cache',
+    'pragma': 'no-cache',
+    'sec-ch-ua-mobile': '?0',
+    'sec-ch-ua-platform': '\"Windows\"',
+    'sec-fetch-dest': 'empty',
+    'sec-fetch-mode': 'cors',
+    'sec-fetch-site': 'same-origin',
+    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0'
+}
+
 
 def sleep_r(time):
     sleep(time * (1 + randint(1, 20) / 100))

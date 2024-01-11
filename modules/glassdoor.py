@@ -8,7 +8,7 @@ from django.utils.timezone import now
 
 from interfaces.vagas.models import Company, Listing
 from modules.exceptions import MaxRetriesException
-from modules.utils import (asciify_text, company_exists_by_id, filter_listing,
+from modules.utils import (DEFAULT_HEADERS, asciify_text, company_exists_by_id, filter_listing,
                            get_company_by_name, listing_exists, reload_filters,
                            sleep_r)
 
@@ -19,6 +19,10 @@ with open('data/cookies.json', 'rb') as f:
 COOKIES = ';'.join([f"{cookie['name']}={cookie['value']}" for cookie in cookies_json])
 queue: Queue = None
 log_queue: Queue = None
+MODULE_HEADERS = DEFAULT_HEADERS | {
+    'cookie': COOKIES,
+    'gd-csrf-token': token,
+}
 
 
 def reload_if_configs_changed():
@@ -49,23 +53,10 @@ def job_listings_request(cursor, query, operation, variables):
     })
 
     return session.post('https://www.glassdoor.com.br/graph',
-                        headers={
-                            'accept': '*/*',
-                            'accept-language': 'pt-BR,pt;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+                        headers=MODULE_HEADERS | {
                             'apollographql-client-name': 'job-search-next',
                             'apollographql-client-version': '6.5.0',
-                            'cache-control': 'no-cache',
                             'content-type': 'application/json',
-                            'cookie': COOKIES,
-                            'gd-csrf-token': token,
-                            'pragma': 'no-cache',
-                            'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Microsoft Edge";v="120"',
-                            'sec-ch-ua-mobile': '?0',
-                            'sec-ch-ua-platform': '"Windows"',
-                            'sec-fetch-dest': 'empty',
-                            'sec-fetch-mode': 'cors',
-                            'sec-fetch-site': 'same-site',
-                            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0'
                         },
                         json=request_body)
 
@@ -188,7 +179,7 @@ def get_followed_companies():
     companies = Company.objects.all()
     for company in filter(lambda x: x.platforms['glassdoor']['id'] is None and x.followed, companies):
         session = create_scraper(browser={
-            'browser': 'firefox',
+            'browser': 'chrome',
             'platform': 'windows',
             'mobile': False
         })

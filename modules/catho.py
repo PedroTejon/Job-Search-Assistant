@@ -7,7 +7,7 @@ from cloudscraper import create_scraper
 
 from interfaces.vagas.models import Listing
 from modules.exceptions import MaxRetriesException
-from modules.utils import (asciify_text, get_company_by_name, listing_exists,
+from modules.utils import (asciify_text, DEFAULT_HEADERS, get_company_by_name, listing_exists,
                            reload_filters, sleep_r)
 
 
@@ -23,13 +23,17 @@ with open('data/filters.json', 'rb') as f:
     filters = load(f)
 with open('data/cookies.json', 'r', encoding='utf-8') as f:
     cookies_json = load(f)['catho']
-COOKIES = ';'.join([f"{cookie['name']}={cookie['value']}" for cookie in cookies_json]) + \
-    '; session_id=99be0cd2-0098-4f6e-9206-b4555d5c5172'
+COOKIES = ';'.join([f"{cookie['name']}={cookie['value']}" for cookie in cookies_json])
 token = get_bearer_token()
 with open('data/local_storage.json', 'r', encoding='utf-8') as f:
     build_id = load(f)['catho_build_id']
 queue: Queue = None
 log_queue: Queue = None
+MODULE_HEADERS = DEFAULT_HEADERS | {
+    'accept': '*/*',
+    'authorization': f'Bearer {token}',
+    'cookie': COOKIES
+}
 
 
 def reload_if_configs_changed():
@@ -72,23 +76,7 @@ def get_recommended_listings(location_ids):
             'mobile': False
         })
 
-        headers = {
-            'accept': '*/*',
-            'accept-language': 'pt-BR,pt;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
-            'authorization': f'Bearer {token}',
-            'cache-control': 'no-cache',
-            'cookie': COOKIES,
-            'lasteventtype': None,
-            'lastjobid': None,
-            'pragma': 'no-cache',
-            'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Microsoft Edge";v="120"',
-            'sec-ch-ua-mobile': '?0',
-            'sec-ch-ua-platform': '"Windows"',
-            'sec-fetch-dest': 'empty',
-            'sec-fetch-mode': 'cors',
-            'sec-fetch-site': 'same-site',
-            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0'
-        }
+        headers = MODULE_HEADERS
         if listing_id:
             headers['lasteventtype'] = 'discard'
             headers['lastjobid'] = str(listing_id)
@@ -113,20 +101,7 @@ def get_recommended_listings(location_ids):
         content = response.json()['data']
         listing_id = content['id']
         if not listing_exists(listing_id):
-            listing_resp = session.get(f'https://www.catho.com.br/vagas/_next/data/{build_id}/sugestao/{listing_id}.json?origem_apply=sugestao-de-vagas&entrada_apply=direto&slug={listing_id}', headers={
-                'accept': '*/*',
-                'accept-language': 'pt-BR,pt;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
-                'cache-control': 'no-cache',
-                'cookie': COOKIES,
-                'pragma': 'no-cache',
-                'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Microsoft Edge";v="120"',
-                'sec-ch-ua-mobile': '?0',
-                'sec-ch-ua-platform': '"Windows"',
-                'sec-fetch-dest': 'empty',
-                'sec-fetch-mode': 'cors',
-                'sec-fetch-site': 'same-site',
-                'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0'
-            })
+            listing_resp = session.get(f'https://www.catho.com.br/vagas/_next/data/{build_id}/sugestao/{listing_id}.json?origem_apply=sugestao-de-vagas&entrada_apply=direto&slug={listing_id}', headers=MODULE_HEADERS)
 
             listing_resp = listing_resp.json()['pageProps']
 
@@ -149,20 +124,7 @@ def get_recommended_listings(location_ids):
                 else:
                     listing.application_url = f'https://www.catho.com.br/vagas/sugestao/{listing_id}'
 
-                listing.applies = session.get(f'https://www.catho.com.br/anuncios/api/rank-position/{listing_id}/4740666336240438', headers={
-                    'accept': '*/*',
-                    'accept-language': 'pt-BR,pt;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
-                    'cache-control': 'no-cache',
-                    'cookie': COOKIES,
-                    'pragma': 'no-cache',
-                    'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Microsoft Edge";v="120"',
-                    'sec-ch-ua-mobile': '?0',
-                    'sec-ch-ua-platform': '"Windows"',
-                    'sec-fetch-dest': 'empty',
-                    'sec-fetch-mode': 'cors',
-                    'sec-fetch-site': 'same-site',
-                    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0'
-                }).json()['balance']
+                listing.applies = session.get(f'https://www.catho.com.br/anuncios/api/rank-position/{listing_id}/4740666336240438', headers=MODULE_HEADERS).json()['balance']
 
                 if (company := get_company_by_name(company_name, 'catho')).platforms['catho']['name'] is None:
                     company.platforms['catho']['name'] = company_name
@@ -190,25 +152,12 @@ def get_location_ids() -> dict:
         'platform': 'windows',
         'mobile': False
     })
-    request_headers = {
-        'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-        'accept-language': 'pt-BR,pt;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
-        'cache-control': 'no-cache',
-        'pragma': 'no-cache',
-        'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Microsoft Edge";v="120"',
-        'sec-ch-ua-mobile': '?0',
-        'sec-ch-ua-platform': '"Windows"',
-        'sec-fetch-dest': 'empty',
-        'sec-fetch-mode': 'cors',
-        'sec-fetch-site': 'same-site',
-        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0'
-    }
 
     for city in filters['cities']:
         tries = 1
         while tries <= 3:
             response = session.get(
-                f'https://seguro.catho.com.br/vagas/vagas-api/location/?locationName={city}', headers=request_headers)
+                f'https://seguro.catho.com.br/vagas/vagas-api/location/?locationName={city}', headers=MODULE_HEADERS)
 
             if response.status_code == 200:
                 value = next(filter(
@@ -226,7 +175,7 @@ def get_location_ids() -> dict:
         tries = 1
         while tries <= 3:
             response = session.get(
-                f'https://seguro.catho.com.br/vagas/vagas-api/location/?locationName={state}', headers=request_headers)
+                f'https://seguro.catho.com.br/vagas/vagas-api/location/?locationName={state}', headers=MODULE_HEADERS)
 
             if response.status_code == 200:
                 value = next(filter(
@@ -244,7 +193,7 @@ def get_location_ids() -> dict:
         tries = 1
         while tries <= 3:
             response = session.get(
-                f'https://seguro.catho.com.br/vagas/vagas-api/location/?locationName={country}', headers=request_headers)
+                f'https://seguro.catho.com.br/vagas/vagas-api/location/?locationName={country}', headers=MODULE_HEADERS)
 
             if response.status_code == 200:
                 value = next(filter(
