@@ -8,7 +8,7 @@ from django.db.models.query import Q
 from django.http import HttpResponse, JsonResponse
 from django.template import loader
 from django.views.decorators.csrf import csrf_exempt
-from numpy import arange, split
+from numpy import arange, sort, split
 from unidecode import unidecode
 
 from interfaces.vagas.models import Listing
@@ -49,6 +49,9 @@ def index(request):
     listing_query = request.GET.get('listing', [False, False, True, True, True])
     if isinstance(listing_query, str):
         listing_query = loads(listing_query)
+    sorting_query = request.GET.get('sort', ['id', 'descending'])
+    if isinstance(sorting_query, str):
+        sorting_query = loads(sorting_query)
     companies_query = request.GET.get('companies', [])
     if isinstance(companies_query, str):
         companies_query = loads(companies_query)
@@ -60,7 +63,7 @@ def index(request):
         platforms_query = loads(platforms_query)
 
     full_query = sub(r'/vagas/\?[page=0-9]*', '', request.get_full_path())
-    return HttpResponse(template.render(get_listings(search_query, page, listing_query, companies_query, cities_query, platforms_query) | {'tab_title': 'Vagas', 'full_query': full_query}, request))
+    return HttpResponse(template.render(get_listings(search_query, page, listing_query, sorting_query, companies_query, cities_query, platforms_query) | {'tab_title': 'Vagas', 'full_query': full_query}, request))
 
 
 @csrf_exempt
@@ -155,7 +158,7 @@ def remove_filter(request):
     return JsonResponse({'status': 200})
 
 
-def get_listings(queries_str, page, listing_properties, companies, cities, platforms) -> dict:
+def get_listings(queries_str, page, listing_properties, sorting_properties, companies, cities, platforms) -> dict:
     with open('data/filters.json', 'r', encoding='utf-8') as f:
         filters = load(f)
 
@@ -187,10 +190,11 @@ def get_listings(queries_str, page, listing_properties, companies, cities, platf
     query = listings_query & workplace_type_query
 
     try:
+        sorting_query = f'{"-" if sorting_properties[1] == "descending" else ""}{sorting_properties[0]}'
         if not queries:
-            queried_listings = Listing.objects.filter(query).order_by('-id').values()
+            queried_listings = Listing.objects.filter(query).order_by(sorting_query).values()
         else:
-            queried_listings = [listing for listing in Listing.objects.filter(query).order_by('-id').values() for term in queries if term in unidecode(listing['title']).lower()]
+            queried_listings = [listing for listing in Listing.objects.filter(query).order_by(sorting_query).values() for term in queries if term in unidecode(listing['title']).lower()]
 
         if companies:
             queried_listings = [listing for listing in queried_listings for company in companies if unidecode(company).lower() in unidecode(listing['company_name']).lower()]
@@ -203,9 +207,9 @@ def get_listings(queries_str, page, listing_properties, companies, cities, platf
         listings = list(list(pages)[page - 1])
 
         paginations = range(max(1, page - 4), min(page + 5, len(pages) + 1))
-        return {'listings': listings, 'page': page, 'pages': paginations, 'total_pages': len(pages), 'query': queries_str, 'listing_properties': listing_properties, 'companies': companies, 'cities': cities, 'platforms': platforms, 'filters': filters, 'listing_count': len(listings)}
+        return {'listings': listings, 'page': page, 'pages': paginations, 'total_pages': len(pages), 'query': queries_str, 'listing_properties': listing_properties, 'sorting_properties': sorting_properties, 'companies': companies, 'cities': cities, 'platforms': platforms, 'filters': filters, 'listing_count': len(listings)}
     except IndexError:
-        return {'listings': [], 'page': page, 'pages': [page], 'total_pages': 0, 'query': queries_str, 'listing_properties': listing_properties, 'companies': companies, 'cities': cities, 'platforms': platforms, 'filters': filters, 'listing_count': 0}
+        return {'listings': [], 'page': page, 'pages': [page], 'total_pages': 0, 'query': queries_str, 'listing_properties': listing_properties, 'sorting_properties': sorting_properties, 'companies': companies, 'cities': cities, 'platforms': platforms, 'filters': filters, 'listing_count': 0}
 
 
 @csrf_exempt

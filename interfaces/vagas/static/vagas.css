@@ -134,14 +134,20 @@
     margin-right: 3dvw;
 }
 
-#extract_button, #filter_menu_button, #extraction_settings_menu_button {
-    padding: 1dvh;
-
+#extract_button, #filter_menu_button, #extraction_settings_menu_button, #sorting_direction_button {
     border: none;
 
     background-color: transparent;
 
     cursor: pointer;
+
+    &:not(#sorting_direction_button) {
+        padding: 1dvh;
+    }
+    &#sorting_direction_button {
+        margin-top: 2px;
+        padding: 0 1dvw;
+    }
 }
 
 #extraction_progress_menu, #extraction_settings_menu {

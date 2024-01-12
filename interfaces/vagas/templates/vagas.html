@@ -146,6 +146,13 @@
                         <br>
                         <label for="query_remote_listings">Vagas remotas:</label>
                         <input id="query_remote_listings" type="checkbox" {{ listing_properties.4 | yesno:"checked," }}>
+                        <br>
+                        <label for="query_sorting_listings">Ordenação:</label>
+                        <select id="query_sorting_type">
+                            <option value="id" {% if sorting_properties.0 == 'id' %} selected {% endif %}>Data (Extração)</option>
+                            <option value="applies" {% if sorting_properties.0 == 'applies' %} selected {% endif %}>Nº Candidatos</option>
+                        </select>
+                        <button id="sorting_direction_button" onclick="alternateSortingDirection()"><img src="{% if sorting_properties.1 == 'descending' %} {% static 'sort-descending.svg' %} {% else %} {% static 'sort-ascending.svg' %} {% endif %}" width="16" height="16"></button>
                     </details>
                     <details class="filter_section" open>
                         <summary>Empresas:</summary>
