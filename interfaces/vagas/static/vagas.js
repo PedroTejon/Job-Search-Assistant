@@ -19,7 +19,7 @@ function removeMultiValueQuery(removedValue, type) {
 function removeMultiValueFilter(removedValue, type) {
   filters[type] = filters[type].filter((value) => value != removedValue);
 
-  fetch('http://127.0.0.1:8000/vagas/remove_filter?removed_filter=' + removedValue + '&filter_type=' + type,
+  fetch('http://localhost:8000/vagas/remove_filter?removed_filter=' + removedValue + '&filter_type=' + type,
       {method: 'POST'});
 
   container = document.getElementById(type + '_container');
@@ -35,14 +35,14 @@ function appliedToListing() {
   const dismissButton = document.getElementById('dismissed_button');
   const appliedButton = document.getElementById('applied_button');
   if (!dismissButton.classList.contains('button_disabled')) {
-    fetch('http://127.0.0.1:8000/vagas/applied_to_listing?id=' + currentListing.id, {method: 'POST'})
+    fetch('http://localhost:8000/vagas/applied_to_listing?id=' + currentListing.id, {method: 'POST'})
         .then((response) => response.json())
         .then((data) => {
           listings[currentIndex].applied_to = true;
           currentListing = listings[currentIndex];
           const listingStatus = document.querySelector(`#listing_${currentIndex} .listing_status`);
 
-          listingStatus.src = 'http://127.0.0.1:8000/static/check.svg';
+          listingStatus.src = 'http://localhost:8000/static/check.svg';
 
           dismissButton.classList.add('button_disabled');
           if (appliedButton.classList.contains('button_disabled')) {
@@ -58,7 +58,7 @@ function applyNewFilter(filterType) {
   // eslint-disable-next-line max-len
   if (confirm('Deseja adicionar isto aos filtros mesmo? As vagas com estas características já presentes no banco de dados serão marcadas como "Dispensada" automaticamente.')) {
     const type = highlightMode + '_' + filterType;
-    fetch(`http://127.0.0.1:8000/vagas/apply_new_filter?filtered=${lastText}&filter_type=${type}`, {method: 'POST'})
+    fetch(`http://localhost:8000/vagas/apply_new_filter?filtered=${lastText}&filter_type=${type}`, {method: 'POST'})
         .then((response) => response.json())
         .then((data) => {
           if (data.status != 409) {
@@ -73,14 +73,14 @@ function dismissListing() {
   const dismissButton = document.getElementById('dismissed_button');
   const appliedButton = document.getElementById('applied_button');
   if (!appliedButton.classList.contains('button_disabled')) {
-    fetch('http://127.0.0.1:8000/vagas/dismiss_listing?id=' + currentListing.id, {method: 'POST'})
+    fetch('http://localhost:8000/vagas/dismiss_listing?id=' + currentListing.id, {method: 'POST'})
         .then((response) => response.json())
         .then((data) => {
           listings[currentIndex].applied_to = false;
           currentListing = listings[currentIndex];
           const listingStatus = document.querySelector(`#listing_${currentIndex} .listing_status`);
 
-          listingStatus.src ='http://127.0.0.1:8000/static/x.svg';
+          listingStatus.src ='http://localhost:8000/static/x.svg';
 
           appliedButton.classList.add('button_disabled');
           if (dismissButton.classList.contains('button_disabled')) {
@@ -96,14 +96,14 @@ function nullifyListing() {
   const dismissButton = document.getElementById('dismissed_button');
   const appliedButton = document.getElementById('applied_button');
 
-  fetch('http://127.0.0.1:8000/vagas/nullify_listing?id=' + currentListing.id, {method: 'POST'})
+  fetch('http://localhost:8000/vagas/nullify_listing?id=' + currentListing.id, {method: 'POST'})
       .then((response) => response.json())
       .then((data) => {
         listings[currentIndex].applied_to = null;
         currentListing = listings[currentIndex];
         const listingStatus = document.querySelector(`#listing_${currentIndex} .listing_status`);
 
-        listingStatus.src = 'http://127.0.0.1:8000/static/transparent.svg';
+        listingStatus.src = 'http://localhost:8000/static/transparent.svg';
 
         if (appliedButton.classList.contains('button_disabled')) {
           appliedButton.classList.remove('button_disabled');
@@ -115,7 +115,7 @@ function nullifyListing() {
 }
 
 function extractListings() {
-  fetch('http://127.0.0.1:8000/vagas/start_listing_extraction', {method: 'POST'})
+  fetch('http://localhost:8000/vagas/start_listing_extraction', {method: 'POST'})
       .then((response) => response.json())
       .then((data) => {
         updateFunc = window.setInterval(getListingExtractionStatus, 1000);
@@ -123,7 +123,7 @@ function extractListings() {
 }
 
 function getListingExtractionStatus() {
-  fetch('http://127.0.0.1:8000/vagas/get_listing_extraction_status')
+  fetch('http://localhost:8000/vagas/get_listing_extraction_status')
       .then((response) => response.json())
       .then((data) => {
         results = data['results'];
@@ -217,10 +217,10 @@ function showFilterMenu() {
 
 function alternateSortingDirection() {
   const sortingButton = document.querySelector('#sorting_direction_button img');
-  if (sortingButton.src == 'http://127.0.0.1:8000/static/sort-descending.svg') {
-    sortingButton.src = 'http://127.0.0.1:8000/static/sort-ascending.svg';
+  if (sortingButton.src == 'http://localhost:8000/static/sort-descending.svg') {
+    sortingButton.src = 'http://localhost:8000/static/sort-ascending.svg';
   } else {
-    sortingButton.src = 'http://127.0.0.1:8000/static/sort-descending.svg';
+    sortingButton.src = 'http://localhost:8000/static/sort-descending.svg';
   }
 }
 
@@ -233,10 +233,10 @@ function search() {
   const getRemote = document.getElementById('query_remote_listings').checked;
   const getSortType = document.getElementById('query_sorting_type').value;
   // eslint-disable-next-line max-len
-  const getSortDirection = document.querySelector('#sorting_direction_button img').src == 'http://127.0.0.1:8000/static/sort-descending.svg' ? 'descending' : 'ascending';
+  const getSortDirection = document.querySelector('#sorting_direction_button img').src == 'http://localhost:8000/static/sort-descending.svg' ? 'descending' : 'ascending';
 
   // eslint-disable-next-line max-len
-  let url = `http://127.0.0.1:8000/vagas/?page=1&listing=[${getApplied},${getDismissed},${getNew},${getLocal},${getRemote}]&sort=["${getSortType}","${getSortDirection}"]`;
+  let url = `http://localhost:8000/vagas/?page=1&listing=[${getApplied},${getDismissed},${getNew},${getLocal},${getRemote}]&sort=["${getSortType}","${getSortDirection}"]`;
   if (searchValue !== '') {
     url += '&query=' + searchValue;
   }
@@ -302,9 +302,9 @@ function show(listingIndex) {
   }
 
   if (currentListing.workplace_type == 'Remoto') {
-    listingWorkplaceTypeIcon.src = 'http://127.0.0.1:8000/static/laptop.svg';
+    listingWorkplaceTypeIcon.src = 'http://localhost:8000/static/laptop.svg';
   } else {
-    listingWorkplaceTypeIcon.src = 'http://127.0.0.1:8000/static/briefcase.svg';
+    listingWorkplaceTypeIcon.src = 'http://localhost:8000/static/briefcase.svg';
   }
 
   const listingDescriptionDetails = document.getElementById('listing_description_det');
@@ -316,7 +316,7 @@ function show(listingIndex) {
   const platformName = document.getElementById('platform_name');
   const platformId = document.getElementById('platform_id');
   if (currentListing.platform) {
-    platformLogo.src = `http://127.0.0.1:8000/static/${currentListing.platform}.svg`;
+    platformLogo.src = `http://localhost:8000/static/${currentListing.platform}.svg`;
     platformName.innerText = currentListing.platform;
     platformId.innerText = '#' + currentListing.platform_id;
   }
@@ -330,21 +330,21 @@ function show(listingIndex) {
   const appliedButton = document.getElementById('applied_button');
   const listingStatus = document.querySelector(`#listing_${currentIndex} .listing_status`);
   if (currentListing.applied_to) {
-    listingStatus.src = 'http://127.0.0.1:8000/static/check.svg';
+    listingStatus.src = 'http://localhost:8000/static/check.svg';
 
     dismissButton.classList.add('button_disabled');
     if (appliedButton.classList.contains('button_disabled')) {
       appliedButton.classList.remove('button_disabled');
     }
   } else if (currentListing.applied_to === false) {
-    listingStatus.src = 'http://127.0.0.1:8000/static/x.svg';
+    listingStatus.src = 'http://localhost:8000/static/x.svg';
 
     appliedButton.classList.add('button_disabled');
     if (dismissButton.classList.contains('button_disabled')) {
       dismissButton.classList.remove('button_disabled');
     }
   } else {
-    listingStatus.src = 'http://127.0.0.1:8000/static/transparent.svg';
+    listingStatus.src = 'http://localhost:8000/static/transparent.svg';
 
     if (appliedButton.classList.contains('button_disabled')) {
       appliedButton.classList.remove('button_disabled');
@@ -419,11 +419,11 @@ if (listings.length > 0) {
     const listingStatus = document.querySelector(`#listing_${i} .listing_status`);
     const currentListing = listings[i];
     if (currentListing.applied_to) {
-      listingStatus.src = 'http://127.0.0.1:8000/static/check.svg';
+      listingStatus.src = 'http://localhost:8000/static/check.svg';
     } else if (currentListing.applied_to === false) {
-      listingStatus.src = 'http://127.0.0.1:8000/static/x.svg';
+      listingStatus.src = 'http://localhost:8000/static/x.svg';
     } else {
-      listingStatus.src = 'http://127.0.0.1:8000/static/transparent.svg';
+      listingStatus.src = 'http://localhost:8000/static/transparent.svg';
     }
   }
 }
@@ -461,7 +461,7 @@ function addMultiValueFilter(e) {
       return;
     }
 
-    fetch('http://127.0.0.1:8000/vagas/apply_new_filter?filtered=' + value + '&filter_type=' + type, {method: 'POST'})
+    fetch('http://localhost:8000/vagas/apply_new_filter?filtered=' + value + '&filter_type=' + type, {method: 'POST'})
         .then((response) => response.json())
         .then((data) => {
           if (data.status != 409) {
