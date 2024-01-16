@@ -38,7 +38,7 @@ Job Search Assistant currently supports these sources:
 
 **Receive your freshest job listings**: After accessing the web application, click on the plus sign in the top right corner of the screen to get your latest batch of job listings! If this is your first time running this feature, remember to add filters on the settings menu before running it to receive listings more attractive to you!
 
-> ⚠️ **Warning** It's recommended to run this only once every few days, since it's quite heavy request-wise and it's not like you really thousands of job listings at the same time
+> ⚠️ **Warning** It's recommended to run this only once every few days, since it's quite heavy request-wise and it's not like you really thousands of job listings at the same time. Also, avoid using this right after or before going on a "connection spree" in LinkedIn, that can flag you as a bot.
 
 <img src="./docs/start_extraction.gif" />
 

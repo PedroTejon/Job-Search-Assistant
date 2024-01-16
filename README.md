@@ -38,7 +38,7 @@ Job Search Assistant atualmente tem integração com estas fontes:
 
 **Obtenha as vagas mais fresquinhas**: Após acessar a aplicação web, clique no símbolo de mais no canto superior direito da tela para receber sua encomenda de vagas recentes! Se for a primeira vez que você está executando essa função, lembre-se de adicionar filtros no menu de configurações antes de executá-la para obter vagas mais atraentes para você!
 
-> ⚠️ **Aviso** É recomendado executar isso uma vez a cada alguns dias, já que faz muitas requisições e não é como se você precisasse ter milhares de vagas ao mesmo tempo
+> ⚠️ **Aviso** É recomendado executar isso uma vez a cada alguns dias, já que faz muitas requisições e não é como se você precisasse ter milhares de vagas ao mesmo tempo. Mais uma coisa, evite usar isto antes ou depois de seguir um monte de gente no LinkedIn, isso pode te fazer parecer um bot para o site.
 
 <img src="./docs/start_extraction.gif" />
 
