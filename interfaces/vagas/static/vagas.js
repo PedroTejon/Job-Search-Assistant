@@ -315,10 +315,18 @@ function show(listingIndex) {
   const platformLogo = document.getElementById('platform_logo');
   const platformName = document.getElementById('platform_name');
   const platformId = document.getElementById('platform_id');
+  const plaformsBaseListingUrl = {
+    'LinkedIn': 'https://www.linkedin.com/jobs/view/',
+    'Glassdoor': 'https://www.glassdoor.com.br/Vaga/jobListing.htm?jobListingId=',
+    'Catho': 'https://www.catho.com.br/vagas/sugestao/',
+    'Vagas.com': 'https://www.vagas.com.br/vagas/',
+  };
   if (currentListing.platform) {
     platformLogo.src = `http://localhost:8000/static/${currentListing.platform}.svg`;
     platformName.innerText = currentListing.platform;
-    platformId.innerText = '#' + currentListing.platform_id;
+    platformId.href = plaformsBaseListingUrl[currentListing.platform] + currentListing.platform_id;
+    // eslint-disable-next-line max-len
+    platformId.innerHTML = '#' + currentListing.platform_id + ' <img src="http://localhost:8000/static/link.svg" width="12" height="12"></img>';
   }
 
   const applyButton = document.getElementById('apply_button');
