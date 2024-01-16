@@ -388,7 +388,7 @@ window.addEventListener('mousedown', function(e) {
       const menu = document.getElementById('highlight_tools');
       const highlight = highlighter.get_highlighted();
       const highlightedText = highlight.toString().trim();
-      const filterWordButton = document.getElementById('filterWordButton');
+      const filterWordButton = document.getElementById('filter_word_button');
       if (highlightedText.length > 0 && highlightedText !== lastText && highlight.type == 'Range') {
         if (highlightedText.indexOf(' ') >= 0) {
           filterWordButton.disabled = true;
