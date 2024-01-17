@@ -62,7 +62,7 @@ def index(request):
     if isinstance(platforms_query, str):
         platforms_query = loads(platforms_query)
 
-    full_query = sub(r'/vagas/\?[page=0-9]*', '', request.get_full_path())
+    full_query = sub(r'/vagas/\?[page=0-9]*', '', request.get_full_path()).replace('/vagas/', '')
     return HttpResponse(template.render(get_listings(search_query, page, listing_query, sorting_query, companies_query, cities_query, platforms_query) | {'tab_title': 'Vagas', 'full_query': full_query}, request))
 
 
@@ -206,7 +206,7 @@ def get_listings(queries_str, page, listing_properties, sorting_properties, comp
         pages = split(queried_listings, arange(50, len(queried_listings), 50))
         listings = list(list(pages)[page - 1])
 
-        paginations = range(max(1, page - 4), min(page + 5, len(pages) + 1))
+        paginations = range(max(1, page - 3), min(page + 4, len(pages) + 1))
         return {'listings': listings, 'page': page, 'pages': paginations, 'total_pages': len(pages), 'query': queries_str, 'listing_properties': listing_properties, 'sorting_properties': sorting_properties, 'companies': companies, 'cities': cities, 'platforms': platforms, 'filters': filters, 'listing_count': len(listings)}
     except IndexError:
         return {'listings': [], 'page': page, 'pages': [page], 'total_pages': 0, 'query': queries_str, 'listing_properties': listing_properties, 'sorting_properties': sorting_properties, 'companies': companies, 'cities': cities, 'platforms': platforms, 'filters': filters, 'listing_count': 0}
