@@ -206,15 +206,6 @@ function showFloatingMenu(id) {
   }
 }
 
-function showFilterMenu() {
-  const filterMenu = document.getElementById('querying_filter_menu');
-  if (filterMenu.style.display != 'flex') {
-    filterMenu.style.display = 'flex';
-  } else {
-    filterMenu.style.display = 'none';
-  }
-}
-
 function alternateSortingDirection() {
   const sortingButton = document.querySelector('#sorting_direction_button img');
   if (sortingButton.src == 'http://localhost:8000/static/sort-descending.svg') {

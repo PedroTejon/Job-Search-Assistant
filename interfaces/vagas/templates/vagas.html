@@ -9,7 +9,7 @@
             </div>
 
             <div style="grid-column: 2;">
-                <button id="filter_menu_button" onclick="showFilterMenu()"><img src="{% static 'filter.svg' %}" width="16" height="16"></button>
+                <button id="filter_menu_button" type="button" data-bs-toggle="collapse" data-bs-target="#querying_filter_menu" aria-expanded="false" aria-controls="querying_filter_menu"><img src="{% static 'filter.svg' %}" width="16" height="16"></button>
             </div>
 
             <div id="extraction_section">
@@ -54,70 +54,128 @@
                     </div>
                     <img src="{% static 'vagas.com.svg' %}" width="16" height="16" style="grid-column: 3; font-size: 24px; align-self: center"></i>
                 </div>
-                <div id="extraction_settings_menu">
-                    <details class="filter_section">
-                        <summary>Palavras proíbidas no título:</summary>
-                        <input id="title_exclude_words_input" type="text" onkeydown="addMultiValueFilter(event)" placeholder="Palavra" style="width: 85%">
-                        <div id="title_exclude_words_container" class="multivalue_container">
-                            {% for word in filters.title_exclude_words %}
-                                <span class="query_multivalue_option" onclick="removeMultiValueFilter('{{ word }}', 'title_exclude_words')">{{ word }}</span>
-                            {% endfor %}
+                <div id="extraction_settings_menu" class="accordion collapse">
+                    <span style="font-size: 18px; font-weight: 700;">Filtros de extração:</span>
+                    <div class="accordion-item">
+                        <div class="accordion-header collapsed">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse_title_exclude_words_filter" aria-expanded="true" aria-controls="collapse_title_exclude_words_filter">
+                                Palavras proíbidas no título:
+                            </button>
                         </div>
-                    </details>
-                    <details class="filter_section">
-                        <summary>Termos proíbidos no título:</summary>
-                        <input id="title_exclude_terms_input" type="text" onkeydown="addMultiValueFilter(event)" placeholder="Termo" style="width: 85%">
-                        <div id="title_exclude_terms_container" class="multivalue_container">
-                            {% for term in filters.title_exclude_terms %}
-                                <span class="query_multivalue_option" onclick="removeMultiValueFilter('{{ term }}', 'title_exclude_terms')">{{ term }}</span>
-                            {% endfor %}
+                        <div id="collapse_title_exclude_words_filter" class="accordion-collapse collapse">
+                            <div class="accordion-body">
+                                <input id="title_exclude_words_input" type="text" onkeydown="addMultiValueFilter(event)" placeholder="Palavra">
+                                <div id="title_exclude_words_container" class="multivalue_container">
+                                    {% for word in filters.title_exclude_words %}
+                                        <span class="query_multivalue_option" onclick="removeMultiValueFilter('{{ word }}', 'title_exclude_words')">{{ word }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
                         </div>
-                    </details>
-                    <details class="filter_section">
-                        <summary>Palavras proíbidas no nome de empresas:</summary>
-                        <input id="company_exclude_words_input" type="text" onkeydown="addMultiValueFilter(event)" placeholder="Palavra" style="width: 85%">
-                        <div id="company_exclude_words_container" class="multivalue_container">
-                            {% for word in filters.company_exclude_words %}
-                                <span class="query_multivalue_option" onclick="removeMultiValueFilter('{{ word }}', 'company_exclude_words')">{{ word }}</span>
-                            {% endfor %}
+                    </div>
+                    <div class="accordion-item">
+                        <div class="accordion-header collapsed">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse_title_exclude_terms_filter" aria-expanded="true" aria-controls="collapse_title_exclude_terms_filter">
+                                Termos proíbidos no título:
+                            </button>
                         </div>
-                    </details>
-                    <details class="filter_section">
-                        <summary>Termos proíbidos no nome de empresas:</summary>
-                        <input id="company_exclude_terms_input" type="text" onkeydown="addMultiValueFilter(event)" placeholder="Termo" style="width: 85%">
-                        <div id="company_exclude_terms_container" class="multivalue_container">
-                            {% for term in filters.company_exclude_terms %}
-                                <span class="query_multivalue_option" onclick="removeMultiValueFilter('{{ term }}', 'company_exclude_terms')">{{ term }}</span>
-                            {% endfor %}
+                        <div id="collapse_title_exclude_terms_filter" class="accordion-collapse collapse">
+                            <div class="accordion-body">
+                                <input id="title_exclude_terms_input" type="text" onkeydown="addMultiValueFilter(event)" placeholder="Termo">
+                                <div id="title_exclude_terms_container" class="multivalue_container">
+                                    {% for term in filters.title_exclude_terms %}
+                                        <span class="query_multivalue_option" onclick="removeMultiValueFilter('{{ term }}', 'title_exclude_terms')">{{ term }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
                         </div>
-                    </details>
-                    <details class="filter_section">
-                        <summary>Cidades permitidas:</summary>
-                        <input id="cities_input" type="text" onkeydown="addMultiValueFilter(event)" placeholder="Nome" style="width: 85%">
-                        <div id="cities_container" class="multivalue_container">
-                            {% for city in filters.cities %}
-                                <span class="query_multivalue_option" onclick="removeMultiValueFilter('{{ city }}', 'cities')">{{ city }}</span>
-                            {% endfor %}
+                    </div>
+                    <div class="accordion-item">
+                        <div class="accordion-header collapsed">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse_company_exclude_words_filter" aria-expanded="true" aria-controls="collapse_company_exclude_words_filter">
+                                Palavras proíbidas no nome de empresas:
+                            </button>
                         </div>
-                    </details>
-                    <details class="filter_section">
-                        <summary>Estados permitidos:</summary>
-                        <input id="states_input" type="text" onkeydown="addMultiValueFilter(event)" placeholder="Nome" style="width: 85%">
-                        <div id="states_container" class="multivalue_container">
-                            {% for state in filters.states %}
-                                <span class="query_multivalue_option" onclick="removeMultiValueFilter('{{ state }}', 'states')">{{ state }}</span>
-                            {% endfor %}
+                        <div id="collapse_company_exclude_words_filter" class="accordion-collapse collapse">
+                            <div class="accordion-body">
+                                <input id="company_exclude_words_input" type="text" onkeydown="addMultiValueFilter(event)" placeholder="Palavra">
+                                <div id="company_exclude_words_container" class="multivalue_container">
+                                    {% for word in filters.company_exclude_words %}
+                                        <span class="query_multivalue_option" onclick="removeMultiValueFilter('{{ word }}', 'company_exclude_words')">{{ word }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
                         </div>
-                    </details>
-                    <details class="filter_section">
-                        <summary>Países permitidos:</summary>
-                        <input id="countries_input" type="text" onkeydown="addMultiValueFilter(event)" placeholder="Nome" style="width: 85%">
-                        <div id="countries_container" class="multivalue_container">
-                            {% for country in filters.countries %}
-                                <span class="query_multivalue_option" onclick="removeMultiValueFilter('{{ country }}', 'countries')">{{ country }}</span>
-                            {% endfor %}
+                    </div>
+                    <div class="accordion-item">
+                        <div class="accordion-header collapsed">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse_company_exclude_terms_filter" aria-expanded="true" aria-controls="collapse_company_exclude_terms_filter">
+                                Termos proíbidos no nome de empresas:
+                            </button>
                         </div>
-                    </details>
+                        
+                        <div id="collapse_company_exclude_terms_filter" class="accordion-collapse collapse">
+                            <div class="accordion-body">
+                                <input id="company_exclude_terms_input" type="text" onkeydown="addMultiValueFilter(event)" placeholder="Termo">
+                                <div id="company_exclude_terms_container" class="multivalue_container">
+                                    {% for term in filters.company_exclude_terms %}
+                                        <span class="query_multivalue_option" onclick="removeMultiValueFilter('{{ term }}', 'company_exclude_terms')">{{ term }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <div class="accordion-header collapsed">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse_cities_filter" aria-expanded="true" aria-controls="collapse_cities_filter">
+                                Cidades permitidas:
+                            </button>
+                        </div>
+                        <div id="collapse_cities_filter" class="accordion-collapse collapse">
+                            <div class="accordion-body">
+                                <input id="cities_input" type="text" onkeydown="addMultiValueFilter(event)" placeholder="Nome">
+                                <div id="cities_container" class="multivalue_container">
+                                    {% for city in filters.cities %}
+                                        <span class="query_multivalue_option" onclick="removeMultiValueFilter('{{ city }}', 'cities')">{{ city }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <div class="accordion-header collapsed">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse_states_filter" aria-expanded="true" aria-controls="collapse_states_filter">
+                                Estados permitidos:
+                            </button>
+                        </div>
+                        <div id="collapse_states_filter" class="accordion-collapse collapse">
+                            <div class="accordion-body">
+                                <input id="states_input" type="text" onkeydown="addMultiValueFilter(event)" placeholder="Nome">
+                                <div id="states_container" class="multivalue_container">
+                                    {% for state in filters.states %}
+                                        <span class="query_multivalue_option" onclick="removeMultiValueFilter('{{ state }}', 'states')">{{ state }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <div class="accordion-header collapsed">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse_countries_filter" aria-expanded="true" aria-controls="collapse_countries_filter">
+                                Países permitidos:
+                            </button>
+                        </div>
+                        <div id="collapse_countries_filter" class="accordion-collapse collapse">
+                            <div class="accordion-body">
+                                <input id="countries_input" type="text" onkeydown="addMultiValueFilter(event)" placeholder="Nome">
+                                <div id="countries_container" class="multivalue_container">
+                                    {% for country in filters.countries %}
+                                        <span class="query_multivalue_option" onclick="removeMultiValueFilter('{{ country }}', 'countries')">{{ country }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -127,66 +185,97 @@
                 <button id="filter_term_button" title="Proibir termo/sequência de caracteres" onclick="applyNewFilter('exclude_terms')"><img src="{% static 'highlighter.svg' %}" width="16" height="16"></button>
             </div>
             <div id="listings_sidebar" {% if listing_count == 0 %}style="display:flex;flex-direction:column;justify-content:space-between"{% endif %}>
-                
-                <div id="querying_filter_menu">
+                <div id="querying_filter_menu" class="accordion collapse">
                     <span>Filtrar por:</span>
-                    <details class="filter_section" open>
-                        <summary>Vaga</summary>
-                        <label for="query_new">Vagas não avaliadas:</label>
-                        <input id="query_new" type="checkbox" {{ listing_properties.2 | yesno:"checked," }}>
-                        <br>
-                        <label for="query_applied">Vagas inscritas:</label>
-                        <input id="query_applied" type="checkbox" {{ listing_properties.0 | yesno:"checked," }}>
-                        <br>
-                        <label for="query_dismissed">Vagas dispensadas:</label>
-                        <input id="query_dismissed" type="checkbox" {{ listing_properties.1 | yesno:"checked," }}>
-                        <br>
-                        <label for="query_local_listings">Vagas presenciais/híbridas:</label>
-                        <input id="query_local_listings" type="checkbox" {{ listing_properties.3 | yesno:"checked," }}>
-                        <br>
-                        <label for="query_remote_listings">Vagas remotas:</label>
-                        <input id="query_remote_listings" type="checkbox" {{ listing_properties.4 | yesno:"checked," }}>
-                        <br>
-                        <label for="query_sorting_listings">Ordenação:</label>
-                        <select id="query_sorting_type">
-                            <option value="id" {% if sorting_properties.0 == 'id' %} selected {% endif %}>Data (Extração)</option>
-                            <option value="applies" {% if sorting_properties.0 == 'applies' %} selected {% endif %}>Nº Candidatos</option>
-                        </select>
-                        <button id="sorting_direction_button" onclick="alternateSortingDirection()"><img src="{% if sorting_properties.1 == 'descending' %} {% static 'sort-descending.svg' %} {% else %} {% static 'sort-ascending.svg' %} {% endif %}" width="16" height="16"></button>
-                    </details>
-                    <details class="filter_section" open>
-                        <summary>Empresas:</summary>
-                        <input id="query_company_input" type="text" onkeydown="addMultiValueQuery(event)" placeholder="Termo presente no nome" style="width: 85%">
-                        <div id="query_company_container" class="multivalue_container">
-                            {% for company in companies %}
-                                <span class="query_multivalue_option" onclick="removeMultiValueQuery('{{ company }}', 'query_company')">{{ company }}</span>
-                            {% endfor %}
+                    <div class="filter_section accordion-item">
+                        <div class="accordion-header collapsed">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse_listing_filter" aria-expanded="true" aria-controls="collapse_listing_filter">
+                                Vaga
+                            </button>
                         </div>
-                    </details>
-                    <details class="filter_section" open>
-                        <summary>Cidades:</summary>
-                        <input id="query_city_input" onkeydown="addMultiValueQuery(event)" type="text" placeholder="Nome da cidade" style="width: 85%">
-                        <div id="query_city_container"  class="multivalue_container">
-                            {% for city in cities %}
-                                <span class="query_multivalue_option" onclick="removeMultiValueQuery('{{ city }}', 'query_city')">{{ city }}</span>
-                            {% endfor %}
+                        <div id="collapse_listing_filter" class="accordion-collapse collapse">
+                            <div class="accordion-body" style="display: grid; grid-template-rows: auto auto auto;">
+                                <label for="query_new" style="grid-column: 1/ span 2;">Vagas não avaliadas:</label>
+                                <input id="query_new" type="checkbox" {{ listing_properties.2 | yesno:"checked," }} style="grid-column: 3;">
+                                
+                                <label for="query_applied" style="grid-column: 1/ span 2;">Vagas inscritas:</label>
+                                <input id="query_applied" type="checkbox" {{ listing_properties.0 | yesno:"checked," }} style="grid-column: 3;">
+                                
+                                <label for="query_dismissed" style="grid-column: 1/ span 2;">Vagas dispensadas:</label>
+                                <input id="query_dismissed" type="checkbox" {{ listing_properties.1 | yesno:"checked," }} style="grid-column: 3;">
+                                
+                                <label for="query_local_listings" style="grid-column: 1/ span 2;">Vagas locais:</label>
+                                <input id="query_local_listings" type="checkbox" {{ listing_properties.3 | yesno:"checked," }} style="grid-column: 3;">
+                                
+                                <label for="query_remote_listings" style="grid-column: 1/ span 2;">Vagas remotas:</label>
+                                <input id="query_remote_listings" type="checkbox" {{ listing_properties.4 | yesno:"checked," }} style="grid-column: 3;">
+                                
+                                <label for="query_sorting_listings" style="grid-column: 1;">Ordenação:</label>
+                                <select id="query_sorting_type" style="grid-column: 2;">
+                                    <option value="id" {% if sorting_properties.0 == 'id' %} selected {% endif %}>Data (Extração)</option>
+                                    <option value="applies" {% if sorting_properties.0 == 'applies' %} selected {% endif %}>Nº Candidatos</option>
+                                </select>
+                                <button id="sorting_direction_button" onclick="alternateSortingDirection()"><img src="{% if sorting_properties.1 == 'descending' %} {% static 'sort-descending.svg' %} {% else %} {% static 'sort-ascending.svg' %} {% endif %}" width="16" height="16" style="grid-column: 3;"></button>
+                            </div>
                         </div>
-                    </details>
-                    <details class="filter_section" open>
-                        <summary>Plataformas:</summary>
-                        <select id="query_platform_input" style="width: 85%">
-                            <option value="-">-</option>
-                            <option value="LinkedIn">LinkedIn</option>
-                            <option value="Glassdoor">Glassdoor</option>
-                            <option value="Catho">Catho</option>
-                            <option value="Vagas.com">Vagas.com</option>
-                        </select>
-                        <div id="query_platform_container" class="multivalue_container">
-                            {% for platform in platforms %}
-                                <span class="query_multivalue_option" onclick="removeMultiValueQuery('{{ platform }}', 'query_platform')">{{ platform }}</span>
-                            {% endfor %}
+                    </div>
+                    <div class="filter_section accordion-item">
+                        <div class="accordion-header collapsed">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse_company_filter" aria-expanded="true" aria-controls="collapse_company_filter">
+                                Empresas:
+                            </button>
                         </div>
-                    </details>
+                        <div id="collapse_company_filter" class="accordion-collapse collapse">
+                            <div class="accordion-body">
+                                <input id="query_company_input" type="text" onkeydown="addMultiValueQuery(event)" placeholder="Termo presente no nome">
+                                <div id="query_company_container" class="multivalue_container">
+                                    {% for company in companies %}
+                                        <span class="query_multivalue_option" onclick="removeMultiValueQuery('{{ company }}', 'query_company')">{{ company }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="filter_section accordion-item">
+                        <div class="accordion-header collapsed">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse_location_filter" aria-expanded="true" aria-controls="collapse_location_filter">
+                                Cidades:
+                            </button>
+                        </div>
+                        <div id="collapse_location_filter" class="accordion-collapse collapse">
+                            <div class="accordion-body">
+                                <input id="query_city_input" onkeydown="addMultiValueQuery(event)" type="text" placeholder="Nome da cidade">
+                                <div id="query_city_container"  class="multivalue_container">
+                                    {% for city in cities %}
+                                        <span class="query_multivalue_option" onclick="removeMultiValueQuery('{{ city }}', 'query_city')">{{ city }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="filter_section accordion-item">
+                        <div class="accordion-header collapsed">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse_platform_filter" aria-expanded="true" aria-controls="collapse_platform_filter">
+                                Plataformas:
+                            </button>
+                        </div>
+                        <div id="collapse_platform_filter" class="accordion-collapse collapse">
+                            <div class="accordion-body">
+                                <select id="query_platform_input">
+                                    <option value="-">-</option>
+                                    <option value="LinkedIn">LinkedIn</option>
+                                    <option value="Glassdoor">Glassdoor</option>
+                                    <option value="Catho">Catho</option>
+                                    <option value="Vagas.com">Vagas.com</option>
+                                </select>
+                                <div id="query_platform_container" class="multivalue_container">
+                                    {% for platform in platforms %}
+                                        <span class="query_multivalue_option" onclick="removeMultiValueQuery('{{ platform }}', 'query_platform')">{{ platform }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 {% for listing in listings %}
                     <div class="listing" id="listing_{{forloop.counter0}}" onclick="show({{forloop.counter0}})">
@@ -223,29 +312,31 @@
                     </div>
                 {% endfor %}
                 {% if listing_count == 0 %}<br>{% endif %}
-                <div id="listings_pagination">
+                <nav id="listings_pagination">
+                    <ul class="pagination">
                     {% if page != 1 and 1 not in pages %}
-                        <a href="http://localhost:8000/vagas/?page=1{{full_query}}"> 1 </a> ...
+                        <li class="page-item"><a href="http://localhost:8000/vagas/?page=1{{full_query}}" class="page-link"> 1</a></li>
                     {% endif %}
 
                     {% for num_page in pages %}
                         {% if num_page == page %}
-                            <a href="http://localhost:8000/vagas/?page={{num_page}}{{full_query}}"><b>{{num_page}}</b></a> 
+                            <li class="page-item"><a href="http://localhost:8000/vagas/?page={{num_page}}{{full_query}}" class="page-link"><b>{{num_page}}</b></a></li>
                         {% else %}
-                            <a href="http://localhost:8000/vagas/?page={{num_page}}{{full_query}}">{{num_page}}</a> 
+                            <li class="page-item"><a href="http://localhost:8000/vagas/?page={{num_page}}{{full_query}}" class="page-link">{{num_page}}</a></li>
                         {% endif %}
                     {% endfor %}
 
                     {% if page != total_pages and total_pages not in pages and page < total_pages %}
-                        ... <a href="http://localhost:8000/vagas/?page={{total_pages}}{{full_query}}"> {{total_pages}}</a>
+                        <li class="page-item"><a href="http://localhost:8000/vagas/?page={{total_pages}}{{full_query}}" class="page-link">{{total_pages}}</a></li>
                     {% endif %}
-                </div>
+                    </ul>
+                </nav>
             </div>
             <div id="listing_details" style="display: none"> 
                 <div style="width:auto; height: auto; display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
                     <div style="width: auto; height: auto;">
                         <p id="listing_title_det"></p>
-                        <a id="platform_id" title="Link da Vaga" target="_blank"></a>
+                        <a id="platform_id" class="badge" title="Link da Vaga" target="_blank"></a>
                         <div style="display: flex; flex-direction: row; column-gap: 1vw;">
                             <div style="display: flex; flex-direction: row; column-gap: 0.5vw;">
                                 <img src="{% static 'building.svg' %}" width="16" height="16" title="Empresa que publicou a vaga">

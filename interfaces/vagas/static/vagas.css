@@ -7,7 +7,7 @@
 }
 
 #listings_filters {
-    width: 97.5dvw;
+    width: 100dvw;
 
     display: grid; 
     grid-template-columns: 21dvw auto auto;
@@ -54,18 +54,16 @@
 }
 
 #querying_filter_menu {
-    display: none;
     flex-direction: column;
 
     position: sticky;
     top: 0%;
     padding: 1vh;
+    z-index: 11;
 
     background-color: white;
 
     overflow: hidden;
-
-    border-bottom: 1px solid black;
 
     & > span {
         font-weight: 700;
@@ -74,27 +72,19 @@
 }
 
 .filter_section {
-    padding: 2.5%;
-
-    & > summary {
-        margin-bottom: 1vh;
-
-        font-weight: 600;
-
-        cursor: pointer;
-    }
-
-    & input[type=text], select, & label {
-        margin-left: 5%;
-    }
-
     & input[type=checkbox] {
+        height: 2dvw;
+        width: 2dvh;
+
+        display: inline-block;
+
         accent-color: #6767c2;
     }
+}
 
-    &:not(:last-of-type) {
-        border-bottom: 1px solid black;
-    }
+.accordion-button:focus {
+    box-shadow: none !important;
+    border-color: transparent !important;
 }
 
 .multivalue_container {
@@ -150,32 +140,43 @@
     }
 }
 
+.accordion-body > input[type=text], .accordion-body > select {
+    width: 100%;
+}
+
 #extraction_progress_menu, #extraction_settings_menu {
     height: auto;
-    width: 15dvw;
+    z-index: 11;
     
     visibility: hidden;
     &#extraction_progress_menu {
+        width: 15dvw;
+        right: 5.5dvw;
+
         display: grid;
         grid-template-columns: auto auto auto;
         align-content: center;
+
+        gap: 1.2dvh;
     }
     &#extraction_settings_menu {
+        width: 25dvw;
+
+        right: 3.25dvw;
+
         display: flex;
         flex-direction: column;
         align-content: center;
     }
-    gap: 1.2dvh;
 
     position: absolute;
-    right: 3.25dvw;
-    top: 17.2dvh;
-    z-index: 10;
+    top: 18dvh;
     padding: 1dvw;
     
     background-color: white;
     
     border: 1px black solid;
+    border-radius: calc(0.375em - 1px);
 }
 
 #progress_bar_overall {
@@ -297,6 +298,10 @@
 
         justify-content: flex-end;
     }
+
+    & p {
+        margin: 0;
+    }
 }
 
 .current_listing {
@@ -338,7 +343,7 @@
 }
 
 #listing_details {
-    width: 74dvw;
+    width: 75dvw;
 
     display: flex;
     flex-direction: column;
@@ -356,10 +361,16 @@
 }
 
 #platform_id {
+    margin-bottom: 1dvh;
+
+    color: #e0e0f8;
     font-size: 14px;
     text-decoration: none;
+    &:hover{
+        text-decoration: underline;
+    }
 
-    color: #00000086;
+    background-color: #6767c2;
 }
 
 #apply_section {
@@ -374,7 +385,7 @@
     justify-content: center;
 
     &:not(.button_disabled) {
-        background-color: #6767c2; 
+        background-color: #6767c2;
     }
     color: white; 
 
@@ -395,4 +406,8 @@
 
 .button_disabled {
     background-color: rgb(55, 47, 143);
+}
+
+.page-link {
+    color: #6767c2 !important;
 }
