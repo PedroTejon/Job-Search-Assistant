@@ -1,4 +1,3 @@
-
 {% load static %}
 
 <!DOCTYPE html>
@@ -8,8 +7,9 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>{{ tab_title }} | Job Search Assistant</title>
         <script src="{% static tab_title|lower|add:'.js' %}" defer></script>
-        <link rel="stylesheet" href="{% static 'global.css' %}">
         <link rel="stylesheet" href="{% static tab_title|lower|add:'.css' %}">
+        <link rel="stylesheet" href="{% static 'bootstrap@5.3.2.css' %}">
+        <link rel="stylesheet" href="{% static 'global.css' %}">
     </head>
     <body>
         <div id="app_container">
