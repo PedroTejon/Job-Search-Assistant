@@ -198,7 +198,7 @@ def get_listing_details(listing):
         elif attribute['type']['$type'] == 'com.linkedin.pemberly.text.Italic':
             listing_description = before_text + '<i>' + text + '</i>' + after_text
 
-    listing.description = listing_description.replace('\n', '<br>')
+    listing.description = listing_description.replace('\n', '<br>').replace('•', '\n•')
 
     listing.applies = response['data']['applies']
     listing.publication_date = datetime.fromtimestamp(response['data']['listedAt'] / 1000).strftime('%Y-%m-%dT%H:%M:%S')
@@ -259,7 +259,7 @@ def get_followed_companies():
             company_id = entity['textActionTarget'].replace('https://www.linkedin.com/company/', '').rstrip('/ ')
             if company_exists_by_id(company_id, 'linkedin'):
                 continue
-            company_follow_count = int(entity['caption']['text'].replace(',', '').replace(' followers', ''))
+            company_follow_count = int(sub(r'[.a-zA-Z]*', '', entity['caption']['text']))
             company_name = entity['titleV2']['text']['text'].strip()
 
             company_image_url = company_pfps[company_id] if company_id in company_pfps else None
