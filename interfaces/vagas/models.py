@@ -26,7 +26,7 @@ class Company(Model):
     def __str__(self: Self) -> str:
         return f'{{\n"id": "{self.id}"\n"image": "{self.image_url}",\n"employee_count": {self.employee_count},\n"followed": {self.followed},\n"platforms": {self.platforms}}}'  # noqa: E501
 
-    def get_default_platforms(self: Self) -> dict:
+    def get_default_platforms() -> dict:  # type: ignore[misc]
         return {
             'linkedin': {'id': None, 'name': None, 'followers': None, 'last_check': None},
             'glassdoor': {'id': None, 'name': None, 'last_check': None},
