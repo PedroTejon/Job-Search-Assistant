@@ -11,7 +11,6 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 from pathlib import Path
-import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -26,14 +25,12 @@ SECRET_KEY = 'django-insecure-#v%c&gr&b_=m88i7(pc4$#3&vu0fa5(jygw@!zisou15=s3wy&
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = []  # type: ignore[var-annotated]
 
 
 # Application definition
 
-CORS_ORIGIN_WHITELIST = [
-    'http://127.0.0.1:8000'
-]
+CORS_ORIGIN_WHITELIST = ['http://127.0.0.1:8000']
 
 
 INSTALLED_APPS = [
@@ -127,9 +124,7 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [BASE_DIR / 'interfaces/static', BASE_DIR / 'interfaces/static/svgs']
-DIRS = (
-    BASE_DIR / 'interfaces/templates/',
-)
+DIRS = (BASE_DIR / 'interfaces/templates/',)
 
 
 # Default primary key field type
