@@ -1,13 +1,13 @@
 from typing import Self
 
 
-class MaxRetriesError(Exception):
+class PossibleAuthError(Exception):
     def __init__(self: Self) -> None:
         super().__init__(
-            'MaxRetriesError: possível erro na autenticação/cookies ou no corpo da requisição e as respostas não retornam OK'
+            'possível erro na autenticação/cookies, no corpo da requisição ou a autenticação expirou e as respostas não retornam OK'
         )
 
 
 class InvalidPlatformError(Exception):
     def __init__(self: Self) -> None:
-        super().__init__('InvalidPlatformError: a plataforma inserida não está entre as suportadas')
+        super().__init__('a plataforma inserida não está entre as suportadas')

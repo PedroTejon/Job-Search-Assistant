@@ -5,7 +5,7 @@ from queue import Queue
 from re import sub
 from threading import Thread
 from threading import enumerate as enum_threads
-from typing import TYPE_CHECKING, TypedDict
+from typing import TypedDict
 
 from django.db.models.query_utils import Q
 from django.http import HttpRequest, HttpResponse, JsonResponse
@@ -334,9 +334,7 @@ def get_listing_extraction_status(request: HttpRequest) -> JsonResponse:  # noqa
                 for _ in range(threads[platform]['log_queue'].qsize()):
                     log = threads[platform]['log_queue'].get()
                     if log['type'] == 'error':
-                        response_body['results'][platform]['exception'] = (
-                            f"{log['exception']}: {log['file_name']}, linha {log['file_line']}"
-                        )
+                        response_body['results'][platform]['exception'] = log['exception']
 
                     temp_logs.append(log)
 

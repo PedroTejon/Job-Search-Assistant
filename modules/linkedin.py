@@ -2,17 +2,16 @@ from __future__ import annotations
 
 from datetime import datetime
 from json import load
-from os.path import split as path_split
 from queue import Queue
 from re import sub
-from sys import exc_info
+from traceback import format_exc
 from typing import TYPE_CHECKING
 
 from cloudscraper import create_scraper
 from django.utils.timezone import now
 
 from interfaces.vagas.models import Company, Listing
-from modules.exceptions import MaxRetriesError
+from modules.exceptions import PossibleAuthError
 from modules.utils import (
     DEFAULT_HEADERS,
     asciify_text,
@@ -26,7 +25,6 @@ from modules.utils import (
 
 if TYPE_CHECKING:
     from collections.abc import Generator
-    from types import TracebackType
 
 
 def get_csrf_token() -> str:
@@ -222,7 +220,7 @@ def get_listing_details(listing: Listing) -> None:
             break
         tries += 1
         if tries > 3:
-            raise MaxRetriesError
+            raise PossibleAuthError
 
     listing_description = response['data']['description']['text']
     for attribute in sorted(response['data']['description']['attributes'], key=lambda x: x['start'], reverse=True):
@@ -296,7 +294,7 @@ def get_followed_companies() -> None:
                 break
             tries += 1
             if tries > 3:
-                raise MaxRetriesError
+                raise PossibleAuthError
 
         max_index = company_details['data']['data']['identityDashProfileComponentsByPagedListComponent']['paging'][
             'total'
@@ -349,18 +347,9 @@ def get_jobs(curr_queue: Queue, curr_log_queue: Queue) -> None:
 
         get_remote_listings()
     except Exception:
-        exc_inf: tuple = exc_info()
-        exc_class: type[BaseException] = exc_inf[0]
-        exc_data: TracebackType = exc_inf[2]
-
-        if (exc_next := exc_data.tb_next) is not None:
-            file_name = path_split(exc_next.tb_frame.f_code.co_filename)[1]
-            while exc_data.tb_next is not None and path_split(exc_data.tb_next.tb_frame.f_code.co_filename)[1]:
-                exc_data = exc_data.tb_next
+        traceback = format_exc()
 
         log_queue.put({
             'type': 'error',
-            'exception': exc_class.__name__,
-            'file_name': file_name,
-            'file_line': exc_data.tb_lineno,
+            'exception': traceback.splitlines()[-1] + '\n' + traceback.splitlines()[-3],
         })
