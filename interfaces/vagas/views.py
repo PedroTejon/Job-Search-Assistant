@@ -207,30 +207,30 @@ def get_listings(
         queried_listings = Listing.objects.filter(filter_query).order_by(sorting_query).values()
 
         if search_queries:
-            queried_listings = (
+            queried_listings = [
                 listing
                 for listing in queried_listings
                 for term in search_queries
                 if term in unidecode(listing['title']).lower()
-            )
+            ]  # type: ignore[assignment]
         if companies:
-            queried_listings = (
+            queried_listings = [
                 listing
                 for listing in queried_listings
                 for company in companies
                 if unidecode(company).lower() in unidecode(listing['company_name']).lower()
-            )
+            ]  # type: ignore[assignment]
         if cities:
-            queried_listings = (
+            queried_listings = [
                 listing
                 for listing in queried_listings
                 for city in cities
                 if unidecode(city).lower() in unidecode(listing['location']).lower()
-            )
+            ]  # type: ignore[assignment]
         if platforms:
-            queried_listings = (
+            queried_listings = [
                 listing for listing in queried_listings for platform in platforms if platform in listing['platform']
-            )
+            ]  # type: ignore[assignment]
 
         pages = split(queried_listings, arange(50, len(queried_listings), 50))  # type: ignore[var-annotated, arg-type, call-overload]
         listings = list(list(pages)[page - 1])
