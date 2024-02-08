@@ -7,7 +7,7 @@ from re import sub
 from traceback import format_exc
 from typing import TYPE_CHECKING
 
-from cloudscraper import create_scraper
+from cloudscraper import CloudScraper, create_scraper
 from django.utils.timezone import now
 
 from interfaces.vagas.models import Company, Listing
@@ -25,6 +25,8 @@ from modules.utils import (
 
 if TYPE_CHECKING:
     from collections.abc import Generator
+
+    from requests import Response
 
 
 def get_csrf_token() -> str:
@@ -65,11 +67,11 @@ def reload_if_configs_changed() -> None:
 
 
 def get_companies_pfps(companies_json: Generator[dict, None, None]) -> dict[str, str]:
-    companies_pfps = {}
+    companies_pfps: dict[str, str] = {}
     for company_json in companies_json:
-        company_id = company_json['entityUrn'].replace('urn:li:fsd_company:', '')
+        company_id: str = company_json['entityUrn'].replace('urn:li:fsd_company:', '')
         if 'logo' in company_json:
-            logo_url = (
+            logo_url: str = (
                 company_json['logo']['vectorImage']['rootUrl']
                 + company_json['logo']['vectorImage']['artifacts'][2]['fileIdentifyingUrlPathSegment']
             )
@@ -87,12 +89,12 @@ def get_job_listings(url: str) -> None:
     total_job_listings = 0
     page = 0
 
-    session = create_scraper(browser={'browser': 'chrome', 'platform': 'windows', 'mobile': False})
+    session: CloudScraper = create_scraper(browser={'browser': 'chrome', 'platform': 'windows', 'mobile': False})
     while True:
         if page > 40:
             break
 
-        response = session.get(
+        response: Response = session.get(
             url + f'&start={25 * page}',
             headers=MODULE_HEADERS
             | {
@@ -106,10 +108,10 @@ def get_job_listings(url: str) -> None:
             continue
 
         curr_count = total_job_listings
-        response = response.json()
+        response_json: dict = response.json()
         company_pfps = get_companies_pfps(
             obj
-            for obj in response['included']
+            for obj in response_json['included']
             if ('logo' in obj and obj['logo'] is not None and 'vectorImage' in obj['logo'])
             or (
                 'logoResolutionResult' in obj
@@ -118,17 +120,17 @@ def get_job_listings(url: str) -> None:
             )
         )
 
-        for element in filter(lambda obj: 'preDashNormalizedJobPostingUrn' in obj, response['included']):
+        for element in filter(lambda obj: 'preDashNormalizedJobPostingUrn' in obj, response_json['included']):
             total_job_listings += 1
 
-            listing_id = element['preDashNormalizedJobPostingUrn'].replace('urn:li:fs_normalized_jobPosting:', '')
+            listing_id: str = element['preDashNormalizedJobPostingUrn'].replace('urn:li:fs_normalized_jobPosting:', '')
             if listing_exists(listing_id):
                 continue
 
-            listing_title = element['jobPostingTitle']
-            listing_location = element['secondaryDescription']['text']
+            listing_title: str = element['jobPostingTitle']
+            listing_location: str = element['secondaryDescription']['text']
 
-            company_name = element['primaryDescription']['text']
+            company_name: str = element['primaryDescription']['text']
             workplace_type = 'Remoto' if 'Remoto' in listing_location else 'Presencial/Hibrido'
             listing_location = sub(
                 r'\s*\(\bPresencial\b\)|\s*\(\bHíbrido\b\)|\s*\(\bRemoto\b\)',
@@ -143,7 +145,7 @@ def get_job_listings(url: str) -> None:
                 if 'detailData' not in element['logo']['attributes'][0]:
                     continue
 
-                company_id = element['logo']['attributes'][0]['detailData']['*companyLogo'].replace(
+                company_id: str = element['logo']['attributes'][0]['detailData']['*companyLogo'].replace(
                     'urn:li:fsd_company:', ''
                 )
                 if (company := get_company_by_name(company_name, 'linkedin')).platforms['linkedin']['name'] is None:
@@ -199,15 +201,15 @@ def get_remote_listings() -> None:
 
 
 def get_listing_details(listing: Listing) -> None:
-    listing_id = listing.platform_id
+    listing_id: str = listing.platform_id
 
     tries = 1
     while tries <= 3:
         sleep_r(0.5)
 
-        session = create_scraper(browser={'browser': 'chrome', 'platform': 'windows', 'mobile': False})
+        session: CloudScraper = create_scraper(browser={'browser': 'chrome', 'platform': 'windows', 'mobile': False})
 
-        response = session.get(
+        response: Response = session.get(
             f'https://www.linkedin.com/voyager/api/jobs/jobPostings/{listing_id}?decorationId=com.linkedin.voyager.deco.jobs.web.shared.WebFullJobPosting-65&topN=1&topNRequestedFlavors=List(TOP_APPLICANT,IN_NETWORK,COMPANY_RECRUIT,SCHOOL_RECRUIT,HIDDEN_GEM,ACTIVELY_HIRING_COMPANY)',
             headers=MODULE_HEADERS
             | {
@@ -218,16 +220,17 @@ def get_listing_details(listing: Listing) -> None:
         if response.status_code == 200:
             response = response.json()
             break
+
         tries += 1
         if tries > 3:
             raise PossibleAuthError
 
-    listing_description = response['data']['description']['text']
+    listing_description: str = response['data']['description']['text']
     for attribute in sorted(response['data']['description']['attributes'], key=lambda x: x['start'], reverse=True):
-        curr_index = attribute['start']
-        before_text = listing_description[:curr_index]
-        text = listing_description[curr_index : curr_index + attribute['length']]
-        after_text = listing_description[curr_index + attribute['length'] :]
+        curr_index: int = attribute['start']
+        before_text: str = listing_description[:curr_index]
+        text: str = listing_description[curr_index : curr_index + attribute['length']]
+        after_text: str = listing_description[curr_index + attribute['length'] :]
         if attribute['type']['$type'] == 'com.linkedin.pemberly.text.ListItem':
             listing_description = before_text + '<li>' + text + '</li>' + after_text
         elif attribute['type']['$type'] == 'com.linkedin.pemberly.text.Bold':
@@ -244,7 +247,7 @@ def get_listing_details(listing: Listing) -> None:
 
     sleep_r(0.5)
 
-    application_url_response = session.get(
+    application_url_response: Response = session.get(
         f'https://www.linkedin.com/voyager/api/graphql?includeWebMetadata=true&variables=(cardSectionTypes:List(TOP_CARD),jobPostingUrn:urn%3Ali%3Afsd_jobPosting%3A{listing_id},includeSecondaryActionsV2:true)&queryId=voyagerJobsDashJobPostingDetailSections.7a099d4cd4fe903e01deac5893fc08d0',
         headers=MODULE_HEADERS
         | {
@@ -259,7 +262,7 @@ def get_listing_details(listing: Listing) -> None:
     if listing.application_url is None or listing.application_url.startswith('https://www.linkedin.com/job-apply/'):
         listing.application_url = f'https://www.linkedin.com/jobs/view/{listing_id}/'
 
-    company = listing.company
+    company: Company = listing.company
     for element in response['included']:
         if 'followerCount' in element and company.platforms['linkedin']['followers'] is None:
             company.platforms['linkedin']['followers'] = element['followerCount']
@@ -272,16 +275,16 @@ def get_listing_details(listing: Listing) -> None:
 
 def get_followed_companies() -> None:
     with open('data/local_storage.json', 'rb') as f_local_storage:
-        profile_id = load(f_local_storage)['profile_id']
+        profile_id: str = load(f_local_storage)['profile_id']
 
-    session = create_scraper()
+    session: CloudScraper = create_scraper()
 
     max_index = 100
     curr_index = 0
     while curr_index < max_index:
         tries = 1
         while tries <= 3:
-            response = session.get(
+            response: Response = session.get(
                 f'https://www.linkedin.com/voyager/api/graphql?variables=(start:{curr_index},count:100,paginationToken:null,pagedListComponent:urn%3Ali%3Afsd_profilePagedListComponent%3A%28{profile_id}%2CINTERESTS_VIEW_DETAILS%2Curn%3Ali%3Afsd_profileTabSection%3ACOMPANIES_INTERESTS%2CNONE%2Cpt_BR%29)&queryId=voyagerIdentityDashProfileComponents.3efef764c5f936e8a825b8674c814b0c',
                 headers=MODULE_HEADERS
                 | {
@@ -290,7 +293,7 @@ def get_followed_companies() -> None:
             )
 
             if response.status_code == 200:
-                company_details = response.json()
+                company_details: dict = response.json()
                 break
             tries += 1
             if tries > 3:
@@ -300,7 +303,7 @@ def get_followed_companies() -> None:
             'total'
         ]
 
-        company_pfps = get_companies_pfps(
+        company_pfps: dict[str, str] = get_companies_pfps(
             obj
             for obj in company_details['included']
             if ('logo' in obj and obj['logo'] is not None and 'vectorImage' in obj['logo'])
@@ -312,15 +315,15 @@ def get_followed_companies() -> None:
         )
 
         for element in company_details['data']['data']['identityDashProfileComponentsByPagedListComponent']['elements']:
-            entity = element['components']['entityComponent']
+            entity: dict = element['components']['entityComponent']
 
-            company_id = entity['textActionTarget'].replace('https://www.linkedin.com/company/', '').rstrip('/ ')
+            company_id: str = entity['textActionTarget'].replace('https://www.linkedin.com/company/', '').rstrip('/ ')
             if company_exists_by_id(company_id, 'linkedin'):
                 continue
             company_follow_count = int(sub(r'[.a-zA-Z]*', '', entity['caption']['text']))
-            company_name = entity['titleV2']['text']['text'].strip()
+            company_name: str = entity['titleV2']['text']['text'].strip()
 
-            company_image_url = company_pfps.get(company_id, None)
+            company_image_url = company_pfps.get(company_id)
 
             if (company := get_company_by_name(company_name, 'linkedin')).platforms['linkedin']['name'] is None:
                 company.platforms['linkedin']['id'] = company_id

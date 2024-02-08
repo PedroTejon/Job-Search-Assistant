@@ -1,0 +1,7 @@
+- Geekhunter, Gupy, Hipsters, Indeed, InfoJobs, Programathor, Remoteok, Burh
+- Configuração de scraping
+- Fazer uma função que vai iniciar as threads dos módulos a partir dela, assim poderei rodar os get_companies antes de deixar cada thread seguir seu caminho
+- Filtragem por empresas seguidas
+- Função util para handling de resposta de request
+- Gráfico com D3 ou Google Charts no dashboard
+- Eliminar necessidade de CloudScraper

@@ -3,12 +3,16 @@ from __future__ import annotations
 from json import load
 from queue import Queue
 from traceback import format_exc
+from typing import TYPE_CHECKING
 
-from cloudscraper import create_scraper
+from cloudscraper import CloudScraper, create_scraper
 
 from interfaces.vagas.models import Listing
 from modules.exceptions import PossibleAuthError
 from modules.utils import DEFAULT_HEADERS, asciify_text, get_company_by_name, listing_exists, reload_filters, sleep_r
+
+if TYPE_CHECKING:
+    from requests import Response
 
 
 def get_bearer_token() -> str:
@@ -20,16 +24,16 @@ def get_bearer_token() -> str:
 
 
 with open('data/local_storage.json', encoding='utf-8') as local_storage_f:
-    build_id: str = load(local_storage_f)['catho_build_id']
+    build_id = load(local_storage_f)['catho_build_id']
 with open('data/cookies.json', encoding='utf-8') as cookies_f:
     cookies_json: list[dict[str, str]] = load(cookies_f)['catho']
 with open('data/filters.json', 'rb') as filters_f:
     filters: dict[str, list[str]] = load(filters_f)
-token: str = get_bearer_token()
+token = get_bearer_token()
 queue: Queue = Queue()
 log_queue: Queue = Queue()
 
-COOKIES: str = ';'.join([f"{cookie['name']}={cookie['value']}" for cookie in cookies_json])
+COOKIES = ';'.join([f"{cookie['name']}={cookie['value']}" for cookie in cookies_json])
 MODULE_HEADERS: dict[str, str] = DEFAULT_HEADERS | {
     'accept': '*/*',
     'authorization': f'Bearer {token}',
@@ -49,7 +53,7 @@ def reload_if_configs_changed() -> None:
 
 
 def filter_listing(
-    title: str, listing_locations_ids: list[int], location_ids: dict[str, list[int]], company_name: str
+    title: str, listing_locations_ids: list[str], location_ids: dict[str, list[int]], company_name: str
 ) -> bool:
     if any(x in title.split() for x in filters['title_exclude_words']):
         return False
@@ -73,21 +77,21 @@ def get_recommended_listings(location_ids: dict[str, list[int]]) -> None:
     listing_id = ''
     for _ in range(500):
         sleep_r(0.5)
-        session = create_scraper(browser={'browser': 'chrome', 'platform': 'windows', 'mobile': False})
+        session: CloudScraper = create_scraper(browser={'browser': 'chrome', 'platform': 'windows', 'mobile': False})
 
         headers = MODULE_HEADERS
         if listing_id:
             headers['lasteventtype'] = 'discard'
             headers['lastjobid'] = str(listing_id)
         else:
-            # headers['lasteventtype'] = None
-            # headers['lastjobid'] = None
             headers['lasteventtype'] = ''
             headers['lastjobid'] = ''
 
         tries = 1
         while tries <= 3:
-            response = session.get('https://seguro.catho.com.br/area-candidato/api/suggested-job', headers=headers)
+            response: Response = session.get(
+                'https://seguro.catho.com.br/area-candidato/api/suggested-job', headers=headers
+            )
 
             if response.status_code in {200, 204}:
                 break
@@ -98,10 +102,10 @@ def get_recommended_listings(location_ids: dict[str, list[int]]) -> None:
         if response.status_code == 204:
             break
 
-        content = response.json()['data']
+        content: dict[str, str] = response.json()['data']
         listing_id = content['id']
         if not listing_exists(listing_id):
-            listing_resp = session.get(
+            listing_resp: Response = session.get(
                 f'https://www.catho.com.br/vagas/_next/data/{build_id}/sugestao/{listing_id}.json?origem_apply=sugestao-de-vagas&entrada_apply=direto&slug={listing_id}',
                 headers=MODULE_HEADERS,
             )
@@ -109,17 +113,17 @@ def get_recommended_listings(location_ids: dict[str, list[int]]) -> None:
             if listing_resp.status_code == 404:
                 raise PossibleAuthError
 
-            listing_resp = listing_resp.json()['pageProps']
+            listing_json = listing_resp.json()['pageProps']
 
-            listing_details = listing_resp['jobAdData']
-            company_name = (
+            listing_details: dict = listing_json['jobAdData']
+            company_name: str = (
                 listing_details['contratante']['nome']
                 if listing_details is not None and not listing_details['contratante']['confidencial']
                 else 'Confidencial'
             )
 
             reload_if_configs_changed()
-            listing_city_ids = [listing['cidadeId'] for listing in listing_details['vagas']]
+            listing_city_ids: list[str] = [listing['cidadeId'] for listing in listing_details['vagas']]
             if filter_listing(
                 asciify_text(listing_details['titulo']), listing_city_ids, location_ids, asciify_text(company_name)
             ):
@@ -152,7 +156,7 @@ def get_recommended_listings(location_ids: dict[str, list[int]]) -> None:
                         else 'Confidencial'
                     )
                     if not company.employee_count and not listing_details['contratante']['confidencial']:
-                        company.employee_count = listing_resp['hirer']['numberOfEmployees']
+                        company.employee_count = listing_json['hirer']['numberOfEmployees']
                     company.save()
 
                 listing.company = company
@@ -165,17 +169,17 @@ def get_recommended_listings(location_ids: dict[str, list[int]]) -> None:
 def get_location_ids() -> dict:
     location_ids: dict[str, list[int]] = {'cities': [], 'states': [], 'countries': []}
 
-    session = create_scraper(browser={'browser': 'chrome', 'platform': 'windows', 'mobile': False})
+    session: CloudScraper = create_scraper(browser={'browser': 'chrome', 'platform': 'windows', 'mobile': False})
 
     for city in filters['cities']:
         tries = 1
         while tries <= 3:
-            response = session.get(
+            response: Response = session.get(
                 f'https://seguro.catho.com.br/vagas/vagas-api/location/?locationName={city}', headers=MODULE_HEADERS
             )
 
             if response.status_code == 200:
-                value = next(
+                value: dict | None = next(
                     (
                         entry
                         for entry in response.json()['data']
@@ -186,6 +190,7 @@ def get_location_ids() -> dict:
                 if value:
                     location_ids['cities'].append(value['id'])
                 break
+
             tries += 1
             if tries > 3:
                 raise PossibleAuthError
@@ -211,6 +216,7 @@ def get_location_ids() -> dict:
                 if value:
                     location_ids['states'].append(value['id'])
                 break
+
             tries += 1
             if tries > 3:
                 raise PossibleAuthError
@@ -236,6 +242,7 @@ def get_location_ids() -> dict:
                 if value:
                     location_ids['countries'].append(value['id'])
                 break
+
             tries += 1
             if tries > 3:
                 raise PossibleAuthError

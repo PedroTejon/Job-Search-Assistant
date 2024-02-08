@@ -1,0 +1,38 @@
+[project]
+name="Job_Search_Assistant"
+
+[tool.ruff]
+line-length = 120
+fix = true
+preview = true
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = ["C901", "COM812", "CPY001", "D", "PLR2004", "PLW0603", "S311", "T201"]
+
+[tool.ruff.lint.flake8-quotes]
+inline-quotes = "single"
+
+[tool.ruff.format]
+quote-style = "single"
+
+[tool.mypy.overrides]
+strict = true
+
+ignore_missing_imports = true
+
+disallow_any_decorated = true
+disallow_any_explicit = true
+disallow_subclassing_any = true
+
+disallow_untyped_calls = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+
+warn_unused_ignores = true
+warn_no_return = true
+warn_return_any = true
+warn_redundant_casts = true
+warn_unused_configs = true

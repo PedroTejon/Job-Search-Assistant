@@ -3,9 +3,10 @@ from __future__ import annotations
 from json import load
 from queue import Queue
 from traceback import format_exc
+from typing import TYPE_CHECKING
 
 from bs4 import BeautifulSoup
-from cloudscraper import create_scraper
+from cloudscraper import CloudScraper, create_scraper
 from django.utils.timezone import datetime, now, timedelta  # type: ignore[attr-defined]
 
 from interfaces.vagas.models import Company, Listing
@@ -20,6 +21,11 @@ from modules.utils import (
     sleep_r,
 )
 
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+    from requests import Response
+
 
 def get_bearer_token() -> str:
     for cookie in cookies_json:
@@ -30,7 +36,7 @@ def get_bearer_token() -> str:
 
 
 with open('data/filters.json', 'rb') as f:
-    filters = load(f)
+    filters: dict[str, list[str]] = load(f)
 with open('data/cookies.json', 'rb') as f:
     cookies_json: list[dict[str, str]] = load(f)['vagas.com']
 token = get_bearer_token()
@@ -89,7 +95,7 @@ def filter_location(location: str, workplace_type: str) -> bool:
 
 
 def get_companies_listings() -> None:
-    session = create_scraper(browser={'browser': 'chrome', 'platform': 'windows', 'mobile': False})
+    session: CloudScraper = create_scraper(browser={'browser': 'chrome', 'platform': 'windows', 'mobile': False})
 
     for company in filter(
         lambda x: x.platforms['vagas_com']['name'] not in {None, 'not_found'}
@@ -101,13 +107,13 @@ def get_companies_listings() -> None:
 
         while True:
             sleep_r(0.5)
-            response = session.get(
+            response: Response = session.get(
                 f"https://www.vagas.com.br/empregos/{company.platforms['vagas_com']['id']}?page={page}",
                 headers=MODULE_HEADERS,
             )
             soup = BeautifulSoup(response.text, 'html.parser')
 
-            listing_urls = [
+            listing_urls: list[str] = [
                 link['href']
                 for link in soup.find_all('a', {'class': 'link-detalhes-vaga'})
                 if not listing_exists(link['data-id-vaga'])
@@ -118,7 +124,7 @@ def get_companies_listings() -> None:
 
             for url in listing_urls:
                 sleep_r(0.5)
-                listing_response = session.get('https://www.vagas.com.br' + url, headers=MODULE_HEADERS)
+                listing_response: Response = session.get('https://www.vagas.com.br' + url, headers=MODULE_HEADERS)
                 listing_soup = BeautifulSoup(listing_response.text, 'html.parser')
 
                 listing = Listing()
@@ -184,33 +190,34 @@ def get_companies_listings() -> None:
 
 
 def get_recommended_listings() -> None:
-    session = create_scraper(browser={'browser': 'chrome', 'platform': 'windows', 'mobile': False})
+    session: CloudScraper = create_scraper(browser={'browser': 'chrome', 'platform': 'windows', 'mobile': False})
 
     tries = 1
     while tries <= 3:
-        response = session.get(
+        response: Response = session.get(
             'https://api-candidato.vagas.com.br/v1/perfis/paginas_personalizadas', headers=MODULE_HEADERS
         )
 
         if response.status_code == 200:
-            content = response.json()
+            content: dict = response.json()
             break
+
         tries += 1
         if tries > 3:
             raise PossibleAuthError
 
     for listing in content['vagas_similares']:
-        listing_title = listing['cargo']
-        listing_location = listing['local_de_trabalho']
+        listing_title: str = listing['cargo']
+        listing_location: str = listing['local_de_trabalho']
         listing_worktype = 'Remoto' if listing['modelo_local_trabalho'] == '100% Home Office' else 'Presencial/Hibrido'
-        company_name = listing['nome_da_empresa']
+        company_name: str = listing['nome_da_empresa']
+
         reload_if_configs_changed()
         if filter_listing(asciify_text(listing_title), listing_location, listing_worktype, asciify_text(company_name)):
-            listing_id = listing['id']
+            listing_id: str = listing['id']
             if listing_exists(listing_id):
                 continue
 
-            company_name = listing['nome_da_empresa']
             if (company := get_company_by_name(company_name, 'vagas.com')).platforms['vagas_com']['name'] is None:
                 company.platforms['vagas_com']['name'] = company_name
                 company.save()
@@ -231,14 +238,12 @@ def get_recommended_listings() -> None:
         listing_title = listing['cargo']
         listing_location = listing['local_de_trabalho']
         listing_worktype = 'Remoto' if listing['modelo_local_trabalho'] == '100% Home Office' else 'Presencial/Hibrido'
+        company_name = listing['nome_da_empresa']
+
         reload_if_configs_changed()
-        if (
-            filter_listing(asciify_text(listing_title), listing_location, listing_worktype, asciify_text(company_name))
-            and not listing['exclusividade_para_pcd']
-        ):
+        if filter_listing(asciify_text(listing_title), listing_location, listing_worktype, asciify_text(company_name)):
             listing_id = listing['id']
 
-            company_name = listing['nome_da_empresa']
             if (company := get_company_by_name(company_name, 'vagas.com')).platforms['vagas_com']['name'] is None:
                 company.platforms['vagas_com']['name'] = company_name
                 company.save()
@@ -257,14 +262,17 @@ def get_recommended_listings() -> None:
 
 
 def get_followed_companies() -> None:
-    session = create_scraper(browser={'browser': 'chrome', 'platform': 'windows', 'mobile': False})
-    companies = Company.objects.all()
+    session: CloudScraper = create_scraper(browser={'browser': 'chrome', 'platform': 'windows', 'mobile': False})
+
+    companies: Iterable[Company] = Company.objects.all()
     for company in filter(lambda x: x.platforms['vagas_com']['id'] is None and x.followed, companies):
         for platform in company.platforms:
             if company.platforms[platform]['name'] not in {None, 'not_found'}:
                 sleep_r(0.5)
                 formatted_name = asciify_text(company.platforms[platform]['name']).replace(' ', '-')
-                response = session.get(f'https://www.vagas.com.br/empregos/{formatted_name}', allow_redirects=False)
+                response: Response = session.get(
+                    f'https://www.vagas.com.br/empregos/{formatted_name}', allow_redirects=False
+                )
 
                 if response.status_code == 302:
                     continue
