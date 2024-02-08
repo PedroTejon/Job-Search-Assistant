@@ -226,9 +226,12 @@
                             </button>
                         </div>
                         <div id="collapse_company_filter" class="accordion-collapse collapse">
-                            <div class="accordion-body">
-                                <input id="query_company_input" type="text" onkeydown="addMultiValueQuery(event)" placeholder="Termo presente no nome">
-                                <div id="query_company_container" class="multivalue_container">
+                            <div class="accordion-body" style="display: grid; grid-template-rows: auto auto auto;">
+                                <label for="query_followed_companies" style="grid-column: 1/ span 2;">Empresas seguidas:</label>
+                                <input id="query_followed_companies" type="checkbox" {{ listing_properties.5 | yesno:"checked," }} style="grid-column: 3;">
+
+                                <input id="query_company_input" style="grid-column: 1/ span 3;" type="text" onkeydown="addMultiValueQuery(event)" placeholder="Termo presente no nome">
+                                <div id="query_company_container" style="grid-column: 1/ span 3;" class="multivalue_container">
                                     {% for company in companies %}
                                         <span class="query_multivalue_option" onclick="removeMultiValueQuery('{{ company }}', 'query_company')">{{ company }}</span>
                                     {% endfor %}

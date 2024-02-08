@@ -40,7 +40,7 @@ def index(request: HttpRequest) -> HttpResponse:
     template = loader.get_template('vagas.html')
     page = int(request.GET.get('page', 1))
     search_query = request.GET.get('query', '')
-    listing_query: list[bool] = loads(request.GET.get('listing', '[false, false, true, true, true]'))
+    listing_query: list[bool] = loads(request.GET.get('listing', '[false, false, true, true, true, false]'))
     sorting_query: list[str] = loads(request.GET.get('sort', '["id", "descending"]'))
     companies_query: list[str] = loads(request.GET.get('companies', '[]'))
     cities_query: list[str] = loads(request.GET.get('cities', '[]'))
@@ -118,7 +118,7 @@ def apply_new_filter(request: HttpRequest) -> JsonResponse:
                 or any(term in title for term in filters['title_exclude_terms'])
                 or any(word in company_name.split() for word in filters['company_exclude_words'])
                 or any(term in company_name for term in filters['company_exclude_terms'])
-            ) and (listing.applied_to is None or listing.applied_to):
+            ) and (listing.applied_to is None):
                 listing.applied_to = False
                 listing.save()
 
@@ -191,13 +191,15 @@ def get_listings(
         workplace_type_query |= Q(workplace_type__iexact='presencial/hibrido')
     if listing_properties[4]:
         workplace_type_query |= Q(workplace_type__iexact='remoto')
+    if listing_properties[5]:
+        listings_query &= Q(company__followed=True)
 
     query = listings_query & workplace_type_query
 
     try:
         sorting_query = f'{"-" if sorting_properties[1] == "descending" else ""}{sorting_properties[0]}'
         if not queries:
-            queried_listings: list[dict] = list(Listing.objects.filter(query).order_by(sorting_query).values())
+            queried_listings = list(Listing.objects.filter(query).order_by(sorting_query).values())
         else:
             queried_listings = [
                 listing

@@ -11,7 +11,7 @@ function removeMultiValueQuery(removedValue, type) {
   newContent = '';
   for (const value of queryValues[type]) {
     // eslint-disable-next-line max-len
-    newContent += `<span class="query_multivalue_option" onclick="remove_multivalue_query('${value}', '${type}')">${value}</span>`;
+    newContent += `<span class="query_multivalue_option" onclick="removeMultiValueQuery('${value}', '${type}')">${value}</span>`;
   }
   container.innerHTML = newContent;
 }
@@ -20,7 +20,7 @@ function removeMultiValueFilter(removedValue, type) {
   filters[type] = filters[type].filter((value) => value != removedValue);
 
   fetch('http://localhost:8000/vagas/remove_filter?removed_filter=' + removedValue + '&filter_type=' + type,
-      {method: 'POST'});
+    { method: 'POST' });
 
   container = document.getElementById(type + '_container');
   newContent = '';
@@ -35,20 +35,20 @@ function appliedToListing() {
   const dismissButton = document.getElementById('dismissed_button');
   const appliedButton = document.getElementById('applied_button');
   if (!dismissButton.classList.contains('button_disabled')) {
-    fetch('http://localhost:8000/vagas/applied_to_listing?id=' + currentListing.id, {method: 'POST'})
-        .then((response) => response.json())
-        .then((data) => {
-          listings[currentIndex].applied_to = true;
-          currentListing = listings[currentIndex];
-          const listingStatus = document.querySelector(`#listing_${currentIndex} .listing_status`);
+    fetch('http://localhost:8000/vagas/applied_to_listing?id=' + currentListing.id, { method: 'POST' })
+      .then((response) => response.json())
+      .then((data) => {
+        listings[currentIndex].applied_to = true;
+        currentListing = listings[currentIndex];
+        const listingStatus = document.querySelector(`#listing_${currentIndex} .listing_status`);
 
-          listingStatus.src = 'http://localhost:8000/static/check.svg';
+        listingStatus.src = 'http://localhost:8000/static/check.svg';
 
-          dismissButton.classList.add('button_disabled');
-          if (appliedButton.classList.contains('button_disabled')) {
-            appliedButton.classList.remove('button_disabled');
-          }
-        });
+        dismissButton.classList.add('button_disabled');
+        if (appliedButton.classList.contains('button_disabled')) {
+          appliedButton.classList.remove('button_disabled');
+        }
+      });
   } else {
     nullify_listing();
   }
@@ -58,14 +58,14 @@ function applyNewFilter(filterType) {
   // eslint-disable-next-line max-len
   if (confirm('Deseja adicionar isto aos filtros mesmo? As vagas com estas características já presentes no banco de dados serão marcadas como "Dispensada" automaticamente.')) {
     const type = highlightMode + '_' + filterType;
-    fetch(`http://localhost:8000/vagas/apply_new_filter?filtered=${lastText}&filter_type=${type}`, {method: 'POST'})
-        .then((response) => response.json())
-        .then((data) => {
-          if (data.status != 409) {
-            // eslint-disable-next-line max-len
-            document.getElementById(type + '_container').innerHTML += `<span class="query_multivalue_option" onclick="removeMultiValueFilter('${data.asciified_text}', '${type}')">${data.asciified_text}</span>`;
-          }
-        });
+    fetch(`http://localhost:8000/vagas/apply_new_filter?filtered=${lastText}&filter_type=${type}`, { method: 'POST' })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.status != 409) {
+          // eslint-disable-next-line max-len
+          document.getElementById(type + '_container').innerHTML += `<span class="query_multivalue_option" onclick="removeMultiValueFilter('${data.asciified_text}', '${type}')">${data.asciified_text}</span>`;
+        }
+      });
   }
 }
 
@@ -73,20 +73,20 @@ function dismissListing() {
   const dismissButton = document.getElementById('dismissed_button');
   const appliedButton = document.getElementById('applied_button');
   if (!appliedButton.classList.contains('button_disabled')) {
-    fetch('http://localhost:8000/vagas/dismiss_listing?id=' + currentListing.id, {method: 'POST'})
-        .then((response) => response.json())
-        .then((data) => {
-          listings[currentIndex].applied_to = false;
-          currentListing = listings[currentIndex];
-          const listingStatus = document.querySelector(`#listing_${currentIndex} .listing_status`);
+    fetch('http://localhost:8000/vagas/dismiss_listing?id=' + currentListing.id, { method: 'POST' })
+      .then((response) => response.json())
+      .then((data) => {
+        listings[currentIndex].applied_to = false;
+        currentListing = listings[currentIndex];
+        const listingStatus = document.querySelector(`#listing_${currentIndex} .listing_status`);
 
-          listingStatus.src ='http://localhost:8000/static/x.svg';
+        listingStatus.src = 'http://localhost:8000/static/x.svg';
 
-          appliedButton.classList.add('button_disabled');
-          if (dismissButton.classList.contains('button_disabled')) {
-            dismissButton.classList.remove('button_disabled');
-          }
-        });
+        appliedButton.classList.add('button_disabled');
+        if (dismissButton.classList.contains('button_disabled')) {
+          dismissButton.classList.remove('button_disabled');
+        }
+      });
   } else {
     nullifyListing();
   }
@@ -96,73 +96,73 @@ function nullifyListing() {
   const dismissButton = document.getElementById('dismissed_button');
   const appliedButton = document.getElementById('applied_button');
 
-  fetch('http://localhost:8000/vagas/nullify_listing?id=' + currentListing.id, {method: 'POST'})
-      .then((response) => response.json())
-      .then((data) => {
-        listings[currentIndex].applied_to = null;
-        currentListing = listings[currentIndex];
-        const listingStatus = document.querySelector(`#listing_${currentIndex} .listing_status`);
+  fetch('http://localhost:8000/vagas/nullify_listing?id=' + currentListing.id, { method: 'POST' })
+    .then((response) => response.json())
+    .then((data) => {
+      listings[currentIndex].applied_to = null;
+      currentListing = listings[currentIndex];
+      const listingStatus = document.querySelector(`#listing_${currentIndex} .listing_status`);
 
-        listingStatus.src = 'http://localhost:8000/static/transparent.svg';
+      listingStatus.src = 'http://localhost:8000/static/transparent.svg';
 
-        if (appliedButton.classList.contains('button_disabled')) {
-          appliedButton.classList.remove('button_disabled');
-        }
-        if (dismissButton.classList.contains('button_disabled')) {
-          dismissButton.classList.remove('button_disabled');
-        }
-      });
+      if (appliedButton.classList.contains('button_disabled')) {
+        appliedButton.classList.remove('button_disabled');
+      }
+      if (dismissButton.classList.contains('button_disabled')) {
+        dismissButton.classList.remove('button_disabled');
+      }
+    });
 }
 
 function extractListings() {
-  fetch('http://localhost:8000/vagas/start_listing_extraction', {method: 'POST'})
-      .then((response) => response.json())
-      .then((data) => {
-        updateFunc = window.setInterval(getListingExtractionStatus, 1000);
-      });
+  fetch('http://localhost:8000/vagas/start_listing_extraction', { method: 'POST' })
+    .then((response) => response.json())
+    .then((data) => {
+      updateFunc = window.setInterval(getListingExtractionStatus, 1000);
+    });
 }
 
 function getListingExtractionStatus() {
   fetch('http://localhost:8000/vagas/get_listing_extraction_status')
-      .then((response) => response.json())
-      .then((data) => {
-        results = data['results'];
-        const progressBarOverall = document.getElementById('progress_bar_overall');
-        const progressLinkedin = document.getElementById('progress_linkedin');
-        const progressGlassdoor = document.getElementById('progress_glassdoor');
-        const progressCatho = document.getElementById('progress_catho');
-        const progressVagasCom = document.getElementById('progress_vagas_com');
-        if (results['linkedin']['status'] || results['glassdoor']['status'] ||
-            results['catho']['status'] || results['vagas_com']['status']) {
-          if (!updateFunc) {
-            updateFunc = window.setInterval(getListingExtractionStatus, 1000);
-          }
-
-          if (progressBarOverall.style.visibility = 'hidden') {
-            progressBarOverall.style.visibility = 'visible';
-          }
-          if (progressBarOverall.classList.contains('disabled')) {
-            progressBarOverall.classList.remove('disabled');
-          }
-
-          document.getElementById('new_listings_linkedin').textContent = '+' + results['linkedin']['new_listings'];
-          document.getElementById('new_listings_glassdoor').textContent = '+' + results['glassdoor']['new_listings'];
-          document.getElementById('new_listings_catho').textContent = '+' + results['catho']['new_listings'];
-          document.getElementById('new_listings_vagas_com').textContent = '+' + results['vagas_com']['new_listings'];
-
-          // eslint-disable-next-line max-len
-          const total = results['linkedin']['new_listings'] + results['glassdoor']['new_listings'] + results['catho']['new_listings'] + results['vagas_com']['new_listings'];
-          document.getElementById('extraction_results').textContent = '+' + total;
-        } else if (updateFunc) {
-          progressBarOverall.classList.add('disabled');
-          clearTimeout(updateFunc);
+    .then((response) => response.json())
+    .then((data) => {
+      results = data['results'];
+      const progressBarOverall = document.getElementById('progress_bar_overall');
+      const progressLinkedin = document.getElementById('progress_linkedin');
+      const progressGlassdoor = document.getElementById('progress_glassdoor');
+      const progressCatho = document.getElementById('progress_catho');
+      const progressVagasCom = document.getElementById('progress_vagas_com');
+      if (results['linkedin']['status'] || results['glassdoor']['status'] ||
+        results['catho']['status'] || results['vagas_com']['status']) {
+        if (!updateFunc) {
+          updateFunc = window.setInterval(getListingExtractionStatus, 1000);
         }
 
-        alternateProgressBar(results, 'linkedin', progressLinkedin);
-        alternateProgressBar(results, 'glassdoor', progressGlassdoor);
-        alternateProgressBar(results, 'catho', progressCatho);
-        alternateProgressBar(results, 'vagas_com', progressVagasCom);
-      });
+        if (progressBarOverall.style.visibility = 'hidden') {
+          progressBarOverall.style.visibility = 'visible';
+        }
+        if (progressBarOverall.classList.contains('disabled')) {
+          progressBarOverall.classList.remove('disabled');
+        }
+
+        document.getElementById('new_listings_linkedin').textContent = '+' + results['linkedin']['new_listings'];
+        document.getElementById('new_listings_glassdoor').textContent = '+' + results['glassdoor']['new_listings'];
+        document.getElementById('new_listings_catho').textContent = '+' + results['catho']['new_listings'];
+        document.getElementById('new_listings_vagas_com').textContent = '+' + results['vagas_com']['new_listings'];
+
+        // eslint-disable-next-line max-len
+        const total = results['linkedin']['new_listings'] + results['glassdoor']['new_listings'] + results['catho']['new_listings'] + results['vagas_com']['new_listings'];
+        document.getElementById('extraction_results').textContent = '+' + total;
+      } else if (updateFunc) {
+        progressBarOverall.classList.add('disabled');
+        clearTimeout(updateFunc);
+      }
+
+      alternateProgressBar(results, 'linkedin', progressLinkedin);
+      alternateProgressBar(results, 'glassdoor', progressGlassdoor);
+      alternateProgressBar(results, 'catho', progressCatho);
+      alternateProgressBar(results, 'vagas_com', progressVagasCom);
+    });
 }
 
 function alternateProgressBar(results, platform, progressElement) {
@@ -223,11 +223,12 @@ function search() {
   const getLocal = document.getElementById('query_local_listings').checked;
   const getRemote = document.getElementById('query_remote_listings').checked;
   const getSortType = document.getElementById('query_sorting_type').value;
+  const getFollowedCompaniesOnly = document.getElementById('query_followed_companies').checked;
   // eslint-disable-next-line max-len
   const getSortDirection = document.querySelector('#sorting_direction_button img').src == 'http://localhost:8000/static/sort-descending.svg' ? 'descending' : 'ascending';
 
   // eslint-disable-next-line max-len
-  let url = `http://localhost:8000/vagas/?page=1&listing=[${getApplied},${getDismissed},${getNew},${getLocal},${getRemote}]&sort=["${getSortType}","${getSortDirection}"]`;
+  let url = `http://localhost:8000/vagas/?page=1&listing=[${getApplied},${getDismissed},${getNew},${getLocal},${getRemote},${getFollowedCompaniesOnly}]&sort=["${getSortType}","${getSortDirection}"]`;
   if (searchValue !== '') {
     url += '&query=' + searchValue;
   }
@@ -356,7 +357,7 @@ function show(listingIndex) {
 
 if (!window.highlighter) {
   highlighter = {};
-  highlighter.get_highlighted = function() {
+  highlighter.get_highlighted = function () {
     let text = '';
     if (window.getSelection) {
       text = window.getSelection();
@@ -371,7 +372,7 @@ if (!window.highlighter) {
 
 let lastText = null;
 let highlightMode = null;
-window.addEventListener('mousedown', function(e) {
+window.addEventListener('mousedown', function (e) {
   const menu = document.getElementById('highlight_tools');
 
   if (e.target.classList.contains('listing_title') || e.target.classList.contains('listing_company')) {
@@ -383,7 +384,7 @@ window.addEventListener('mousedown', function(e) {
 
     highlighter.posX = e.pageX;
     highlighter.posY = e.pageY;
-    window.addEventListener('mouseup', function() {
+    window.addEventListener('mouseup', function () {
       const menu = document.getElementById('highlight_tools');
       const highlight = highlighter.get_highlighted();
       const highlightedText = highlight.toString().trim();
@@ -394,16 +395,16 @@ window.addEventListener('mousedown', function(e) {
         } else if (filterWordButton.disabled) {
           filterWordButton.disabled = false;
         }
-        menu.style = 'position: absolute; left:' + (highlighter.posX ) + 'px; top: ' + (highlighter.posY - 35) + 'px';
+        menu.style = 'position: absolute; left:' + (highlighter.posX) + 'px; top: ' + (highlighter.posY - 35) + 'px';
         lastText = highlightedText;
       } else {
         lastText = null;
         menu.style = 'display: none';
       }
-    }, {once: true});
+    }, { once: true });
   } else if (menu.style !== 'display: none' &&
-            !['filter_word_button', 'filter_term_button'].includes(e.target.id) &&
-            !['filter_word_button', 'filter_term_button'].includes(e.target.parentElement.id)) {
+    !['filter_word_button', 'filter_term_button'].includes(e.target.id) &&
+    !['filter_word_button', 'filter_term_button'].includes(e.target.parentElement.id)) {
     menu.style = 'display: none';
     lastText = null;
   }
@@ -455,35 +456,35 @@ function addMultiValueFilter(e) {
     e.target.value = '';
 
     if (!['cities', 'states', 'countries'].includes(type) &&
-        // eslint-disable-next-line max-len
-        !confirm('Deseja adicionar isto aos filtros mesmo? As vagas com estas características já presentes no banco de dados serão marcadas como "Dispensada" automaticamente.')) {
+      // eslint-disable-next-line max-len
+      !confirm('Deseja adicionar isto aos filtros mesmo? As vagas com estas características já presentes no banco de dados serão marcadas como "Dispensada" automaticamente.')) {
       return;
     }
 
-    fetch('http://localhost:8000/vagas/apply_new_filter?filtered=' + value + '&filter_type=' + type, {method: 'POST'})
-        .then((response) => response.json())
-        .then((data) => {
-          if (data.status != 409) {
-            // eslint-disable-next-line max-len
-            document.getElementById(type + '_container').innerHTML += `<span class="query_multivalue_option" onclick="removeMultiValueFilter('${data.asciified_text}', '${type}')">${data.asciified_text}</span>`;
-          }
-        });
+    fetch('http://localhost:8000/vagas/apply_new_filter?filtered=' + value + '&filter_type=' + type, { method: 'POST' })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.status != 409) {
+          // eslint-disable-next-line max-len
+          document.getElementById(type + '_container').innerHTML += `<span class="query_multivalue_option" onclick="removeMultiValueFilter('${data.asciified_text}', '${type}')">${data.asciified_text}</span>`;
+        }
+      });
   }
 };
 
 const queryPlatformInput = document.getElementById('query_platform_input');
-queryPlatformInput.addEventListener('change', function(e) {
+queryPlatformInput.addEventListener('change', function (e) {
   const queriedPlatform = queryPlatformInput.value;
   queryPlatformInput.value = '-';
   if (queriedPlatform !== '-' && !queryValues['query_platform'].includes(queriedPlatform)) {
     queryValues['query_platform'].push(queriedPlatform);
     // eslint-disable-next-line max-len
-    document.getElementById('query_platform_container').innerHTML += `<span class="query_multivalue_option" onclick="remove_platform('${queriedPlatform}')">${queriedPlatform}</span>`;
+    document.getElementById('query_platform_container').innerHTML += `<span class="query_multivalue_option" onclick="removeMultiValueQuery('${queriedPlatform}', 'query_platform')">${queriedPlatform}</span>`;
   }
 });
 
 const searchBar = document.getElementById('search_bar');
-searchBar.addEventListener('keydown', function(e) {
+searchBar.addEventListener('keydown', function (e) {
   if (e.code === 'Enter') {
     search(searchBar.value);
   }
