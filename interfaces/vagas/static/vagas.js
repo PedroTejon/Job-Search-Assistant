@@ -281,7 +281,7 @@ function show(listingIndex) {
   }
 
   const listingAppliesDetails = document.getElementById('listing_applies_det');
-  if (currentListing.applies) {
+  if (currentListing.applies >= 0) {
     listingAppliesDetails.innerText = currentListing.applies + ' candidato(s)';
   } else {
     listingAppliesDetails.innerText = 'Desconhecido';

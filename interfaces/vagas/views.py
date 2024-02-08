@@ -7,6 +7,7 @@ from threading import Thread
 from threading import enumerate as enum_threads
 from typing import TypedDict
 
+from django.db.models import F
 from django.db.models.query_utils import Q
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.template import loader
@@ -156,7 +157,7 @@ def remove_filter(request: HttpRequest) -> JsonResponse:
 
 
 def get_listings(
-    queries_str: str,
+    search_queries_str: str,
     page: int,
     listing_properties: list[bool],
     sorting_properties: list[str],
@@ -167,7 +168,7 @@ def get_listings(
     with open('data/filters.json', encoding='utf-8') as f:
         filters = load(f)
 
-    queries = unidecode(queries_str).lower().split()
+    search_queries = unidecode(search_queries_str).lower().split()
     listings_query = Q()
     workplace_type_query = Q()
 
@@ -194,40 +195,44 @@ def get_listings(
     if listing_properties[5]:
         listings_query &= Q(company__followed=True)
 
-    query = listings_query & workplace_type_query
+    filter_query = listings_query & workplace_type_query
+
+    sorting_query = (
+        F(sorting_properties[0]).desc(nulls_last=True)
+        if sorting_properties[1] == 'descending'
+        else F(sorting_properties[0]).asc(nulls_last=True)
+    )
 
     try:
-        sorting_query = f'{"-" if sorting_properties[1] == "descending" else ""}{sorting_properties[0]}'
-        if not queries:
-            queried_listings = list(Listing.objects.filter(query).order_by(sorting_query).values())
-        else:
-            queried_listings = [
-                listing
-                for listing in Listing.objects.filter(query).order_by(sorting_query).values()
-                for term in queries
-                if term in unidecode(listing['title']).lower()
-            ]
+        queried_listings = Listing.objects.filter(filter_query).order_by(sorting_query).values()
 
+        if search_queries:
+            queried_listings = (
+                listing
+                for listing in queried_listings
+                for term in search_queries
+                if term in unidecode(listing['title']).lower()
+            )
         if companies:
-            queried_listings = [
+            queried_listings = (
                 listing
                 for listing in queried_listings
                 for company in companies
                 if unidecode(company).lower() in unidecode(listing['company_name']).lower()
-            ]
+            )
         if cities:
-            queried_listings = [
+            queried_listings = (
                 listing
                 for listing in queried_listings
                 for city in cities
                 if unidecode(city).lower() in unidecode(listing['location']).lower()
-            ]
+            )
         if platforms:
-            queried_listings = [
+            queried_listings = (
                 listing for listing in queried_listings for platform in platforms if platform in listing['platform']
-            ]
+            )
 
-        pages = split(queried_listings, arange(50, len(queried_listings), 50))  # type: ignore[var-annotated, arg-type]
+        pages = split(queried_listings, arange(50, len(queried_listings), 50))  # type: ignore[var-annotated, arg-type, call-overload]
         listings = list(list(pages)[page - 1])
 
         paginations = range(max(1, page - 3), min(page + 4, len(pages) + 1))
@@ -236,7 +241,7 @@ def get_listings(
             'page': page,
             'pages': paginations,
             'total_pages': len(pages),
-            'query': queries_str,
+            'query': search_queries_str,
             'listing_properties': listing_properties,
             'sorting_properties': sorting_properties,
             'companies': companies,
@@ -251,7 +256,7 @@ def get_listings(
             'page': page,
             'pages': [page],
             'total_pages': 0,
-            'query': queries_str,
+            'query': search_queries_str,
             'listing_properties': listing_properties,
             'sorting_properties': sorting_properties,
             'companies': companies,
