@@ -73,55 +73,41 @@ def update_listing_applied_status(request: HttpRequest) -> JsonResponse:
 
 
 @csrf_exempt
-def apply_new_filter(request: HttpRequest) -> JsonResponse:
-    filtered = request.GET.get('filtered', '').lower()
+def update_filter_list(request: HttpRequest) -> JsonResponse:
+    filter_value = request.GET.get('filter_value', '').lower()
     filter_type = request.GET.get('filter_type')
 
     with open('data/filters.json', encoding='utf-8') as filters_f:
         filters = load(filters_f)
 
-    if filtered in filters[filter_type]:
-        return JsonResponse({'status': 409}, status=409)
+    json_body: dict[str, str | int] = {'status': 200}
 
-    asciified_text = asciify_text(filtered)
-    filters[filter_type].append(asciified_text)
+    if request.method == 'POST':
+        if filter in filters[filter_type]:
+            return JsonResponse({'status': 409}, status=409)
 
-    if filter_type not in {'cities', 'states', 'countries'}:
-        listings = Listing.objects.all().filter(applied_to__exact=None)
-        for listing in listings:
-            title = asciify_text(listing.title)
-            company_name = asciify_text(listing.company_name)
-            if (
-                any(word in title.split() for word in filters['title_exclude_words'])
-                or any(term in title for term in filters['title_exclude_terms'])
-                or any(word in company_name.split() for word in filters['company_exclude_words'])
-                or any(term in company_name for term in filters['company_exclude_terms'])
-            ) and (listing.applied_to is None):
-                listing.applied_to = False
-                listing.save()
+        asciified_text = asciify_text(filter_value)
+        filters[filter_type].append(asciified_text)
+        json_body['asciified_text'] = asciified_text
 
-    with open('data/filters.json', 'w', encoding='utf-8') as f:
-        dump(filters, f, ensure_ascii=False)
+        if filter_type not in {'cities', 'states', 'countries'}:
+            listings = Listing.objects.all().filter(applied_to__exact=None)
+            for listing in listings:
+                title = asciify_text(listing.title)
+                company_name = asciify_text(listing.company_name)
+                if (
+                    any(word in title.split() for word in filters['title_exclude_words'])
+                    or any(term in title for term in filters['title_exclude_terms'])
+                    or any(word in company_name.split() for word in filters['company_exclude_words'])
+                    or any(term in company_name for term in filters['company_exclude_terms'])
+                ) and (listing.applied_to is None):
+                    listing.applied_to = False
+                    listing.save()
+    elif request.method == 'DELETE':
+        if filter_value not in filters[filter_type]:
+            return JsonResponse({'status': 404}, status=404)
 
-    for platform in ['linkedin', 'glassdoor', 'catho', 'vagas_com']:
-        if threads[platform]['thread'] is not None and threads[platform]['thread'].is_alive():
-            threads[platform]['log_queue'].put({'type': 'reload_request'})
-
-    return JsonResponse({'status': 200, 'asciified_text': asciified_text})
-
-
-@csrf_exempt
-def remove_filter(request: HttpRequest) -> JsonResponse:
-    removed_filter = request.GET.get('removed_filter', '').lower()
-    filter_type = request.GET.get('filter_type')
-
-    with open('data/filters.json', encoding='utf-8') as filters_f:
-        filters = load(filters_f)
-
-    if removed_filter not in filters[filter_type]:
-        return JsonResponse({'status': 404}, status=404)
-
-    filters[filter_type].remove(removed_filter)
+        filters[filter_type].remove(filter_value)
 
     with open('data/filters.json', 'w', encoding='utf-8') as filters_f:
         dump(filters, filters_f, ensure_ascii=False)
@@ -130,7 +116,7 @@ def remove_filter(request: HttpRequest) -> JsonResponse:
         if threads[platform]['thread'] is not None and threads[platform]['thread'].is_alive():
             threads[platform]['log_queue'].put({'type': 'reload_request'})
 
-    return JsonResponse({'status': 200})
+    return JsonResponse(json_body)
 
 
 def get_listings(

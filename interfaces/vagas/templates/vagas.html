@@ -181,8 +181,8 @@
         </div>
         <div id="listings_view">
             <div id="highlight_tools" style="display: none;">
-                <button id="filter_word_button" title="Proibir palavra única" onclick="applyNewFilter('exclude_words')"><img src="{% static 'underline.svg' %}" width="16" height="16"></button>
-                <button id="filter_term_button" title="Proibir termo/sequência de caracteres" onclick="applyNewFilter('exclude_terms')"><img src="{% static 'highlighter.svg' %}" width="16" height="16"></button>
+                <button id="filter_word_button" title="Proibir palavra única" onclick="applyNewFilterByHighlight('exclude_words')"><img src="{% static 'underline.svg' %}" width="16" height="16"></button>
+                <button id="filter_term_button" title="Proibir termo/sequência de caracteres" onclick="applyNewFilterByHighlight('exclude_terms')"><img src="{% static 'highlighter.svg' %}" width="16" height="16"></button>
             </div>
             <div id="listings_sidebar" {% if listing_count == 0 %}style="display:flex;flex-direction:column;justify-content:space-between"{% endif %}>
                 <div id="querying_filter_menu" class="accordion collapse">

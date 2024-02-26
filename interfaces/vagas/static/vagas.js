@@ -16,21 +16,6 @@ function removeMultiValueQuery(removedValue, type) {
   container.innerHTML = newContent;
 }
 
-function removeMultiValueFilter(removedValue, type) {
-  filters[type] = filters[type].filter((value) => value != removedValue);
-
-  fetch('http://localhost:8000/vagas/remove_filter?removed_filter=' + removedValue + '&filter_type=' + type,
-      {method: 'POST'});
-
-  container = document.getElementById(type + '_container');
-  newContent = '';
-  for (const value of filters[type]) {
-    // eslint-disable-next-line max-len
-    newContent += `<span class="query_multivalue_option" onclick="removeMultiValueFilter('${value}', '${type}')">${value}</span>`;
-  }
-  container.innerHTML = newContent;
-}
-
 function updateListingApplStatus(updatedValue) {
   const dismissButton = document.getElementById('dismissed_button');
   const appliedButton = document.getElementById('applied_button');
@@ -74,11 +59,12 @@ function updateListingApplStatus(updatedValue) {
       });
 }
 
-function applyNewFilter(filterType) {
+function applyNewFilterByHighlight(filterType) {
   // eslint-disable-next-line max-len
   if (confirm('Deseja adicionar isto aos filtros mesmo? As vagas com estas características já presentes no banco de dados serão marcadas como "Dispensada" automaticamente.')) {
     const type = highlightMode + '_' + filterType;
-    fetch(`http://localhost:8000/vagas/apply_new_filter?filtered=${lastText}&filter_type=${type}`, {method: 'POST'})
+    // eslint-disable-next-line max-len
+    fetch(`http://localhost:8000/vagas/update_filter_list?filter_value=${lastText}&filter_type=${type}`, {method: 'POST'})
         .then((response) => response.json())
         .then((data) => {
           if (data.status != 409) {
@@ -87,6 +73,21 @@ function applyNewFilter(filterType) {
           }
         });
   }
+}
+
+function removeMultiValueFilter(removedValue, type) {
+  filters[type] = filters[type].filter((value) => value != removedValue);
+
+  fetch(`http://localhost:8000/vagas/update_filter_list?filter_value=${removedValue}&filter_type=${type}`,
+      {method: 'DELETE'});
+
+  container = document.getElementById(type + '_container');
+  newContent = '';
+  for (const value of filters[type]) {
+    // eslint-disable-next-line max-len
+    newContent += `<span class="query_multivalue_option" onclick="removeMultiValueFilter('${value}', '${type}')">${value}</span>`;
+  }
+  container.innerHTML = newContent;
 }
 
 function extractListings() {
@@ -436,7 +437,7 @@ function addMultiValueFilter(e) {
       return;
     }
 
-    fetch('http://localhost:8000/vagas/apply_new_filter?filtered=' + value + '&filter_type=' + type, {method: 'POST'})
+    fetch('http://localhost:8000/vagas/update_filter_list?filter_value=' + value + '&filter_type=' + type, {method: 'POST'})
         .then((response) => response.json())
         .then((data) => {
           if (data.status != 409) {
