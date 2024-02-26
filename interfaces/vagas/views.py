@@ -60,39 +60,16 @@ def index(request: HttpRequest) -> HttpResponse:
 
 
 @csrf_exempt
-def applied_to_listing(request: HttpRequest) -> JsonResponse:
+def update_listing_applied_status(request: HttpRequest) -> JsonResponse:
     listing_id = request.GET.get('id')
+    listing_updated_value = loads(request.GET.get('value'))  # type: ignore[arg-type]
     if listing_id:
         listing = Listing.objects.get(id__iexact=listing_id)
-        listing.applied_to = True
+        listing.applied_to = listing_updated_value
         listing.save()
         return JsonResponse({'status': 200})
 
     return JsonResponse({'status': 404})
-
-
-@csrf_exempt
-def dismiss_listing(request: HttpRequest) -> JsonResponse:
-    listing_id = request.GET.get('id')
-    if listing_id:
-        listing = Listing.objects.get(id__iexact=listing_id)
-        listing.applied_to = False
-        listing.save()
-        return JsonResponse({'status': 200})
-
-    return JsonResponse({'status': 404}, status=404)
-
-
-@csrf_exempt
-def nullify_listing(request: HttpRequest) -> JsonResponse:
-    listing_id = request.GET.get('id')
-    if listing_id:
-        listing = Listing.objects.get(id__iexact=listing_id)
-        listing.applied_to = None
-        listing.save()
-        return JsonResponse({'status': 200})
-
-    return JsonResponse({'status': 404}, status=404)
 
 
 @csrf_exempt
