@@ -9,6 +9,7 @@ from typing import TypedDict
 
 from django.db.models import F
 from django.db.models.query_utils import Q
+from django.forms.models import model_to_dict
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.template import loader
 from django.views.decorators.csrf import csrf_exempt
@@ -18,7 +19,9 @@ from unidecode import unidecode
 from interfaces.vagas.models import Listing
 from modules.catho import get_jobs as catho_extraction
 from modules.glassdoor import get_jobs as glassdoor_extraction
+from modules.glassdoor import get_listing_details as glassdoor_update
 from modules.linkedin import get_jobs as linkedin_extraction
+from modules.linkedin import get_listing_details as linkedin_update
 from modules.utils import asciify_text, reload_filters
 from modules.vagas_com import get_jobs as vagas_com_extraction
 
@@ -41,7 +44,7 @@ def index(request: HttpRequest) -> HttpResponse:
     template = loader.get_template('vagas.html')
     page = int(request.GET.get('page', 1))
     search_query = request.GET.get('query', '')
-    listing_query: list[bool] = loads(request.GET.get('listing', '[false, false, true, true, true, false]'))
+    listing_query: list[bool] = loads(request.GET.get('listing', '[false, false, true, true, true, false, true, false]'))
     sorting_query: list[str] = loads(request.GET.get('sort', '["id", "descending"]'))
     companies_query: list[str] = loads(request.GET.get('companies', '[]'))
     cities_query: list[str] = loads(request.GET.get('cities', '[]'))
@@ -119,6 +122,19 @@ def update_filter_list(request: HttpRequest) -> JsonResponse:
     return JsonResponse(json_body)
 
 
+def update_listing_details(request: HttpRequest) -> JsonResponse:
+    listing_plat_id = request.GET['id']
+    listing_plat = request.GET['platform']
+    listing = Listing.objects.get(platform_id=listing_plat_id)
+
+    if listing_plat == 'LinkedIn':
+        linkedin_update(listing)
+    elif listing_plat == 'Glassdoor':
+        glassdoor_update(listing)
+
+    return JsonResponse({'status': 200, 'listing': model_to_dict(listing)})
+
+
 def get_listings(
     search_queries_str: str,
     page: int,
@@ -157,6 +173,10 @@ def get_listings(
         workplace_type_query |= Q(workplace_type__iexact='remoto')
     if listing_properties[5]:
         listings_query &= Q(company__followed=True)
+    if listing_properties[6]:
+        listings_query &= Q(closed=False)
+    if listing_properties[7]:
+        listings_query &= Q(closed=True)
 
     filter_query = listings_query & workplace_type_query
 

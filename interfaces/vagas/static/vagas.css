@@ -9,7 +9,7 @@
 #listings_filters {
     width: 100dvw;
 
-    display: grid; 
+    display: grid;
     grid-template-columns: 21dvw auto auto;
     flex-grow: 1;
     align-items: center;
@@ -23,7 +23,7 @@
 #search_bar_container {
     height: 100%;
     width: 20dvw;
-    
+
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -33,7 +33,7 @@
     border-radius: 1dvh;
 }
 
-#search_bar {    
+#search_bar {
     height: 92.5%;
     flex-grow: 1;
 
@@ -45,7 +45,7 @@
 
 #search_button {
     height: 100%;
-    
+
     background-color: transparent;
 
     border: none;
@@ -65,7 +65,7 @@
 
     overflow: hidden;
 
-    & > span {
+    &>span {
         font-weight: 700;
         font-size: 18px;
     }
@@ -95,7 +95,7 @@
     padding: 1dvh;
     column-gap: 3px;
     row-gap: 3px;
-    
+
     overflow-y: auto;
 }
 
@@ -124,7 +124,10 @@
     margin-right: 3dvw;
 }
 
-#extract_button, #filter_menu_button, #extraction_settings_menu_button, #sorting_direction_button {
+#extract_button,
+#filter_menu_button,
+#extraction_settings_menu_button,
+#sorting_direction_button {
     border: none;
 
     background-color: transparent;
@@ -134,21 +137,25 @@
     &:not(#sorting_direction_button) {
         padding: 1dvh;
     }
+
     &#sorting_direction_button {
         margin-top: 2px;
         padding: 0 1dvw;
     }
 }
 
-.accordion-body > input[type=text], .accordion-body > select {
+.accordion-body>input[type=text],
+.accordion-body>select {
     width: 100%;
 }
 
-#extraction_progress_menu, #extraction_settings_menu {
+#extraction_progress_menu,
+#extraction_settings_menu {
     height: auto;
     z-index: 11;
-    
+
     visibility: hidden;
+
     &#extraction_progress_menu {
         width: 15dvw;
         right: 5.5dvw;
@@ -159,6 +166,7 @@
 
         gap: 1.2dvh;
     }
+
     &#extraction_settings_menu {
         width: 25dvw;
 
@@ -172,9 +180,9 @@
     position: absolute;
     top: 18dvh;
     padding: 1dvw;
-    
+
     background-color: white;
-    
+
     border: 1px black solid;
     border-radius: calc(0.375em - 1px);
 }
@@ -237,19 +245,21 @@
 /* found on the web, dont remember where */
 @keyframes ind_progress_bar {
     0% {
-        transform:  translateX(0) scaleX(0);
+        transform: translateX(0) scaleX(0);
     }
+
     40% {
-        transform:  translateX(0) scaleX(0.4);
+        transform: translateX(0) scaleX(0.4);
     }
+
     100% {
-        transform:  translateX(100%) scaleX(0.5);
+        transform: translateX(100%) scaleX(0.5);
     }
 }
 
 #listings_view {
     width: 100%;
-    height: 90%;   
+    height: 90%;
 
     display: flex;
     flex-direction: row;
@@ -263,7 +273,8 @@
     overflow-x: hidden;
 }
 
-#filter_word_button, #filter_term_button {
+#filter_word_button,
+#filter_term_button {
     border: 1px solid black;
     border-radius: 5px;
 
@@ -291,7 +302,7 @@
 
     &:last-child {
         border-bottom: none;
-    } 
+    }
 
     & i {
         display: flex;
@@ -305,7 +316,7 @@
 }
 
 .current_listing {
-    background-color: #6767c2; 
+    background-color: #6767c2;
     color: white;
 
     & img {
@@ -366,7 +377,8 @@
     color: #e0e0f8;
     font-size: 14px;
     text-decoration: none;
-    &:hover{
+
+    &:hover {
         text-decoration: underline;
     }
 
@@ -379,33 +391,56 @@
     gap: 5px
 }
 
-#apply_button, #applied_button, #dismissed_button {
-    display: flex; 
-    align-items: center; 
+#apply_button,
+#applied_button,
+#dismissed_button {
+    display: flex;
+    align-items: center;
     justify-content: center;
 
     &:not(.button_disabled) {
         background-color: #6767c2;
     }
-    color: white; 
+
+    color: white;
 
     border: none;
     border-radius: .5em;
-    
+
     text-decoration: none;
 
     cursor: pointer;
 }
 
 #apply_button {
-    height: 7.5dvh; 
-    width: 10dvw; 
-    
-    grid-row: 1 / span 2 ;
+    height: 7.5dvh;
+    width: 10dvw;
+
+    grid-row: 1 / span 2;
 }
 
 .button_disabled {
     background-color: rgb(55, 47, 143);
+}
+
+#update_listing_button {
+    background: transparent;
+    border: none;
+
+    font-size: 14px;
+    color: var(--bs-gray-600);
+
+    &:hover {
+        text-decoration: underline;
+    }
+}
+
+#listing_availability {
+    grid-column: 1 / span 2;
+    justify-self: center;
+
+    font-size: 14px;
+    color: var(--bs-gray-600);
 }
 
 .page-link {

@@ -197,13 +197,17 @@ def get_listing_details(listing: Listing) -> None:
         if tries > 3:
             raise PossibleAuthError
 
-    listing.application_url = 'https://www.glassdoor.com.br/' + content['header']['jobLink']
-    listing.applies = None
-    listing.description = content['job']['description']
-    listing.publication_date = content['job']['discoverDate']
-    listing.save()
+    if listing.id is None:
+        listing.application_url = 'https://www.glassdoor.com.br/' + content['header']['jobLink']
+        listing.applies = None
+        listing.description = content['job']['description']
+        listing.publication_date = content['job']['discoverDate']
+        queue.put(1)
 
-    queue.put(1)
+    elif content['header'] is None or content['header']['applyButtonDisabled']:
+        listing.closed = True
+
+    listing.save()
 
     sleep_r(0.5)
 

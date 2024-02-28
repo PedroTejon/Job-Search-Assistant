@@ -24,8 +24,8 @@ function updateListingApplStatus(updatedValue) {
     updatedValue = null;
   }
 
-  // eslint-disable-next-line max-len
-  fetch(`http://localhost:8000/vagas/update_listing_applied_status?id=${currentListing.id}&value=${updatedValue}`, {method: 'POST'})
+  fetch(`http://localhost:8000/vagas/update_listing_applied_status?id=${currentListing.id}&value=${updatedValue}`,
+      {method: 'POST'})
       .then((response) => response.json())
       .then((data) => {
         listings[currentIndex].applied_to = updatedValue;
@@ -59,12 +59,25 @@ function updateListingApplStatus(updatedValue) {
       });
 }
 
+function updateListingDetails() {
+  // eslint-disable-next-line max-len
+  fetch(`http://localhost:8000/vagas/update_listing_details?id=${currentListing.platform_id}&platform=${currentListing.platform}`,
+      {method: 'GET'})
+      .then((response) => response.json())
+      .then((data) => {
+        currentListing = data['listing'];
+        listings[currentIndex] = currentListing;
+        show(currentIndex);
+      });
+}
+
 function applyNewFilterByHighlight(filterType) {
   // eslint-disable-next-line max-len
   if (confirm('Deseja adicionar isto aos filtros mesmo? As vagas com estas características já presentes no banco de dados serão marcadas como "Dispensada" automaticamente.')) {
     const type = highlightMode + '_' + filterType;
-    // eslint-disable-next-line max-len
-    fetch(`http://localhost:8000/vagas/update_filter_list?filter_value=${lastText}&filter_type=${type}`, {method: 'POST'})
+
+    fetch(`http://localhost:8000/vagas/update_filter_list?filter_value=${lastText}&filter_type=${type}`,
+        {method: 'POST'})
         .then((response) => response.json())
         .then((data) => {
           if (data.status != 409) {
@@ -91,7 +104,8 @@ function removeMultiValueFilter(removedValue, type) {
 }
 
 function extractListings() {
-  fetch('http://localhost:8000/vagas/start_listing_extraction', {method: 'POST'})
+  fetch('http://localhost:8000/vagas/start_listing_extraction',
+      {method: 'POST'})
       .then((response) => response.json())
       .then((data) => {
         updateFunc = window.setInterval(getListingExtractionStatus, 1000);
@@ -198,13 +212,15 @@ function search() {
   const getDismissed = document.getElementById('query_dismissed').checked;
   const getLocal = document.getElementById('query_local_listings').checked;
   const getRemote = document.getElementById('query_remote_listings').checked;
+  const getOpen = document.getElementById('query_open').checked;
+  const getClosed = document.getElementById('query_closed').checked;
   const getSortType = document.getElementById('query_sorting_type').value;
   const getFollowedCompaniesOnly = document.getElementById('query_followed_companies').checked;
   // eslint-disable-next-line max-len
   const getSortDirection = document.querySelector('#sorting_direction_button img').src == 'http://localhost:8000/static/sort-descending.svg' ? 'descending' : 'ascending';
 
   // eslint-disable-next-line max-len
-  let url = `http://localhost:8000/vagas/?page=1&listing=[${getApplied},${getDismissed},${getNew},${getLocal},${getRemote},${getFollowedCompaniesOnly}]&sort=["${getSortType}","${getSortDirection}"]`;
+  let url = `http://localhost:8000/vagas/?page=1&listing=[${getApplied},${getDismissed},${getNew},${getLocal},${getRemote},${getFollowedCompaniesOnly},${getOpen},${getClosed}]&sort=["${getSortType}","${getSortDirection}"]`;
   if (searchValue !== '') {
     url += '&query=' + searchValue;
   }
@@ -329,6 +345,13 @@ function show(listingIndex) {
       dismissButton.classList.remove('button_disabled');
     }
   }
+
+  const listingAvailability = document.getElementById('listing_availability');
+  if (currentListing.closed) {
+    listingAvailability.innerHTML = 'Vaga <b>FECHADA</b>';
+  } else {
+    listingAvailability.innerHTML = 'Vaga <b>ABERTA</b>';
+  }
 }
 
 if (!window.highlighter) {
@@ -437,7 +460,8 @@ function addMultiValueFilter(e) {
       return;
     }
 
-    fetch('http://localhost:8000/vagas/update_filter_list?filter_value=' + value + '&filter_type=' + type, {method: 'POST'})
+    fetch('http://localhost:8000/vagas/update_filter_list?filter_value=' + value + '&filter_type=' + type,
+        {method: 'POST'})
         .then((response) => response.json())
         .then((data) => {
           if (data.status != 409) {

@@ -63,6 +63,7 @@ class Listing(Model):
     application_url: TextField = TextField()
     publication_date: TextField = TextField()
     applied_to: BooleanField = BooleanField(null=True)
+    closed: BooleanField = BooleanField(default=False)
 
     def __str__(self: Self) -> str:
         return f'{{\n"id": "{self.id}"\n"title": "{self.title}",\n"location": "{self.location}",\n"company": "{self.company.id}",\n"company_name": "{self.company_name}",\n"workplace_type": "{self.workplace_type}",\n"platform_id": "{self.platform_id}"\n"platform": "{self.platform}",\n"application_url": "{self.application_url}",\n"description": "{self.description}",\n"applies": "{self.applies}",\n"publication_date": "{self.publication_date}"\n"applied_to": "{self.applied_to}"\n}}'  # noqa: E501

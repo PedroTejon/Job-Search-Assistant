@@ -225,51 +225,58 @@ def get_listing_details(listing: Listing) -> None:
         if tries > 3:
             raise PossibleAuthError
 
-    listing_description: str = response['data']['description']['text']
-    for attribute in sorted(response['data']['description']['attributes'], key=lambda x: x['start'], reverse=True):
-        curr_index: int = attribute['start']
-        before_text: str = listing_description[:curr_index]
-        text: str = listing_description[curr_index : curr_index + attribute['length']]
-        after_text: str = listing_description[curr_index + attribute['length'] :]
-        if attribute['type']['$type'] == 'com.linkedin.pemberly.text.ListItem':
-            listing_description = before_text + '<li>' + text + '</li>' + after_text
-        elif attribute['type']['$type'] == 'com.linkedin.pemberly.text.Bold':
-            listing_description = (
-                before_text + '<b>' + text + '</b>' + listing_description[curr_index + attribute['length'] :]
-            )
-        elif attribute['type']['$type'] == 'com.linkedin.pemberly.text.Italic':
-            listing_description = before_text + '<i>' + text + '</i>' + after_text
+    if listing.id is None:
+        listing_description: str = response['data']['description']['text']
+        for attribute in sorted(response['data']['description']['attributes'], key=lambda x: x['start'], reverse=True):
+            curr_index: int = attribute['start']
+            before_text: str = listing_description[:curr_index]
+            text: str = listing_description[curr_index : curr_index + attribute['length']]
+            after_text: str = listing_description[curr_index + attribute['length'] :]
+            if attribute['type']['$type'] == 'com.linkedin.pemberly.text.ListItem':
+                listing_description = before_text + '<li>' + text + '</li>' + after_text
+            elif attribute['type']['$type'] == 'com.linkedin.pemberly.text.Bold':
+                listing_description = (
+                    before_text + '<b>' + text + '</b>' + listing_description[curr_index + attribute['length'] :]
+                )
+            elif attribute['type']['$type'] == 'com.linkedin.pemberly.text.Italic':
+                listing_description = before_text + '<i>' + text + '</i>' + after_text
 
-    listing.description = listing_description.replace('\n', '<br>').replace('•', '\n•')
+        listing.description = listing_description.replace('\n', '<br>').replace('•', '\n•')
 
-    listing.applies = response['data']['applies']
-    listing.publication_date = datetime.fromtimestamp(response['data']['listedAt'] / 1000).strftime('%Y-%m-%dT%H:%M:%S')
+        listing.applies = response['data']['applies']
+        listing.publication_date = datetime.fromtimestamp(response['data']['listedAt'] / 1000).strftime(
+            '%Y-%m-%dT%H:%M:%S'
+        )
+
+        application_url_response: Response = session.get(
+            f'https://www.linkedin.com/voyager/api/graphql?includeWebMetadata=true&variables=(cardSectionTypes:List(TOP_CARD),jobPostingUrn:urn%3Ali%3Afsd_jobPosting%3A{listing_id},includeSecondaryActionsV2:true)&queryId=voyagerJobsDashJobPostingDetailSections.7a099d4cd4fe903e01deac5893fc08d0',
+            headers=MODULE_HEADERS
+            | {
+                'x-li-page-instance': 'urn:li:page:d_flagship3_jobs_discovery_jymbii;ycV3lFUlTMONvjhem4yCrw==',
+            },
+        )
+        if application_url_response.status_code == 200:
+            listing.application_url = next(
+                filter(lambda element: 'companyApplyUrl' in element, application_url_response.json()['included'])
+            )['companyApplyUrl']
+
+        if listing.application_url is None or listing.application_url.startswith('https://www.linkedin.com/job-apply/'):
+            listing.application_url = f'https://www.linkedin.com/jobs/view/{listing_id}/'
+
+        company: Company = listing.company
+        for element in response['included']:
+            if 'followerCount' in element and company.platforms['linkedin']['followers'] is None:
+                company.platforms['linkedin']['followers'] = element['followerCount']
+            if 'staffCount' in element and company.employee_count is None:
+                company.employee_count = element['staffCount']
+
+        company.save()
+
+    if response['data']['closedAt'] is not None:
+        listing.closed = True
 
     sleep_r(0.5)
 
-    application_url_response: Response = session.get(
-        f'https://www.linkedin.com/voyager/api/graphql?includeWebMetadata=true&variables=(cardSectionTypes:List(TOP_CARD),jobPostingUrn:urn%3Ali%3Afsd_jobPosting%3A{listing_id},includeSecondaryActionsV2:true)&queryId=voyagerJobsDashJobPostingDetailSections.7a099d4cd4fe903e01deac5893fc08d0',
-        headers=MODULE_HEADERS
-        | {
-            'x-li-page-instance': 'urn:li:page:d_flagship3_jobs_discovery_jymbii;ycV3lFUlTMONvjhem4yCrw==',
-        },
-    )
-    if application_url_response.status_code == 200:
-        listing.application_url = next(
-            filter(lambda element: 'companyApplyUrl' in element, application_url_response.json()['included'])
-        )['companyApplyUrl']
-
-    if listing.application_url is None or listing.application_url.startswith('https://www.linkedin.com/job-apply/'):
-        listing.application_url = f'https://www.linkedin.com/jobs/view/{listing_id}/'
-
-    company: Company = listing.company
-    for element in response['included']:
-        if 'followerCount' in element and company.platforms['linkedin']['followers'] is None:
-            company.platforms['linkedin']['followers'] = element['followerCount']
-        if 'staffCount' in element and company.employee_count is None:
-            company.employee_count = element['staffCount']
-
-    company.save()
     listing.save()
 
 

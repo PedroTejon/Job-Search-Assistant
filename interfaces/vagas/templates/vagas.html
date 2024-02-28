@@ -203,6 +203,12 @@
                                 
                                 <label for="query_dismissed" style="grid-column: 1/ span 2;">Vagas dispensadas:</label>
                                 <input id="query_dismissed" type="checkbox" {{ listing_properties.1 | yesno:"checked," }} style="grid-column: 3;">
+
+                                <label for="query_open" style="grid-column: 1/ span 2;">Vagas abertas:</label>
+                                <input id="query_open" type="checkbox" {{ listing_properties.6 | yesno:"checked," }} style="grid-column: 3;">
+
+                                <label for="query_closed" style="grid-column: 1/ span 2;">Vagas fechadas:</label>
+                                <input id="query_closed" type="checkbox" {{ listing_properties.7 | yesno:"checked," }} style="grid-column: 3;">
                                 
                                 <label for="query_local_listings" style="grid-column: 1/ span 2;">Vagas locais:</label>
                                 <input id="query_local_listings" type="checkbox" {{ listing_properties.3 | yesno:"checked," }} style="grid-column: 3;">
@@ -375,7 +381,10 @@
                         <a id="apply_button" target="_blank">Candidatar-se</a>
                         <button title="Me inscrevi na vaga" id="applied_button" onclick="updateListingApplStatus(true)"><img style="filter: invert(100%)" class="listing_status" src="{% static 'check.svg' %}" width="16" height="16"></button>
                         <button title="Dispensar vaga" id="dismissed_button" onclick="updateListingApplStatus(false)"><img style="filter: invert(100%)" class="listing_status" src="{% static 'x.svg' %}" width="16" height="16"></button>
+                        <button id="update_listing_button" onclick="updateListingDetails()">Atualizar dados <img src="{% static 'refresh.svg' %}" width="14" height="14"></button>
+                        <p id="listing_availability"></p>
                     </div>
+                    
                 </div>
                 <br>    
                 <hr>
