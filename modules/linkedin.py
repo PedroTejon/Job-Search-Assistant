@@ -7,7 +7,7 @@ from re import sub
 from traceback import format_exc
 from typing import TYPE_CHECKING
 
-from cloudscraper import CloudScraper, create_scraper
+from cloudscraper import CloudScraper, create_scraper  # type: ignore[import-untyped]
 from django.utils.timezone import now
 
 from interfaces.vagas.models import Company, Listing
@@ -218,7 +218,7 @@ def get_listing_details(listing: Listing) -> None:
         )
 
         if response.status_code == 200:
-            response = response.json()
+            content = response.json()
             break
 
         tries += 1
@@ -226,8 +226,8 @@ def get_listing_details(listing: Listing) -> None:
             raise PossibleAuthError
 
     if listing.id is None:
-        listing_description: str = response['data']['description']['text']
-        for attribute in sorted(response['data']['description']['attributes'], key=lambda x: x['start'], reverse=True):
+        listing_description: str = content['data']['description']['text']
+        for attribute in sorted(content['data']['description']['attributes'], key=lambda x: x['start'], reverse=True):
             curr_index: int = attribute['start']
             before_text: str = listing_description[:curr_index]
             text: str = listing_description[curr_index : curr_index + attribute['length']]
@@ -243,8 +243,8 @@ def get_listing_details(listing: Listing) -> None:
 
         listing.description = listing_description.replace('\n', '<br>').replace('•', '\n•')
 
-        listing.applies = response['data']['applies']
-        listing.publication_date = datetime.fromtimestamp(response['data']['listedAt'] / 1000).strftime(
+        listing.applies = content['data']['applies']
+        listing.publication_date = datetime.fromtimestamp(content['data']['listedAt'] / 1000).strftime(
             '%Y-%m-%dT%H:%M:%S'
         )
 
@@ -264,7 +264,7 @@ def get_listing_details(listing: Listing) -> None:
             listing.application_url = f'https://www.linkedin.com/jobs/view/{listing_id}/'
 
         company: Company = listing.company
-        for element in response['included']:
+        for element in content['included']:
             if 'followerCount' in element and company.platforms['linkedin']['followers'] is None:
                 company.platforms['linkedin']['followers'] = element['followerCount']
             if 'staffCount' in element and company.employee_count is None:
@@ -272,7 +272,7 @@ def get_listing_details(listing: Listing) -> None:
 
         company.save()
 
-    if response['data']['closedAt'] is not None:
+    if content['data']['closedAt'] is not None:
         listing.closed = True
 
     sleep_r(0.5)

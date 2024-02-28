@@ -5,7 +5,7 @@ from queue import Queue
 from traceback import format_exc
 from typing import TYPE_CHECKING
 
-from cloudscraper import CloudScraper, create_scraper
+from cloudscraper import CloudScraper, create_scraper  # type: ignore[import-untyped]
 
 from interfaces.vagas.models import Listing
 from modules.exceptions import PossibleAuthError

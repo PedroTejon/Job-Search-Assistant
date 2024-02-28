@@ -6,7 +6,7 @@ from traceback import format_exc
 from typing import TYPE_CHECKING
 
 from bs4 import BeautifulSoup
-from cloudscraper import CloudScraper, create_scraper
+from cloudscraper import CloudScraper, create_scraper  # type: ignore[import-untyped]
 from django.utils.timezone import datetime, now, timedelta  # type: ignore[attr-defined]
 
 from interfaces.vagas.models import Company, Listing

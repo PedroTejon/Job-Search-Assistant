@@ -5,7 +5,7 @@ from queue import Queue
 from traceback import format_exc
 from typing import TYPE_CHECKING
 
-from cloudscraper import CloudScraper, create_scraper
+from cloudscraper import CloudScraper, create_scraper  # type: ignore[import-untyped]
 from django.utils.timezone import now
 
 from interfaces.vagas.models import Company, Listing
