@@ -31,6 +31,7 @@ Job Search Assistant currently supports these sources:
 ```
 4. Finally, start the application at http://localhost:8000 by running:
 ```cmd
+    python manage.py migrate (you only need to run this once on installation and once more everytime you update this to make sure everything is applied)
     python manage.py runserver
 ```
 
