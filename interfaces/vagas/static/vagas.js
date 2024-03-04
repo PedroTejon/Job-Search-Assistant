@@ -60,15 +60,57 @@ function updateListingApplStatus(updatedValue) {
 }
 
 function updateListingDetails() {
+  const indexAtTime = currentIndex;
   // eslint-disable-next-line max-len
   fetch(`http://localhost:8000/vagas/update_listing_details?id=${currentListing.platform_id}&platform=${currentListing.platform}`,
       {method: 'GET'})
       .then((response) => response.json())
       .then((data) => {
-        currentListing = data['listing'];
-        listings[currentIndex] = currentListing;
-        show(currentIndex);
+        listings[indexAtTime] = data['listing'];
+
+        if (currentIndex === indexAtTime) {
+          currentListing = data['listing'];
+          show(currentIndex);
+        } else {
+          updateUI(data['listing'], indexAtTime);
+        }
       });
+}
+
+function updateUI(listing, index) {
+  const dismissButton = document.getElementById('dismissed_button');
+  const appliedButton = document.getElementById('applied_button');
+  const listingStatus = document.querySelector(`#listing_${index} .listing_status`);
+  if (listing.applied_to) {
+    listingStatus.src = 'http://localhost:8000/static/check.svg';
+
+    if (currentIndex === index) {
+      dismissButton.classList.add('button_disabled');
+      if (appliedButton.classList.contains('button_disabled')) {
+        appliedButton.classList.remove('button_disabled');
+      }
+    }
+  } else if (listing.applied_to === false) {
+    listingStatus.src = 'http://localhost:8000/static/x.svg';
+
+    if (currentIndex === index) {
+      appliedButton.classList.add('button_disabled');
+      if (dismissButton.classList.contains('button_disabled')) {
+        dismissButton.classList.remove('button_disabled');
+      }
+    }
+  } else {
+    listingStatus.src = 'http://localhost:8000/static/transparent.svg';
+
+    if (currentIndex === index) {
+      if (appliedButton.classList.contains('button_disabled')) {
+        appliedButton.classList.remove('button_disabled');
+      }
+      if (dismissButton.classList.contains('button_disabled')) {
+        dismissButton.classList.remove('button_disabled');
+      }
+    }
+  }
 }
 
 function applyNewFilterByHighlight(filterType) {
@@ -242,6 +284,8 @@ function show(listingIndex) {
   currentIndex = listingIndex;
   currentListing = listings[currentIndex];
 
+  updateUI(currentListing, currentIndex);
+
   if (document.getElementsByClassName('current_listing').length != 0) {
     document.getElementsByClassName('current_listing')[0].classList.remove('current_listing');
   }
@@ -316,34 +360,6 @@ function show(listingIndex) {
   const applyButton = document.getElementById('apply_button');
   if (currentListing.application_url) {
     applyButton.href = currentListing.application_url;
-  }
-
-  const dismissButton = document.getElementById('dismissed_button');
-  const appliedButton = document.getElementById('applied_button');
-  const listingStatus = document.querySelector(`#listing_${currentIndex} .listing_status`);
-  if (currentListing.applied_to) {
-    listingStatus.src = 'http://localhost:8000/static/check.svg';
-
-    dismissButton.classList.add('button_disabled');
-    if (appliedButton.classList.contains('button_disabled')) {
-      appliedButton.classList.remove('button_disabled');
-    }
-  } else if (currentListing.applied_to === false) {
-    listingStatus.src = 'http://localhost:8000/static/x.svg';
-
-    appliedButton.classList.add('button_disabled');
-    if (dismissButton.classList.contains('button_disabled')) {
-      dismissButton.classList.remove('button_disabled');
-    }
-  } else {
-    listingStatus.src = 'http://localhost:8000/static/transparent.svg';
-
-    if (appliedButton.classList.contains('button_disabled')) {
-      appliedButton.classList.remove('button_disabled');
-    }
-    if (dismissButton.classList.contains('button_disabled')) {
-      dismissButton.classList.remove('button_disabled');
-    }
   }
 
   const listingAvailability = document.getElementById('listing_availability');

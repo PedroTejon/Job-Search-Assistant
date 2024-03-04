@@ -243,7 +243,6 @@ def get_listing_details(listing: Listing) -> None:
 
         listing.description = listing_description.replace('\n', '<br>').replace('•', '\n•')
 
-        listing.applies = content['data']['applies']
         listing.publication_date = datetime.fromtimestamp(content['data']['listedAt'] / 1000).strftime(
             '%Y-%m-%dT%H:%M:%S'
         )
@@ -272,8 +271,11 @@ def get_listing_details(listing: Listing) -> None:
 
         company.save()
 
-    if content['data']['closedAt'] is not None:
+    if content['data']['closedAt'] is not None or content['data']['jobState'] == 'SUSPENDED':
         listing.closed = True
+
+    if content['data'] is not None and content['data']['applies'] is not None:
+        listing.applies = content['data']['applies']
 
     sleep_r(0.5)
 

@@ -44,7 +44,9 @@ def index(request: HttpRequest) -> HttpResponse:
     template = loader.get_template('vagas.html')
     page = int(request.GET.get('page', 1))
     search_query = request.GET.get('query', '')
-    listing_query: list[bool] = loads(request.GET.get('listing', '[false, false, true, true, true, false, true, false]'))
+    listing_query: list[bool] = loads(
+        request.GET.get('listing', '[false, false, true, true, true, false, true, false]')
+    )
     sorting_query: list[str] = loads(request.GET.get('sort', '["id", "descending"]'))
     companies_query: list[str] = loads(request.GET.get('companies', '[]'))
     cities_query: list[str] = loads(request.GET.get('cities', '[]'))
@@ -131,6 +133,9 @@ def update_listing_details(request: HttpRequest) -> JsonResponse:
         linkedin_update(listing)
     elif listing_plat == 'Glassdoor':
         glassdoor_update(listing)
+
+    if listing.applied_to is None and listing.closed:
+        listing.applied_to = False
 
     return JsonResponse({'status': 200, 'listing': model_to_dict(listing)})
 
