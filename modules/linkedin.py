@@ -11,12 +11,12 @@ from cloudscraper import CloudScraper, create_scraper  # type: ignore[import-unt
 from django.utils.timezone import now
 
 from interfaces.vagas.models import Company, Listing
-from modules.exceptions import PossibleAuthError
 from modules.utils import (
     DEFAULT_HEADERS,
     asciify_text,
     company_exists_by_id,
     filter_listing,
+    get,
     get_company_by_name,
     listing_exists,
     reload_filters,
@@ -90,19 +90,15 @@ def get_job_listings(url: str) -> None:
     page = 0
 
     session: CloudScraper = create_scraper(browser={'browser': 'chrome', 'platform': 'windows', 'mobile': False})
+    session.headers = MODULE_HEADERS | {
+        'x-li-page-instance': 'urn:li:page:d_flagship3_search_srp_jobs;xhW+cLKCSmyQdAS+CI2l+Q==',
+        'x-li-pem-metadata': 'Voyager - Careers=jobs-search-results',
+    }
     while True:
         if page > 40:
             break
 
-        response: Response = session.get(
-            url + f'&start={25 * page}',
-            headers=MODULE_HEADERS
-            | {
-                'x-li-page-instance': 'urn:li:page:d_flagship3_search_srp_jobs;xhW+cLKCSmyQdAS+CI2l+Q==',
-                'x-li-pem-metadata': 'Voyager - Careers=jobs-search-results',
-            },
-        )
-
+        response: Response = get(url + f'&start={25 * page}', session, (200, 400, 429))
         if response.status_code in {400, 429}:
             sleep_r(1)
             continue
@@ -203,27 +199,15 @@ def get_remote_listings() -> None:
 def get_listing_details(listing: Listing) -> None:
     listing_id: str = listing.platform_id
 
-    tries = 1
-    while tries <= 3:
-        sleep_r(0.5)
+    session: CloudScraper = create_scraper(browser={'browser': 'chrome', 'platform': 'windows', 'mobile': False})
+    session.headers = MODULE_HEADERS | {
+        'x-li-page-instance': 'urn:li:page:d_flagship3_jobs_discovery_jymbii;ycV3lFUlTMONvjhem4yCrw==',
+    }
 
-        session: CloudScraper = create_scraper(browser={'browser': 'chrome', 'platform': 'windows', 'mobile': False})
-
-        response: Response = session.get(
-            f'https://www.linkedin.com/voyager/api/jobs/jobPostings/{listing_id}?decorationId=com.linkedin.voyager.deco.jobs.web.shared.WebFullJobPosting-65&topN=1&topNRequestedFlavors=List(TOP_APPLICANT,IN_NETWORK,COMPANY_RECRUIT,SCHOOL_RECRUIT,HIDDEN_GEM,ACTIVELY_HIRING_COMPANY)',
-            headers=MODULE_HEADERS
-            | {
-                'x-li-page-instance': 'urn:li:page:d_flagship3_jobs_discovery_jymbii;ycV3lFUlTMONvjhem4yCrw==',
-            },
-        )
-
-        if response.status_code == 200:
-            content = response.json()
-            break
-
-        tries += 1
-        if tries > 3:
-            raise PossibleAuthError
+    content = get(
+        f'https://www.linkedin.com/voyager/api/jobs/jobPostings/{listing_id}?decorationId=com.linkedin.voyager.deco.jobs.web.shared.WebFullJobPosting-65&topN=1&topNRequestedFlavors=List(TOP_APPLICANT,IN_NETWORK,COMPANY_RECRUIT,SCHOOL_RECRUIT,HIDDEN_GEM,ACTIVELY_HIRING_COMPANY)',
+        session,
+    ).json()
 
     if listing.id is None:
         listing_description: str = content['data']['description']['text']
@@ -247,17 +231,9 @@ def get_listing_details(listing: Listing) -> None:
             '%Y-%m-%dT%H:%M:%S'
         )
 
-        application_url_response: Response = session.get(
-            f'https://www.linkedin.com/voyager/api/graphql?includeWebMetadata=true&variables=(cardSectionTypes:List(TOP_CARD),jobPostingUrn:urn%3Ali%3Afsd_jobPosting%3A{listing_id},includeSecondaryActionsV2:true)&queryId=voyagerJobsDashJobPostingDetailSections.7a099d4cd4fe903e01deac5893fc08d0',
-            headers=MODULE_HEADERS
-            | {
-                'x-li-page-instance': 'urn:li:page:d_flagship3_jobs_discovery_jymbii;ycV3lFUlTMONvjhem4yCrw==',
-            },
+        listing.application_url = content['data']['applyMethod'].get(
+            'companyApplyUrl', f'https://www.linkedin.com/jobs/view/{listing_id}/'
         )
-        if application_url_response.status_code == 200:
-            listing.application_url = next(
-                filter(lambda element: 'companyApplyUrl' in element, application_url_response.json()['included'])
-            )['companyApplyUrl']
 
         if listing.application_url is None or listing.application_url.startswith('https://www.linkedin.com/job-apply/'):
             listing.application_url = f'https://www.linkedin.com/jobs/view/{listing_id}/'
@@ -291,22 +267,10 @@ def get_followed_companies() -> None:
     max_index = 100
     curr_index = 0
     while curr_index < max_index:
-        tries = 1
-        while tries <= 3:
-            response: Response = session.get(
-                f'https://www.linkedin.com/voyager/api/graphql?variables=(start:{curr_index},count:100,paginationToken:null,pagedListComponent:urn%3Ali%3Afsd_profilePagedListComponent%3A%28{profile_id}%2CINTERESTS_VIEW_DETAILS%2Curn%3Ali%3Afsd_profileTabSection%3ACOMPANIES_INTERESTS%2CNONE%2Cpt_BR%29)&queryId=voyagerIdentityDashProfileComponents.3efef764c5f936e8a825b8674c814b0c',
-                headers=MODULE_HEADERS
-                | {
-                    'x-li-page-instance': 'urn:li:page:d_flagship3_profile_view_base_interests_details;SMBEUWK7RWSdHCxtKcrvaw==',  # noqa: E501
-                },
-            )
-
-            if response.status_code == 200:
-                company_details: dict = response.json()
-                break
-            tries += 1
-            if tries > 3:
-                raise PossibleAuthError
+        company_details = get(
+            f'https://www.linkedin.com/voyager/api/graphql?variables=(start:{curr_index},count:100,paginationToken:null,pagedListComponent:urn%3Ali%3Afsd_profilePagedListComponent%3A%28{profile_id}%2CINTERESTS_VIEW_DETAILS%2Curn%3Ali%3Afsd_profileTabSection%3ACOMPANIES_INTERESTS%2CNONE%2Cpt_BR%29)&queryId=voyagerIdentityDashProfileComponents.3efef764c5f936e8a825b8674c814b0c',
+            session,
+        ).json()
 
         max_index = company_details['data']['data']['identityDashProfileComponentsByPagedListComponent']['paging'][
             'total'

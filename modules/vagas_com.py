@@ -10,11 +10,11 @@ from cloudscraper import CloudScraper, create_scraper  # type: ignore[import-unt
 from django.utils.timezone import datetime, now, timedelta  # type: ignore[attr-defined]
 
 from interfaces.vagas.models import Company, Listing
-from modules.exceptions import PossibleAuthError
 from modules.utils import (
     DEFAULT_HEADERS,
     asciify_text,
     filter_listing,
+    get,
     get_company_by_name,
     listing_exists,
     reload_filters,
@@ -96,8 +96,9 @@ def filter_location(location: str, workplace_type: str) -> bool:
 
 def get_companies_listings() -> None:
     session: CloudScraper = create_scraper(browser={'browser': 'chrome', 'platform': 'windows', 'mobile': False})
+    session.headers = MODULE_HEADERS
 
-    for company in filter(
+    for company in filter(  # noqa: PLR1702
         lambda x: x.platforms['vagas_com']['name'] not in {None, 'not_found'}
         and not x.checked_recently('vagas_com')
         and x.followed,
@@ -107,9 +108,8 @@ def get_companies_listings() -> None:
 
         while True:
             sleep_r(0.5)
-            response: Response = session.get(
-                f"https://www.vagas.com.br/empregos/{company.platforms['vagas_com']['id']}?page={page}",
-                headers=MODULE_HEADERS,
+            response: Response = get(
+                f"https://www.vagas.com.br/empregos/{company.platforms['vagas_com']['id']}?page={page}", session
             )
             soup = BeautifulSoup(response.text, 'html.parser')
 
@@ -124,7 +124,7 @@ def get_companies_listings() -> None:
 
             for url in listing_urls:
                 sleep_r(0.5)
-                listing_response: Response = session.get('https://www.vagas.com.br' + url, headers=MODULE_HEADERS)
+                listing_response: Response = get('https://www.vagas.com.br' + url, session)
                 listing_soup = BeautifulSoup(listing_response.text, 'html.parser')
 
                 listing = Listing()
@@ -191,20 +191,9 @@ def get_companies_listings() -> None:
 
 def get_recommended_listings() -> None:
     session: CloudScraper = create_scraper(browser={'browser': 'chrome', 'platform': 'windows', 'mobile': False})
+    session.headers = MODULE_HEADERS
 
-    tries = 1
-    while tries <= 3:
-        response: Response = session.get(
-            'https://api-candidato.vagas.com.br/v1/perfis/paginas_personalizadas', headers=MODULE_HEADERS
-        )
-
-        if response.status_code == 200:
-            content: dict = response.json()
-            break
-
-        tries += 1
-        if tries > 3:
-            raise PossibleAuthError
+    content: dict = get('https://api-candidato.vagas.com.br/v1/perfis/paginas_personalizadas', session).json()
 
     for listing in content['vagas_similares']:
         listing_title: str = listing['cargo']

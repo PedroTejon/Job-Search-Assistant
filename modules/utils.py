@@ -5,11 +5,16 @@ from os import listdir
 from random import randint
 from re import sub
 from time import sleep
+from typing import TYPE_CHECKING
 
 from unidecode import unidecode
 
 from interfaces.vagas.models import Company, Listing
-from modules.exceptions import InvalidPlatformError
+from modules.exceptions import InvalidPlatformError, PossibleAuthError
+
+if TYPE_CHECKING:
+    from cloudscraper import CloudScraper  # type: ignore[import-untyped]
+    from requests import Response
 
 if 'filters.json' not in listdir('data'):
     filters: dict[str, list[str]] = {
@@ -61,6 +66,36 @@ def company_exists_by_id(c_id: str, platform: str) -> bool:
         return Company.objects.filter(platforms__vagas_com__id__exact=c_id).exists()
 
     return False
+
+
+def get(url: str, session: CloudScraper, allowed_statuses: tuple = (200,)) -> Response:
+    tries = 0
+    while tries < 3:
+        sleep_r(0.5)
+
+        response: Response = session.get(url)
+
+        if response.status_code in allowed_statuses:
+            return response
+
+        tries += 1
+
+    raise PossibleAuthError
+
+
+def post(url: str, session: CloudScraper, request_body: dict | list, allowed_statuses: tuple = (200,)) -> Response:
+    tries = 0
+    while tries < 3:
+        sleep_r(0.5)
+
+        response: Response = session.post(url, json=request_body)
+
+        if response.status_code in allowed_statuses:
+            return response
+
+        tries += 1
+
+    raise PossibleAuthError
 
 
 def get_company_by_name(c_name: str, platform: str) -> Company:
