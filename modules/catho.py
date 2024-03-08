@@ -265,5 +265,5 @@ def get_jobs(curr_queue: Queue, curr_log_queue: Queue) -> None:
 
         log_queue.put({
             'type': 'error',
-            'exception': traceback.splitlines()[-1] + '\n' + traceback.splitlines()[-3],
+            'exception': traceback,
         })
