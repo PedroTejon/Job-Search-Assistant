@@ -79,6 +79,7 @@ def setup() -> None:
                 driver.goto('https://www.glassdoor.com.br/')
             print('Conta do Glassdoor conectada com sucesso')
 
+            driver.goto('https://www.glassdoor.com.br/Vaga/index.htm', wait_until='load')
             soup = BeautifulSoup(driver.content(), 'html.parser')
             data_element = soup.find('script', {'id': '__NEXT_DATA__'})
             if data_element is not None:

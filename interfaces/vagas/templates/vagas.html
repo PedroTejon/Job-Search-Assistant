@@ -221,7 +221,7 @@
                                     <option value="id" {% if sorting_properties.0 == 'id' %} selected {% endif %}>Data (Extração)</option>
                                     <option value="applies" {% if sorting_properties.0 == 'applies' %} selected {% endif %}>Nº Candidatos</option>
                                 </select>
-                                <button id="sorting_direction_button" onclick="alternateSortingDirection()"><img src="{% if sorting_properties.1 == 'descending' %} {% static 'sort-descending.svg' %} {% else %} {% static 'sort-ascending.svg' %} {% endif %}" width="16" height="16" style="grid-column: 3;"></button>
+                                <button id="sorting_direction_button" onclick="alternateSortingDirection()"><img src="{% if sorting_properties.1 == 'descending' %} {% static 'sort-descending.svg' %} {% else %} {% static 'sort-descending.svg' %} {% endif %}" width="16" height="16" style="grid-column: 3;"></button>
                             </div>
                         </div>
                     </div>
