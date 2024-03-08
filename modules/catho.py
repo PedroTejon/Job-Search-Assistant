@@ -8,8 +8,15 @@ from typing import TYPE_CHECKING
 from cloudscraper import CloudScraper, create_scraper  # type: ignore[import-untyped]
 
 from interfaces.vagas.models import Listing
-from modules.exceptions import PossibleAuthError
-from modules.utils import DEFAULT_HEADERS, asciify_text, get_company_by_name, listing_exists, reload_filters, sleep_r
+from modules.utils import (
+    DEFAULT_HEADERS,
+    asciify_text,
+    get,
+    get_company_by_name,
+    listing_exists,
+    reload_filters,
+    sleep_r,
+)
 
 if TYPE_CHECKING:
     from requests import Response
@@ -86,34 +93,19 @@ def get_recommended_listings(location_ids: dict[str, list[int]]) -> None:
         else:
             headers['lasteventtype'] = ''
             headers['lastjobid'] = ''
+        session.headers = headers
 
-        tries = 1
-        while tries <= 3:
-            response: Response = session.get(
-                'https://seguro.catho.com.br/area-candidato/api/suggested-job', headers=headers
-            )
-
-            if response.status_code in {200, 204}:
-                break
-            tries += 1
-            if tries > 3:
-                raise PossibleAuthError
-
+        response: Response = get('https://seguro.catho.com.br/area-candidato/api/suggested-job', session, (200, 204))
         if response.status_code == 204:
             break
 
         content: dict[str, str] = response.json()['data']
         listing_id = content['id']
         if not listing_exists(listing_id):
-            listing_resp: Response = session.get(
+            listing_json = get(
                 f'https://www.catho.com.br/vagas/_next/data/{build_id}/sugestao/{listing_id}.json?origem_apply=sugestao-de-vagas&entrada_apply=direto&slug={listing_id}',
-                headers=MODULE_HEADERS,
-            )
-
-            if listing_resp.status_code == 404:
-                raise PossibleAuthError
-
-            listing_json = listing_resp.json()['pageProps']
+                session,
+            ).json()['pageProps']
 
             listing_details: dict = listing_json['jobAdData']
             company_name: str = (
@@ -143,9 +135,9 @@ def get_recommended_listings(location_ids: dict[str, list[int]]) -> None:
                 else:
                     listing.application_url = f'https://www.catho.com.br/vagas/sugestao/{listing_id}'
 
-                listing.applies = session.get(
+                listing.applies = get(
                     f'https://www.catho.com.br/anuncios/api/rank-position/{listing_id}/4740666336240438',
-                    headers=MODULE_HEADERS,
+                    session,
                 ).json()['balance']
 
                 if (company := get_company_by_name(company_name, 'catho')).platforms['catho']['name'] is None:
@@ -169,85 +161,49 @@ def get_recommended_listings(location_ids: dict[str, list[int]]) -> None:
 def get_location_ids() -> dict:
     location_ids: dict[str, list[int]] = {'cities': [], 'states': [], 'countries': []}
 
-    session: CloudScraper = create_scraper(browser={'browser': 'chrome', 'platform': 'windows', 'mobile': False})
+    session: CloudScraper = create_scraper(
+        browser={'browser': 'chrome', 'platform': 'windows', 'mobile': False},
+    )
+    session.headers = MODULE_HEADERS
 
     for city in filters['cities']:
-        tries = 1
-        while tries <= 3:
-            response: Response = session.get(
-                f'https://seguro.catho.com.br/vagas/vagas-api/location/?locationName={city}', headers=MODULE_HEADERS
-            )
-
-            if response.status_code == 200:
-                value: dict | None = next(
-                    (
-                        entry
-                        for entry in response.json()['data']
-                        if asciify_text(entry['name']) == city and entry['type'] == 'city'
-                    ),
-                    None,
-                )
-                if value:
-                    location_ids['cities'].append(value['id'])
-                break
-
-            tries += 1
-            if tries > 3:
-                raise PossibleAuthError
+        content: dict = get(
+            f'https://seguro.catho.com.br/vagas/vagas-api/location/?locationName={city}', session
+        ).json()
 
         sleep_r(0.5)
+        value: dict | None = next(
+            (entry for entry in content['data'] if asciify_text(entry['name']) == city and entry['type'] == 'city'),
+            None,
+        )
+        if value:
+            location_ids['cities'].append(value['id'])
 
     for state in filters['states']:
-        tries = 1
-        while tries <= 3:
-            response = session.get(
-                f'https://seguro.catho.com.br/vagas/vagas-api/location/?locationName={state}', headers=MODULE_HEADERS
-            )
-
-            if response.status_code == 200:
-                value = next(
-                    (
-                        entry
-                        for entry in response.json()['data']
-                        if asciify_text(entry['name']) == state and entry['type'] == 'state'
-                    ),
-                    None,
-                )
-                if value:
-                    location_ids['states'].append(value['id'])
-                break
-
-            tries += 1
-            if tries > 3:
-                raise PossibleAuthError
+        content = get(f'https://seguro.catho.com.br/vagas/vagas-api/location/?locationName={state}', session).json()
 
         sleep_r(0.5)
+        value = next(
+            (entry for entry in content['data'] if asciify_text(entry['name']) == state and entry['type'] == 'state'),
+            None,
+        )
+        if value:
+            location_ids['states'].append(value['id'])
 
     for country in filters['countries']:
-        tries = 1
-        while tries <= 3:
-            response = session.get(
-                f'https://seguro.catho.com.br/vagas/vagas-api/location/?locationName={country}', headers=MODULE_HEADERS
-            )
-
-            if response.status_code == 200:
-                value = next(
-                    (
-                        entry
-                        for entry in response.json()['data']
-                        if asciify_text(entry['name']) == country and entry['type'] == 'country'
-                    ),
-                    None,
-                )
-                if value:
-                    location_ids['countries'].append(value['id'])
-                break
-
-            tries += 1
-            if tries > 3:
-                raise PossibleAuthError
+        content = get(f'https://seguro.catho.com.br/vagas/vagas-api/location/?locationName={country}', session).json()
 
         sleep_r(0.5)
+        value = next(
+            (
+                entry
+                for entry in content['data']
+                if asciify_text(entry['name']) == country and entry['type'] == 'country'
+            ),
+            None,
+        )
+        if value:
+            location_ids['countries'].append(value['id'])
 
     return location_ids
 
