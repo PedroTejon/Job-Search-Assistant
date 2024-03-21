@@ -209,10 +209,10 @@ def get_followed_companies() -> None:
         session: CloudScraper = create_scraper(
             browser={'browser': 'chrome', 'platform': 'windows', 'mobile': False},
         )
-        session.headers = {'cookie': COOKIES}
 
         response: Response = session.get(
             f"http://www.glassdoor.com.br/api-web/employer/find.htm?autocomplete=true&term={company.platforms['linkedin']['name']}",
+            headers={'cookie': COOKIES},
         )
         content: list[dict] = response.json()
 
