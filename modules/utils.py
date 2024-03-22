@@ -58,7 +58,7 @@ def reload_filters() -> None:
 
 def company_exists_by_id(c_id: str, platform: str) -> bool:
     if platform in PLATFORM_IDS:
-        return Company.objects.filter({f'platforms__{platform}__id__exact': c_id}).exists()
+        return Company.objects.filter(**{f'platforms__{platform}__id__exact': c_id}).exists()
 
     return False
 
@@ -66,7 +66,7 @@ def company_exists_by_id(c_id: str, platform: str) -> bool:
 def get_company_by_name(c_name: str, platform: str) -> Company:
     try:
         if platform in PLATFORM_IDS:
-            return Company.objects.get({f'platforms__{platform}__id__exact': c_name})
+            return Company.objects.get(**{f'platforms__{platform}__id__exact': c_name})
 
         raise InvalidPlatformError
     except Company.DoesNotExist:
