@@ -13,6 +13,8 @@ from django.db.models import (
 )
 from django.utils.timezone import make_aware, now
 
+from modules import PLATFORM_IDS
+
 
 class Company(Model):
     class Meta:
@@ -28,10 +30,7 @@ class Company(Model):
 
     def get_default_platforms() -> dict:  # type: ignore[misc]
         return {
-            'linkedin': {'id': None, 'name': None, 'followers': None, 'last_check': None},
-            'glassdoor': {'id': None, 'name': None, 'last_check': None},
-            'catho': {'id': None, 'name': None, 'last_check': None},
-            'vagas_com': {'id': None, 'name': None, 'last_check': None},
+            platform: {'id': None, 'name': None, 'followers': None, 'last_check': None} for platform in PLATFORM_IDS
         }
 
     platforms: JSONField = JSONField(default=get_default_platforms)

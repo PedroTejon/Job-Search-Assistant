@@ -17,6 +17,7 @@ from numpy import arange, split
 from unidecode import unidecode
 
 from interfaces.vagas.models import Listing
+from modules import PLATFORM_IDS
 from modules.catho import get_jobs as catho_extraction
 from modules.glassdoor import get_jobs as glassdoor_extraction
 from modules.glassdoor import get_listing_details as glassdoor_update
@@ -33,10 +34,7 @@ class PlatformThreadInfo(TypedDict):
 
 
 threads: dict[str, PlatformThreadInfo] = {
-    'linkedin': {'thread': Thread(), 'queue': Queue(), 'log_queue': Queue()},
-    'glassdoor': {'thread': Thread(), 'queue': Queue(), 'log_queue': Queue()},
-    'catho': {'thread': Thread(), 'queue': Queue(), 'log_queue': Queue()},
-    'vagas_com': {'thread': Thread(), 'queue': Queue(), 'log_queue': Queue()},
+    platform: {'thread': Thread(), 'queue': Queue(), 'log_queue': Queue()} for platform in PLATFORM_IDS
 }
 
 
@@ -117,7 +115,7 @@ def update_filter_list(request: HttpRequest) -> JsonResponse:
     with open('data/filters.json', 'w', encoding='utf-8') as filters_f:
         dump(filters, filters_f, ensure_ascii=False)
 
-    for platform in ['linkedin', 'glassdoor', 'catho', 'vagas_com']:
+    for platform in PLATFORM_IDS:
         if threads[platform]['thread'] is not None and threads[platform]['thread'].is_alive():
             threads[platform]['log_queue'].put({'type': 'reload_request'})
 
@@ -256,51 +254,20 @@ def get_listings(
 
 
 @csrf_exempt
-def start_listing_extraction(request: HttpRequest) -> JsonResponse:  # noqa: ARG001
-    if (
-        not thread_is_running('linkedin_extraction')
-        and not thread_is_running('glassdoor_extraction')
-        and not thread_is_running('catho_extraction')
-        and not thread_is_running('vagas_com_extraction')
-    ):
+def start_listing_extraction(request: HttpRequest) -> JsonResponse:
+    if all(thread_is_running(platform + '_extraction') for platform in PLATFORM_IDS):
         reload_filters()
 
-        threads['linkedin']['queue'] = Queue()
-        threads['linkedin']['log_queue'] = Queue()
-        threads['linkedin']['thread'] = Thread(
-            target=linkedin_extraction,
-            name='linkedin_extraction',
-            args=[threads['linkedin']['queue'], threads['linkedin']['log_queue']],
-        )
-        threads['linkedin']['thread'].start()
-
-        threads['glassdoor']['queue'] = Queue()
-        threads['glassdoor']['log_queue'] = Queue()
-        threads['glassdoor']['thread'] = Thread(
-            target=glassdoor_extraction,
-            name='glassdoor_extraction',
-            args=[threads['glassdoor']['queue'], threads['glassdoor']['log_queue']],
-        )
-        threads['glassdoor']['thread'].start()
-
-        threads['catho']['queue'] = Queue()
-        threads['catho']['log_queue'] = Queue()
-        threads['catho']['thread'] = Thread(
-            target=catho_extraction,
-            name='catho_extraction',
-            args=[threads['catho']['queue'], threads['catho']['log_queue']],
-        )
-        threads['catho']['thread'].start()
-
-        threads['vagas_com']['queue'] = Queue()
-        threads['vagas_com']['log_queue'] = Queue()
-        threads['vagas_com']['thread'] = Thread(
-            target=vagas_com_extraction,
-            name='vagas_com_extraction',
-            args=[threads['vagas_com']['queue'], threads['vagas_com']['log_queue']],
-        )
-        threads['vagas_com']['thread'].start()
-
+        for platform in PLATFORM_IDS:
+            thread_func = globals()[platform + '_extraction']
+            threads[platform]['queue'] = Queue()
+            threads[platform]['log_queue'] = Queue()
+            threads[platform]['thread'] = Thread(
+                target=thread_func,
+                name=platform + '_extraction',
+                args=[threads[platform]['queue'], threads[platform]['log_queue']],
+            )
+            threads[platform]['thread'].start()
         return JsonResponse({'status': 200})
 
     return JsonResponse({'status': 409}, status=409)
@@ -309,12 +276,7 @@ def start_listing_extraction(request: HttpRequest) -> JsonResponse:  # noqa: ARG
 def get_listing_extraction_status(request: HttpRequest) -> JsonResponse:  # noqa: ARG001
     response_body: dict = {
         'status': 200,
-        'results': {
-            'linkedin': {'status': False, 'new_listings': 0},
-            'glassdoor': {'status': False, 'new_listings': 0},
-            'catho': {'status': False, 'new_listings': 0},
-            'vagas_com': {'status': False, 'new_listings': 0},
-        },
+        'results': {platform: {'status': False, 'new_listings': 0} for platform in PLATFORM_IDS},
     }
 
     for platform, value in threads.items():

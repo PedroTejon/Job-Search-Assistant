@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 from unidecode import unidecode
 
 from interfaces.vagas.models import Company, Listing
+from modules import PLATFORM_IDS
 from modules.exceptions import InvalidPlatformError, PossibleAuthError
 
 if TYPE_CHECKING:
@@ -56,16 +57,20 @@ def reload_filters() -> None:
 
 
 def company_exists_by_id(c_id: str, platform: str) -> bool:
-    if platform == 'linkedin':
-        return Company.objects.filter(platforms__linkedin__id__exact=c_id).exists()
-    if platform == 'glassdoor':
-        return Company.objects.filter(platforms__glassdoor__id__exact=c_id).exists()
-    if platform == 'catho':
-        return Company.objects.filter(platforms__catho__id__exact=c_id).exists()
-    if platform == 'vagas_com':
-        return Company.objects.filter(platforms__vagas_com__id__exact=c_id).exists()
+    if platform in PLATFORM_IDS:
+        return Company.objects.filter({f'platforms__{platform}__id__exact': c_id}).exists()
 
     return False
+
+
+def get_company_by_name(c_name: str, platform: str) -> Company:
+    try:
+        if platform in PLATFORM_IDS:
+            return Company.objects.get({f'platforms__{platform}__id__exact': c_name})
+
+        raise InvalidPlatformError
+    except Company.DoesNotExist:
+        return Company()
 
 
 def get(url: str, session: CloudScraper, allowed_statuses: tuple = (200,)) -> Response:
@@ -96,22 +101,6 @@ def post(url: str, session: CloudScraper, request_body: dict | list, allowed_sta
         tries += 1
 
     raise PossibleAuthError
-
-
-def get_company_by_name(c_name: str, platform: str) -> Company:
-    try:
-        if platform == 'linkedin':
-            return Company.objects.get(platforms__linkedin__name__iexact=c_name)
-        if platform == 'glassdoor':
-            return Company.objects.get(platforms__glassdoor__name__iexact=c_name)
-        if platform == 'catho':
-            return Company.objects.get(platforms__catho__name__iexact=c_name)
-        if platform == 'vagas.com':
-            return Company.objects.get(platforms__vagas_com__name__iexact=c_name)
-
-        raise InvalidPlatformError
-    except Company.DoesNotExist:
-        return Company()
 
 
 def asciify_text(text: str) -> str:
