@@ -255,7 +255,7 @@ def get_listings(
 
 @csrf_exempt
 def start_listing_extraction(request: HttpRequest) -> JsonResponse:
-    if all(thread_is_running(platform + '_extraction') for platform in PLATFORM_IDS):
+    if not any(thread_is_running(platform + '_extraction') for platform in PLATFORM_IDS):
         reload_filters()
 
         for platform in PLATFORM_IDS:
