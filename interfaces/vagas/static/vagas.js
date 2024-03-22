@@ -155,45 +155,51 @@ function extractListings() {
 }
 
 function getListingExtractionStatus() {
+  const progressBarOverall = document.getElementById('progress_bar_overall');
+
   fetch('http://localhost:8000/vagas/get_listing_extraction_status')
       .then((response) => response.json())
       .then((data) => {
         results = data['results'];
-        const progressBarOverall = document.getElementById('progress_bar_overall');
-        const progressLinkedin = document.getElementById('progress_linkedin');
-        const progressGlassdoor = document.getElementById('progress_glassdoor');
-        const progressCatho = document.getElementById('progress_catho');
-        const progressVagasCom = document.getElementById('progress_vagas_com');
-        if (results['linkedin']['status'] || results['glassdoor']['status'] ||
-        results['catho']['status'] || results['vagas_com']['status']) {
-          if (!updateFunc) {
-            updateFunc = window.setInterval(getListingExtractionStatus, 1000);
-          }
 
-          if (progressBarOverall.style.visibility = 'hidden') {
-            progressBarOverall.style.visibility = 'visible';
-          }
-          if (progressBarOverall.classList.contains('disabled')) {
-            progressBarOverall.classList.remove('disabled');
-          }
+        let total = 0;
+        let alive = false;
+        for (const platform of Object.keys(results)) {
+          if (results[platform]['status']) {
+            alive = true;
+            if (!updateFunc) {
+              updateFunc = window.setInterval(getListingExtractionStatus, 1000);
+            }
 
-          document.getElementById('new_listings_linkedin').textContent = '+' + results['linkedin']['new_listings'];
-          document.getElementById('new_listings_glassdoor').textContent = '+' + results['glassdoor']['new_listings'];
-          document.getElementById('new_listings_catho').textContent = '+' + results['catho']['new_listings'];
-          document.getElementById('new_listings_vagas_com').textContent = '+' + results['vagas_com']['new_listings'];
+            if (progressBarOverall.style.visibility = 'hidden') {
+              progressBarOverall.style.visibility = 'visible';
+            }
+            if (progressBarOverall.classList.contains('disabled')) {
+              progressBarOverall.classList.remove('disabled');
+            }
+          }
+          total += results[platform]['new_listings'];
+          document.getElementById('new_listings_' + platform).textContent = '+' + results[platform]['new_listings'];
+          alternateProgressBar(results, platform, document.getElementById('progress_' + platform));
+        }
 
-          // eslint-disable-next-line max-len
-          const total = results['linkedin']['new_listings'] + results['glassdoor']['new_listings'] + results['catho']['new_listings'] + results['vagas_com']['new_listings'];
+        if (alive) {
           document.getElementById('extraction_results').textContent = '+' + total;
-        } else if (updateFunc) {
+        } else {
           progressBarOverall.classList.add('disabled');
           clearTimeout(updateFunc);
         }
-
-        alternateProgressBar(results, 'linkedin', progressLinkedin);
-        alternateProgressBar(results, 'glassdoor', progressGlassdoor);
-        alternateProgressBar(results, 'catho', progressCatho);
-        alternateProgressBar(results, 'vagas_com', progressVagasCom);
+      }).catch((rejected) => {
+        progressBarOverall.classList.add('disabled', 'errored');
+        progressBarOverall.title = 'conexão interrompida';
+        clearTimeout(updateFunc);
+        for (const platform of ['linkedin', 'glassdoor', 'catho', 'vagas_com']) {
+          progressBar = document.getElementById('progress_' + platform);
+          if (!progressBar.classList.contains('disabled')) {
+            progressBar.classList.add('disabled', 'errored');
+            progressBar.title = 'conexão interrompida';
+          }
+        }
       });
 }
 
@@ -204,10 +210,11 @@ function alternateProgressBar(results, platform, progressElement) {
     progressElement.classList.add('disabled');
   }
 
-  if ('exception' in results[platform]) {
+  if ('exception' in results[platform] && !progressElement.classList.contains('errored')) {
+    console.log(platform + ':\n' + results[platform]['exception']);
     progressElement.classList.add('errored');
     progressElement.title = results[platform]['exception'];
-  } else if (progressElement.classList.contains('errored')) {
+  } else if (!'exception' in results[platform] && progressElement.classList.contains('errored')) {
     progressElement.classList.remove('errored');
     progressElement.removeAttribute('title');
   }

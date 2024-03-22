@@ -179,9 +179,9 @@ def get_listings(
     if listing_properties[5]:
         listings_query &= Q(company__followed=True)
     if listing_properties[6]:
-        listings_query &= Q(closed=False)
+        listings_query |= Q(closed=False)
     if listing_properties[7]:
-        listings_query &= Q(closed=True)
+        listings_query |= Q(closed=True)
 
     filter_query = listings_query & workplace_type_query
 
@@ -317,24 +317,24 @@ def get_listing_extraction_status(request: HttpRequest) -> JsonResponse:  # noqa
         },
     }
 
-    for platform in ['linkedin', 'glassdoor', 'catho', 'vagas_com']:
-        if threads[platform]['queue'] is not None:
+    for platform, value in threads.items():
+        if value['queue'] is not None:
             response_body['results'][platform]['status'] = (
-                threads[platform]['thread'].is_alive() if threads[platform]['thread'] is not None else False
+                value['thread'].is_alive() if value['thread'] is not None else False
             )
-            response_body['results'][platform]['new_listings'] = threads[platform]['queue'].qsize()
+            response_body['results'][platform]['new_listings'] = value['queue'].qsize()
 
-            if threads[platform]['log_queue'].qsize() > 0:
+            if value['log_queue'].qsize() > 0:
                 temp_logs = []
-                for _ in range(threads[platform]['log_queue'].qsize()):
-                    log = threads[platform]['log_queue'].get()
+                for _ in range(value['log_queue'].qsize()):
+                    log = value['log_queue'].get()
                     if log['type'] == 'error':
                         response_body['results'][platform]['exception'] = log['exception']
 
                     temp_logs.append(log)
 
                 for log in temp_logs[::-1]:
-                    threads[platform]['log_queue'].put(log)
+                    value['log_queue'].put(log)
 
     return JsonResponse(response_body)
 
