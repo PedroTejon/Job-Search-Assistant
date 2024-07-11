@@ -19,7 +19,7 @@ def read_json_file(file_path: str) -> dict | None:
             's',
         }:
             file = {platform: [] for platform in PLATFORM_IDS}
-            with open(file_path, 'wb', encoding='utf-8') as file_buffer:
+            with open(file_path, 'w', encoding='utf-8') as file_buffer:
                 dump(file, file_buffer, ensure_ascii=False)
         else:
             file = None
@@ -58,7 +58,7 @@ def linkedin_setup(driver: Page, cookies: dict, local_storage: dict) -> None:
     if input('Deseja logar com sua conta do Linkedin? (Sim/Não) ').lower() in {'sim', 's'}:
         cookies['linkedin'] = []
         with driver.expect_response(
-            lambda x: 'https://www.linkedin.com/feed/?trk=homepage-basic_sign-in-submit' in x.url and x.status == 200,
+            lambda x: 'https://www.linkedin.com/feed' in x.url and x.status == 200,
             timeout=0,
         ):
             driver.goto('https://www.linkedin.com/')
