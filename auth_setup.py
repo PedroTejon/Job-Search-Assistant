@@ -6,7 +6,7 @@ from time import sleep
 from bs4 import BeautifulSoup
 from playwright.sync_api import Page, sync_playwright
 
-from modules import PLATFORM_IDS, PLATFORM_NAMES_LC
+from src.extractor.modules import PLATFORM_IDS, PLATFORM_NAMES_LC
 
 
 def read_json_file(file_path: str) -> dict | None:
@@ -121,8 +121,8 @@ def setup() -> None:
         if input(
             'Deseja manter seus cookies antigos e apenas substituir autenticações de sites específicos? (Sim/Não) '
         ).lower() in {'sim', 's'}:
-            cookies = read_json_file('data/cookies.json')
-            local_storage = read_json_file('data/local_storage.json')
+            cookies = read_json_file('src/data/cookies.json')
+            local_storage = read_json_file('src/data/local_storage.json')
             if cookies is None or local_storage is None:
                 print(
                     'Processo de autenticação abortado (não é possível continuar sem os arquivos de cookies e local_storage definidos corretamente)'
@@ -141,11 +141,11 @@ def setup() -> None:
             if len(names := list(filter(lambda name: name in cookie['domain'], PLATFORM_NAMES_LC))):
                 cookies[names[0]].append(cookie)
 
-        with open('data/cookies.json', 'w', encoding='utf-8') as f:
+        with open('src/data/cookies.json', 'w', encoding='utf-8') as f:
             dump(cookies, f, ensure_ascii=False)
 
         print('Salvando Local Storage...')
-        with open('data/local_storage.json', 'w', encoding='utf-8') as f:
+        with open('src/data/local_storage.json', 'w', encoding='utf-8') as f:
             dump(local_storage, f, ensure_ascii=False)
 
         print('Autenticação concluída')

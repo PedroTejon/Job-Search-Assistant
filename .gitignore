@@ -1,2 +1,10 @@
 __pycache__
-data/
+src/**/data/*
+src/**/migrations/*.py
+!src/**/migrations/__init__.py
+.vscode
+venv/
+package*.json
+.eslintrc.json
+node_modules
+todo.md

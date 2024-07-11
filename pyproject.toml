@@ -8,7 +8,8 @@ preview = true
 
 [tool.ruff.lint]
 select = ["ALL"]
-ignore = ["C901", "COM812", "CPY001", "D", "PLR2004", "PLW0603", "S311", "T201"]
+exclude = ["venv"]
+ignore = ["ANN", "C901", "COM812", "CPY001", "D", "PLR2004", "PLW0603", "S311", "T201", "ERA001", "DTZ001", "DTZ005", "DTZ007", "TD", "FBT"]
 
 [tool.ruff.lint.flake8-quotes]
 inline-quotes = "single"
@@ -16,8 +17,9 @@ inline-quotes = "single"
 [tool.ruff.format]
 quote-style = "single"
 
-[tool.mypy.overrides]
+[tool.mypy]
 strict = true
+exclude = ["venv"]
 
 ignore_missing_imports = true
 

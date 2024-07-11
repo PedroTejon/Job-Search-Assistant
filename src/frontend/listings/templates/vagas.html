@@ -1,0 +1,402 @@
+{% load static %}
+
+{% include "start.html" %}
+    <div id="listings_section">
+        <div id="listings_filters">
+            <div id="search_bar_container">
+                <input id="search_bar" type="text" value="{{query}}">
+                <button id="search_button" onclick="search()"><img src="{% static 'magnifying-glass.svg' %}" width="16" height="16"></button>
+            </div>
+
+            <div style="grid-column: 2;">
+                <button id="filter_menu_button" type="button" data-bs-toggle="collapse" data-bs-target="#querying_filter_menu" aria-expanded="false" aria-controls="querying_filter_menu"><img src="{% static 'filter.svg' %}" width="16" height="16"></button>
+            </div>
+
+            <div id="extraction_section">
+                <div id="extraction_results"></div>
+                <div id="progress_bar_overall" class="progress_bar_container" onclick="showFloatingMenu('extraction_progress_menu')">
+                    <div class="extraction_progress_bar">
+                        <div class="extraction_progress_bar_value"></div>
+                    </div>
+                </div>
+                <button id="extract_button" onclick="extractListings()"><img src="{% static 'plus.svg' %}" width="16" height="16"></button> 
+                <button id="extraction_settings_menu_button" onclick="showFloatingMenu('extraction_settings_menu')"><img src="{% static 'gear.svg' %}" width="16" height="16"></button>
+                <div id="extraction_progress_menu">
+                    <span id="new_listings_linkedin" style="grid-column: 1; justify-self: center"></span>
+                    <div id="progress_linkedin" class="progress_bar_container" style="width: 8vw; grid-column: 2;">
+                        <div class="extraction_progress_bar">
+                            <div class="extraction_progress_bar_value"></div>
+                        </div>
+                    </div>
+                    <img src="{% static 'linkedin.svg' %}" width="16" height="16" style="grid-column: 3; font-size: 24px;">
+
+                    <span id="new_listings_glassdoor" style="grid-column: 1; justify-self: center"></span>
+                    <div id="progress_glassdoor" class="progress_bar_container" style="width: 8vw; grid-column: 2;">
+                        <div class="extraction_progress_bar">
+                            <div class="extraction_progress_bar_value"></div>
+                        </div>
+                    </div>
+                    <img src="{% static 'glassdoor.svg' %}" width="16" height="16" style="grid-column: 3; font-size: 24px; align-self: center;"></i>
+
+                    <span id="new_listings_catho" style="grid-column: 1; justify-self: center"></span>
+                    <div id="progress_catho" class="progress_bar_container" style="width: 8vw; grid-column: 2;">
+                        <div class="extraction_progress_bar">
+                            <div class="extraction_progress_bar_value"></div>
+                        </div>
+                    </div>
+                    <img src="{% static 'catho.svg' %}" width="16" height="16" style="grid-column: 3; font-size: 24px; align-self: center;"></i>
+
+                    <span id="new_listings_vagas_com" style="grid-column: 1; justify-self: center;"></span>
+                    <div id="progress_vagas_com" class="progress_bar_container" style="width: 8vw; grid-column: 2;">
+                        <div class="extraction_progress_bar">
+                            <div class="extraction_progress_bar_value"></div>
+                        </div>
+                    </div>
+                    <img src="{% static 'vagas.com.svg' %}" width="16" height="16" style="grid-column: 3; font-size: 24px; align-self: center"></i>
+                </div>
+                <div id="extraction_settings_menu" class="accordion collapse">
+                    <span style="font-size: 18px; font-weight: 700;">Filtros de extração:</span>
+                    <div class="accordion-item">
+                        <div class="accordion-header collapsed">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse_title_exclude_words_filter" aria-expanded="true" aria-controls="collapse_title_exclude_words_filter">
+                                Palavras proíbidas no título:
+                            </button>
+                        </div>
+                        <div id="collapse_title_exclude_words_filter" class="accordion-collapse collapse">
+                            <div class="accordion-body">
+                                <input id="title_exclude_words_input" type="text" onkeydown="addMultiValueFilter(event)" placeholder="Palavra">
+                                <div id="title_exclude_words_container" class="multivalue_container">
+                                    {% for word in filters.title_exclude_words %}
+                                        <span class="query_multivalue_option" onclick="removeMultiValueFilter('{{ word }}', 'title_exclude_words')">{{ word }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <div class="accordion-header collapsed">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse_title_exclude_terms_filter" aria-expanded="true" aria-controls="collapse_title_exclude_terms_filter">
+                                Termos proíbidos no título:
+                            </button>
+                        </div>
+                        <div id="collapse_title_exclude_terms_filter" class="accordion-collapse collapse">
+                            <div class="accordion-body">
+                                <input id="title_exclude_terms_input" type="text" onkeydown="addMultiValueFilter(event)" placeholder="Termo">
+                                <div id="title_exclude_terms_container" class="multivalue_container">
+                                    {% for term in filters.title_exclude_terms %}
+                                        <span class="query_multivalue_option" onclick="removeMultiValueFilter('{{ term }}', 'title_exclude_terms')">{{ term }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <div class="accordion-header collapsed">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse_company_exclude_words_filter" aria-expanded="true" aria-controls="collapse_company_exclude_words_filter">
+                                Palavras proíbidas no nome de empresas:
+                            </button>
+                        </div>
+                        <div id="collapse_company_exclude_words_filter" class="accordion-collapse collapse">
+                            <div class="accordion-body">
+                                <input id="company_exclude_words_input" type="text" onkeydown="addMultiValueFilter(event)" placeholder="Palavra">
+                                <div id="company_exclude_words_container" class="multivalue_container">
+                                    {% for word in filters.company_exclude_words %}
+                                        <span class="query_multivalue_option" onclick="removeMultiValueFilter('{{ word }}', 'company_exclude_words')">{{ word }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <div class="accordion-header collapsed">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse_company_exclude_terms_filter" aria-expanded="true" aria-controls="collapse_company_exclude_terms_filter">
+                                Termos proíbidos no nome de empresas:
+                            </button>
+                        </div>
+                        
+                        <div id="collapse_company_exclude_terms_filter" class="accordion-collapse collapse">
+                            <div class="accordion-body">
+                                <input id="company_exclude_terms_input" type="text" onkeydown="addMultiValueFilter(event)" placeholder="Termo">
+                                <div id="company_exclude_terms_container" class="multivalue_container">
+                                    {% for term in filters.company_exclude_terms %}
+                                        <span class="query_multivalue_option" onclick="removeMultiValueFilter('{{ term }}', 'company_exclude_terms')">{{ term }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <div class="accordion-header collapsed">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse_cities_filter" aria-expanded="true" aria-controls="collapse_cities_filter">
+                                Cidades permitidas:
+                            </button>
+                        </div>
+                        <div id="collapse_cities_filter" class="accordion-collapse collapse">
+                            <div class="accordion-body">
+                                <input id="cities_input" type="text" onkeydown="addMultiValueFilter(event)" placeholder="Nome">
+                                <div id="cities_container" class="multivalue_container">
+                                    {% for city in filters.cities %}
+                                        <span class="query_multivalue_option" onclick="removeMultiValueFilter('{{ city }}', 'cities')">{{ city }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <div class="accordion-header collapsed">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse_states_filter" aria-expanded="true" aria-controls="collapse_states_filter">
+                                Estados permitidos:
+                            </button>
+                        </div>
+                        <div id="collapse_states_filter" class="accordion-collapse collapse">
+                            <div class="accordion-body">
+                                <input id="states_input" type="text" onkeydown="addMultiValueFilter(event)" placeholder="Nome">
+                                <div id="states_container" class="multivalue_container">
+                                    {% for state in filters.states %}
+                                        <span class="query_multivalue_option" onclick="removeMultiValueFilter('{{ state }}', 'states')">{{ state }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <div class="accordion-header collapsed">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse_countries_filter" aria-expanded="true" aria-controls="collapse_countries_filter">
+                                Países permitidos:
+                            </button>
+                        </div>
+                        <div id="collapse_countries_filter" class="accordion-collapse collapse">
+                            <div class="accordion-body">
+                                <input id="countries_input" type="text" onkeydown="addMultiValueFilter(event)" placeholder="Nome">
+                                <div id="countries_container" class="multivalue_container">
+                                    {% for country in filters.countries %}
+                                        <span class="query_multivalue_option" onclick="removeMultiValueFilter('{{ country }}', 'countries')">{{ country }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="listings_view">
+            <div id="highlight_tools" style="display: none;">
+                <button id="filter_word_button" title="Proibir palavra única" onclick="applyNewFilterByHighlight('exclude_words')"><img src="{% static 'underline.svg' %}" width="16" height="16"></button>
+                <button id="filter_term_button" title="Proibir termo/sequência de caracteres" onclick="applyNewFilterByHighlight('exclude_terms')"><img src="{% static 'highlighter.svg' %}" width="16" height="16"></button>
+            </div>
+            <div id="listings_sidebar" {% if listing_count == 0 %}style="display:flex;flex-direction:column;justify-content:space-between"{% endif %}>
+                <div id="querying_filter_menu" class="accordion collapse">
+                    <span>Filtrar por:</span>
+                    <div class="filter_section accordion-item">
+                        <div class="accordion-header collapsed">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse_listing_filter" aria-expanded="true" aria-controls="collapse_listing_filter">
+                                Vaga
+                            </button>
+                        </div>
+                        <div id="collapse_listing_filter" class="accordion-collapse collapse">
+                            <div class="accordion-body" style="display: grid; grid-template-rows: auto auto auto;">
+                                <label for="query_new" style="grid-column: 1/ span 2;">Vagas não avaliadas:</label>
+                                <input id="query_new" type="checkbox" {{ listing_properties.2 | yesno:"checked," }} style="grid-column: 3;">
+                                
+                                <label for="query_applied" style="grid-column: 1/ span 2;">Vagas inscritas:</label>
+                                <input id="query_applied" type="checkbox" {{ listing_properties.0 | yesno:"checked," }} style="grid-column: 3;">
+                                
+                                <label for="query_dismissed" style="grid-column: 1/ span 2;">Vagas dispensadas:</label>
+                                <input id="query_dismissed" type="checkbox" {{ listing_properties.1 | yesno:"checked," }} style="grid-column: 3;">
+
+                                <label for="query_open" style="grid-column: 1/ span 2;">Vagas abertas:</label>
+                                <input id="query_open" type="checkbox" {{ listing_properties.6 | yesno:"checked," }} style="grid-column: 3;">
+
+                                <label for="query_closed" style="grid-column: 1/ span 2;">Vagas fechadas:</label>
+                                <input id="query_closed" type="checkbox" {{ listing_properties.7 | yesno:"checked," }} style="grid-column: 3;">
+                                
+                                <label for="query_local_listings" style="grid-column: 1/ span 2;">Vagas locais:</label>
+                                <input id="query_local_listings" type="checkbox" {{ listing_properties.3 | yesno:"checked," }} style="grid-column: 3;">
+                                
+                                <label for="query_remote_listings" style="grid-column: 1/ span 2;">Vagas remotas:</label>
+                                <input id="query_remote_listings" type="checkbox" {{ listing_properties.4 | yesno:"checked," }} style="grid-column: 3;">
+                                
+                                <label for="query_sorting_listings" style="grid-column: 1;">Ordenação:</label>
+                                <select id="query_sorting_type" style="grid-column: 2;">
+                                    <option value="id" {% if sorting_properties.0 == 'id' %} selected {% endif %}>Data (Extração)</option>
+                                    <option value="applies" {% if sorting_properties.0 == 'applies' %} selected {% endif %}>Nº Candidatos</option>
+                                </select>
+                                <button id="sorting_direction_button" onclick="alternateSortingDirection()"><img src="{% if sorting_properties.1 == 'descending' %} {% static 'sort-descending.svg' %} {% else %} {% static 'sort-descending.svg' %} {% endif %}" width="16" height="16" style="grid-column: 3;"></button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="filter_section accordion-item">
+                        <div class="accordion-header collapsed">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse_company_filter" aria-expanded="true" aria-controls="collapse_company_filter">
+                                Empresas:
+                            </button>
+                        </div>
+                        <div id="collapse_company_filter" class="accordion-collapse collapse">
+                            <div class="accordion-body" style="display: grid; grid-template-rows: auto auto auto;">
+                                <label for="query_followed_companies" style="grid-column: 1/ span 2;">Empresas seguidas:</label>
+                                <input id="query_followed_companies" type="checkbox" {{ listing_properties.5 | yesno:"checked," }} style="grid-column: 3;">
+
+                                <input id="query_company_input" style="grid-column: 1/ span 3;" type="text" onkeydown="addMultiValueQuery(event)" placeholder="Termo presente no nome">
+                                <div id="query_company_container" style="grid-column: 1/ span 3;" class="multivalue_container">
+                                    {% for company in companies %}
+                                        <span class="query_multivalue_option" onclick="removeMultiValueQuery('{{ company }}', 'query_company')">{{ company }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="filter_section accordion-item">
+                        <div class="accordion-header collapsed">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse_location_filter" aria-expanded="true" aria-controls="collapse_location_filter">
+                                Cidades:
+                            </button>
+                        </div>
+                        <div id="collapse_location_filter" class="accordion-collapse collapse">
+                            <div class="accordion-body">
+                                <input id="query_city_input" onkeydown="addMultiValueQuery(event)" type="text" placeholder="Nome da cidade">
+                                <div id="query_city_container"  class="multivalue_container">
+                                    {% for city in cities %}
+                                        <span class="query_multivalue_option" onclick="removeMultiValueQuery('{{ city }}', 'query_city')">{{ city }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="filter_section accordion-item">
+                        <div class="accordion-header collapsed">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse_platform_filter" aria-expanded="true" aria-controls="collapse_platform_filter">
+                                Plataformas:
+                            </button>
+                        </div>
+                        <div id="collapse_platform_filter" class="accordion-collapse collapse">
+                            <div class="accordion-body">
+                                <select id="query_platform_input">
+                                    <option value="-">-</option>
+                                    <option value="LinkedIn">LinkedIn</option>
+                                    <option value="Glassdoor">Glassdoor</option>
+                                    <option value="Catho">Catho</option>
+                                    <option value="Vagas.com">Vagas.com</option>
+                                </select>
+                                <div id="query_platform_container" class="multivalue_container">
+                                    {% for platform in platforms %}
+                                        <span class="query_multivalue_option" onclick="removeMultiValueQuery('{{ platform }}', 'query_platform')">{{ platform }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% for listing in listings %}
+                    <div class="listing" id="listing_{{forloop.counter0}}" onclick="show({{forloop.counter0}})">
+                        <p class="listing_title">{{listing.title}}</p>
+                        <p class="listing_company">{{listing.company_name}}</p>
+                        {% if listing.workplace_type != 'Remoto' %}
+                            <p class="listing_condition">{{listing.location}}</p>
+                        {% else %}
+                            <p class="listing_condition">Remoto</p>
+                        {% endif %}
+                            <div class="icon_container">
+                            {% if listing.applied %}
+                                <img class="listing_status" src="{% static 'check.svg' %}" width="16" height="16">
+                            {% elif not listing.applied and listing.applied is not None %}
+                                <img class="listing_status" src="{% static 'x.svg' %}" width="16" height="16">
+                            {% else %}
+                                <img class="listing_status" src="{% static 'transparent.svg' %}" width="16" height="16">
+                            {% endif %}
+                            {% if listing.workplace_type != 'Remoto' %}
+                                <img src="{% static 'briefcase.svg' %}" width="16" height="16">
+                            {% else %}
+                                <img src="{% static 'laptop.svg' %}" width="16" height="16">
+                            {% endif %}
+                            {% if listing.platform == 'Glassdoor' %}
+                                <img src="{% static 'glassdoor.svg' %}" width="16" height="16" title="Vaga postada no Glassdoor">
+                            {% elif listing.platform == 'LinkedIn' %}
+                                <img src="{% static 'linkedin.svg' %}" width="16" height="16" title="Vaga postada no LinkedIn">
+                            {% elif listing.platform == 'Catho' %}
+                                <img src="{% static 'catho.svg' %}" width="16" height="16" title="Vaga postada na Catho">
+                            {% elif listing.platform == 'Vagas.com' %}
+                                <img src="{% static 'vagas.com.svg' %}" width="16" height="16" title="Vaga postada no Vagas.com">
+                            {% endif %} 
+                        </div>
+                    </div>
+                {% endfor %}
+                {% if listing_count == 0 %}<br>{% endif %}
+                <nav id="listings_pagination">
+                    <ul class="pagination">
+                    {% if page != 1 and 1 not in pages %}
+                        <li class="page-item"><a href="http://localhost:8000/jobs/?page=1{{full_query}}" class="page-link"> 1</a></li>
+                    {% endif %}
+
+                    {% for num_page in pages %}
+                        {% if num_page == page %}
+                            <li class="page-item"><a href="http://localhost:8000/jobs/?page={{num_page}}{{full_query}}" class="page-link"><b>{{num_page}}</b></a></li>
+                        {% else %}
+                            <li class="page-item"><a href="http://localhost:8000/jobs/?page={{num_page}}{{full_query}}" class="page-link">{{num_page}}</a></li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if page != total_pages and total_pages not in pages and page < total_pages %}
+                        <li class="page-item"><a href="http://localhost:8000/jobs/?page={{total_pages}}{{full_query}}" class="page-link">{{total_pages}}</a></li>
+                    {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            <div id="listing_details" style="display: none"> 
+                <div style="width:auto; height: auto; display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
+                    <div style="width: auto; height: auto;">
+                        <p id="listing_title_det"></p>
+                        <a id="platform_id" class="badge" title="Link da Vaga" target="_blank"></a>
+                        <div style="display: flex; flex-direction: row; column-gap: 1vw;">
+                            <div style="display: flex; flex-direction: row; column-gap: 0.5vw;">
+                                <img src="{% static 'building.svg' %}" width="16" height="16" title="Empresa que publicou a vaga">
+                                <p id="listing_company_det"></p>
+                            </div>
+                            <div style="display: flex; flex-direction: row; column-gap: 0.5vw;">
+                                <img src="{% static 'location-dot.svg' %}" width="16" height="16" title="Local de trabalho">
+                                <p id="listing_location_det"></p>
+                            </div>
+                            <div style="display: flex; flex-direction: row; column-gap: 0.5vw;">
+                                <img id="listing_workplace_type_ico" width="16" height="16" title="Vaga presencial/híbrida">
+                                <p id="listing_workplace_type_det"></p>
+                            </div>
+                            
+                        </div>
+                        <div style="display: flex; flex-direction: row; column-gap: 1vw;">
+                            <div style="display: flex; flex-direction: row; column-gap: 0.5vw;">
+                                <img id="platform_logo" width="16" height="16">
+                                <p id="platform_name"></p>
+                            </div>
+
+                            <div style="display: flex; flex-direction: row; column-gap: 0.5vw;">
+                                <img src="{% static 'calendar.svg' %}" width="16" height="16"  title="Data de publicação da vaga">
+                                <p id="listing_publish_date_det"></p>
+                            </div>
+                            <div style="display: flex; flex-direction: row; column-gap: 0.5vw;">
+                                <img src="{% static 'users.svg' %}" width="16" height="16" title="Candidatos inscritos na vaga">
+                                <p id="listing_applies_det"></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="apply_section">
+                        <a id="apply_button" target="_blank">Candidatar-se</a>
+                        <button title="Me inscrevi na vaga" id="applied_button" onclick="updateListingApplStatus(true)"><img style="filter: invert(100%)" class="listing_status" src="{% static 'check.svg' %}" width="16" height="16"></button>
+                        <button title="Dispensar vaga" id="dismissed_button" onclick="updateListingApplStatus(false)"><img style="filter: invert(100%)" class="listing_status" src="{% static 'x.svg' %}" width="16" height="16"></button>
+                        <button id="update_listing_button" onclick="updateListingDetails()">Atualizar dados <img src="{% static 'refresh.svg' %}" width="14" height="14"></button>
+                        <p id="listing_availability"></p>
+                    </div>
+                    
+                </div>
+                <br>    
+                <hr>
+                <br>
+                <p id="listing_description_det"></p>
+            </div>
+        </div>
+    </div>
+    
+    {{listings|json_script:"listings"}}
+    {{companies|json_script:"queried_companies"}}
+    {{cities|json_script:"queried_cities"}}
+    {{platforms|json_script:"queried_platforms"}}
+    {{filters|json_script:"filters"}}
+{% include "end.html" %}

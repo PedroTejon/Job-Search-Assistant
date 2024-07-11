@@ -1,21 +1,16 @@
-#!/usr/bin/env python
-"""Django's command-line utility for administrative tasks."""
+from os import environ
+from sys import argv
 
-import os
-import sys
+from django.core.management import execute_from_command_line
 
 
 def main() -> None:
-    """Run administrative tasks."""
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'django_config.settings')
+    environ.setdefault('DJANGO_SETTINGS_MODULE', 'src.django_settings.settings')
 
-    try:
-        from django.core.management import execute_from_command_line
-    except ImportError as exc:
-        raise ImportError(
-            "Couldn't import Django. Are you sure it's installed and available on your PYTHONPATH environment variable? Did you forget to activate a virtual environment?"  # noqa: E501
-        ) from exc
-    execute_from_command_line(sys.argv)
+    if 'runserver' in argv:
+        execute_from_command_line([argv[0], 'makemigrations', 'api', '--verbosity', '0'])
+        execute_from_command_line([argv[0], 'migrate', '--verbosity', '0'])
+    execute_from_command_line(argv)
 
 
 if __name__ == '__main__':
