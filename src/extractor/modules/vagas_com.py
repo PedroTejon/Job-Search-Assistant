@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from json import load
-from queue import Queue
 from traceback import format_exc
 from typing import TYPE_CHECKING
 
@@ -10,14 +9,15 @@ from cloudscraper import CloudScraper, create_scraper  # type: ignore[import-unt
 from django.utils.timezone import datetime, now, timedelta  # type: ignore[attr-defined]
 
 from src.api.models import Company, Listing
+from src.extractor.models import ExtractionLog
 from src.extractor.modules.utils import (
     DEFAULT_HEADERS,
     asciify_text,
     filter_listing,
     get,
     get_company_by_name,
+    get_filters,
     listing_exists,
-    reload_filters,
     sleep_r,
 )
 
@@ -35,13 +35,11 @@ def get_bearer_token() -> str:
     return ''
 
 
-with open('src/data/filters.json', 'rb') as f:
-    filters: dict[str, list[str]] = load(f)
+filters = get_filters()
 with open('src/data/cookies.json', 'rb') as f:
     cookies_json: list[dict[str, str]] = load(f)['vagas.com']
 token = get_bearer_token()
-queue: Queue[int] = Queue()
-log_queue: Queue[dict] = Queue()
+log = None
 
 COOKIES = ';'.join([f"{cookie['name']}={cookie['value']}" for cookie in cookies_json])
 MODULE_HEADERS = DEFAULT_HEADERS | {
@@ -52,46 +50,28 @@ MODULE_HEADERS = DEFAULT_HEADERS | {
 }
 
 
-def reload_if_configs_changed() -> None:
-    if log_queue.qsize() > 0:
-        temp_logs = []
-        for _ in range(log_queue.qsize()):
-            log = log_queue.get()
-            if log['type'] == 'reload_request':
-                reload_filters()
-            else:
-                temp_logs.append(log)
-
-
 def filter_title(title: str, company_name: str) -> bool:
     title = asciify_text(title)
 
-    if any(x in title.split() for x in filters['title_exclude_words']):
+    if any(x in title.split() for x in filters.get('title_exclude_words', [])):
         return False
 
-    if any(x in title for x in filters['title_exclude_terms']):
+    if any(x in title for x in filters.get('title_exclude_terms', [])):
         return False
 
     if company_name is not None:
         company_name = asciify_text(company_name)
-        if any(x in company_name.split() for x in filters['company_exclude_words']):
+        if any(x in company_name.split() for x in filters.get('company_exclude_words', [])):
             return False
 
-        if any(x in company_name for x in filters['company_exclude_terms']):
+        if any(x in company_name for x in filters.get('company_exclude_terms', [])):
             return False
 
     return True
 
 
 def filter_location(location: str, workplace_type: str) -> bool:
-    if (
-        workplace_type == 'Presencial/Hibrido'
-        and len(filters['cities'])
-        and not any(x == location for x in filters['cities'])
-    ):
-        return False
-
-    return True
+    return not (workplace_type == 'Presencial/Hibrido' and len(filters.get('cities', [])) and not any(x == location for x in filters.get('cities', [])))
 
 
 def get_companies_listings() -> None:
@@ -139,7 +119,7 @@ def get_companies_listings() -> None:
 
                 listing.workplace_type = 'Remoto' if listing.location == '100% Home Office' else 'Presencial/Hibrido'
 
-                reload_if_configs_changed()
+                # reload_if_configs_changed()
                 if filter_location(listing.location, listing.workplace_type):
                     listing_platform_id_el = listing_soup.find('li', {'class': 'job-breadcrumb__item--id'})
                     if listing_platform_id_el is not None:
@@ -179,10 +159,12 @@ def get_companies_listings() -> None:
                         else:
                             date = now() - timedelta(days=1)
                     listing.publication_date = date.strftime('%Y-%m-%dT%H:%M:%S')
+
+                    listing.execution_id = log.id
                     listing.save()
 
-                    queue.put(1)
-
+                    log.amount_extracted += 1
+                    log.save()
             page += 1
 
         company.platforms['vagas_com']['last_check'] = now().strftime('%Y-%m-%dT%H:%M:%S')
@@ -201,13 +183,12 @@ def get_recommended_listings() -> None:
         listing_worktype = 'Remoto' if listing['modelo_local_trabalho'] == '100% Home Office' else 'Presencial/Hibrido'
         company_name: str = listing['nome_da_empresa']
 
-        reload_if_configs_changed()
         if filter_listing(asciify_text(listing_title), listing_location, listing_worktype, asciify_text(company_name)):
             listing_id: str = listing['id']
             if listing_exists(listing_id):
                 continue
 
-            if (company := get_company_by_name(company_name, 'vagas.com')).platforms['vagas_com']['name'] is None:
+            if (company := get_company_by_name(company_name, 'vagas_com')).platforms['vagas_com']['name'] is None:
                 company.platforms['vagas_com']['name'] = company_name
                 company.save()
 
@@ -219,9 +200,11 @@ def get_recommended_listings() -> None:
                 company_name=company_name,
                 platform_id=listing_id,
                 platform='Vagas.com',
+                execution_id=log.id
             ).save()
 
-            queue.put(1)
+            log.amount_extracted += 1
+            log.save()
 
     for listing in content['vagas_do_dia']:
         listing_title = listing['cargo']
@@ -229,11 +212,10 @@ def get_recommended_listings() -> None:
         listing_worktype = 'Remoto' if listing['modelo_local_trabalho'] == '100% Home Office' else 'Presencial/Hibrido'
         company_name = listing['nome_da_empresa']
 
-        reload_if_configs_changed()
         if filter_listing(asciify_text(listing_title), listing_location, listing_worktype, asciify_text(company_name)):
             listing_id = listing['id']
 
-            if (company := get_company_by_name(company_name, 'vagas.com')).platforms['vagas_com']['name'] is None:
+            if (company := get_company_by_name(company_name, 'vagas_com')).platforms['vagas_com']['name'] is None:
                 company.platforms['vagas_com']['name'] = company_name
                 company.save()
 
@@ -245,9 +227,11 @@ def get_recommended_listings() -> None:
                 company_name=company_name,
                 platform_id=listing_id,
                 platform='Vagas.com',
+                execution_id=log.id
             ).save()
 
-            queue.put(1)
+            log.amount_extracted += 1
+            log.save()
 
 
 def get_followed_companies() -> None:
@@ -285,21 +269,21 @@ def get_followed_companies() -> None:
         company.save()
 
 
-def get_jobs(curr_queue: Queue, curr_log_queue: Queue) -> None:
-    global queue, log_queue
-    queue = curr_queue
-    log_queue = curr_log_queue
+def run_pipeline(execution_id) -> None:
+    global log
+    pipeline = [get_companies_listings, get_recommended_listings]
 
+    log = ExtractionLog(id=execution_id, platform='Vagas.com')
+    log.save()
     try:
         get_followed_companies()
-
-        get_companies_listings()
-
-        get_recommended_listings()
+        for function in pipeline:
+            function()
     except Exception:
         traceback = format_exc()
 
-        log_queue.put({
-            'type': 'error',
-            'exception': traceback,
-        })
+        log.result = 'EXCEPTION'
+        log.message = traceback
+    finally:
+        log.end_time = now()
+        log.save()

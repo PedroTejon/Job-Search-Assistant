@@ -1,20 +1,21 @@
 from __future__ import annotations
 
 from json import load
-from queue import Queue
 from traceback import format_exc
 from typing import TYPE_CHECKING
 
 from cloudscraper import CloudScraper, create_scraper  # type: ignore[import-untyped]
+from django.utils.timezone import now
 
 from src.api.models import Listing
+from src.extractor.models import ExtractionLog
 from src.extractor.modules.utils import (
     DEFAULT_HEADERS,
     asciify_text,
     get,
     get_company_by_name,
+    get_filters,
     listing_exists,
-    reload_filters,
     sleep_r,
 )
 
@@ -34,11 +35,9 @@ with open('src/data/local_storage.json', encoding='utf-8') as local_storage_f:
     build_id = load(local_storage_f)['catho_build_id']
 with open('src/data/cookies.json', encoding='utf-8') as cookies_f:
     cookies_json: list[dict[str, str]] = load(cookies_f)['catho']
-with open('src/data/filters.json', 'rb') as filters_f:
-    filters: dict[str, list[str]] = load(filters_f)
+filters = get_filters()
 token = get_bearer_token()
-queue: Queue = Queue()
-log_queue: Queue = Queue()
+log = None
 
 COOKIES = ';'.join([f"{cookie['name']}={cookie['value']}" for cookie in cookies_json])
 MODULE_HEADERS: dict[str, str] = DEFAULT_HEADERS | {
@@ -48,36 +47,26 @@ MODULE_HEADERS: dict[str, str] = DEFAULT_HEADERS | {
 }
 
 
-def reload_if_configs_changed() -> None:
-    if log_queue.qsize() > 0:
-        temp_logs = []
-        for _ in range(log_queue.qsize()):
-            log = log_queue.get()
-            if log['type'] == 'reload_request':
-                reload_filters()
-            else:
-                temp_logs.append(log)
-
-
 def filter_listing(
     title: str, listing_locations_ids: list[str], location_ids: dict[str, list[int]], company_name: str
 ) -> bool:
-    if any(x in title.split() for x in filters['title_exclude_words']):
+    if any(x in title.split() for x in filters.get('title_exclude_words', [])):
         return False
 
-    if any(x in title for x in filters['title_exclude_terms']):
+    if any(x in title for x in filters.get('title_exclude_terms', [])):
         return False
 
-    if any(x in company_name.split() for x in filters['company_exclude_words']):
+    if any(x in company_name.split() for x in filters.get('company_exclude_words', [])):
         return False
 
-    if any(x in company_name for x in filters['company_exclude_terms']):
+    if any(x in company_name for x in filters.get('company_exclude_terms', [])):
         return False
 
     return any(int(city) in listing_locations_ids for city in location_ids['cities'])
 
 
-def get_recommended_listings(location_ids: dict[str, list[int]]) -> None:
+def get_recommended_listings() -> None:
+    location_ids = get_location_ids()
     listing_id = ''
     for _ in range(500):
         sleep_r(0.5)
@@ -111,7 +100,6 @@ def get_recommended_listings(location_ids: dict[str, list[int]]) -> None:
                 else 'Confidencial'
             )
 
-            reload_if_configs_changed()
             listing_city_ids: list[str] = [listing['cidadeId'] for listing in listing_details['vagas']]
             if filter_listing(
                 asciify_text(listing_details['titulo']), listing_city_ids, location_ids, asciify_text(company_name)
@@ -150,9 +138,11 @@ def get_recommended_listings(location_ids: dict[str, list[int]]) -> None:
 
                 listing.company = company
                 listing.company_name = company_name
+                listing.execution_id = log.id
                 listing.save()
 
-                queue.put(1)
+                log.amount_extracted += 1
+                log.save()
 
 
 def get_location_ids() -> dict:
@@ -163,7 +153,7 @@ def get_location_ids() -> dict:
     )
     session.headers = MODULE_HEADERS
 
-    for city in filters['cities']:
+    for city in filters.get('cities', []):
         content: dict = get(
             f'https://seguro.catho.com.br/vagas/vagas-api/location/?locationName={city}', session
         ).json()
@@ -176,7 +166,7 @@ def get_location_ids() -> dict:
         if value:
             location_ids['cities'].append(value['id'])
 
-    for state in filters['states']:
+    for state in filters.get('states', []):
         content = get(f'https://seguro.catho.com.br/vagas/vagas-api/location/?locationName={state}', session).json()
 
         sleep_r(0.5)
@@ -187,7 +177,7 @@ def get_location_ids() -> dict:
         if value:
             location_ids['states'].append(value['id'])
 
-    for country in filters['countries']:
+    for country in filters.get('countries', []):
         content = get(f'https://seguro.catho.com.br/vagas/vagas-api/location/?locationName={country}', session).json()
 
         sleep_r(0.5)
@@ -205,18 +195,20 @@ def get_location_ids() -> dict:
     return location_ids
 
 
-def get_jobs(curr_queue: Queue, curr_log_queue: Queue) -> None:
-    global queue, log_queue
-    queue = curr_queue
-    log_queue = curr_log_queue
+def run_pipeline(execution_id) -> None:
+    global log
+    pipeline = [get_recommended_listings]
 
-    location_ids = get_location_ids()
+    log = ExtractionLog(id=execution_id, platform='Catho')
+    log.save()
     try:
-        get_recommended_listings(location_ids)
+        for function in pipeline:
+            function()
     except Exception:
         traceback = format_exc()
 
-        log_queue.put({
-            'type': 'error',
-            'exception': traceback,
-        })
+        log.result = 'EXCEPTION'
+        log.message = traceback
+    finally:
+        log.end_time = now()
+        log.save()

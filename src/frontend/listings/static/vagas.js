@@ -26,37 +26,37 @@ function updateListingApplStatus(updatedValue) {
 
   fetch(`http://localhost:8000/extractor/update_listing_applied_status?id=${currentListing.id}&value=${updatedValue}`,
       {method: 'POST'})
-      .then((response) => response.json())
-      .then((data) => {
-        listings[currentIndex].applied_to = updatedValue;
-        currentListing = listings[currentIndex];
-        const listingStatus = document.querySelector(`#listing_${currentIndex} .listing_status`);
+    .then((response) => response.json())
+    .then((data) => {
+      listings[currentIndex].applied_to = updatedValue;
+      currentListing = listings[currentIndex];
+      const listingStatus = document.querySelector(`#listing_${currentIndex} .listing_status`);
 
-        if (updatedValue) {
-          listingStatus.src = 'http://localhost:8000/static/check.svg';
+      if (updatedValue) {
+        listingStatus.src = 'http://localhost:8000/static/check.svg';
 
-          dismissButton.classList.add('button_disabled');
-          if (appliedButton.classList.contains('button_disabled')) {
-            appliedButton.classList.remove('button_disabled');
-          }
-        } else if (updatedValue !== null) {
-          listingStatus.src = 'http://localhost:8000/static/x.svg';
-
-          appliedButton.classList.add('button_disabled');
-          if (dismissButton.classList.contains('button_disabled')) {
-            dismissButton.classList.remove('button_disabled');
-          }
-        } else {
-          listingStatus.src = 'http://localhost:8000/static/transparent.svg';
-
-          if (appliedButton.classList.contains('button_disabled')) {
-            appliedButton.classList.remove('button_disabled');
-          }
-          if (dismissButton.classList.contains('button_disabled')) {
-            dismissButton.classList.remove('button_disabled');
-          }
+        dismissButton.classList.add('button_disabled');
+        if (appliedButton.classList.contains('button_disabled')) {
+          appliedButton.classList.remove('button_disabled');
         }
-      });
+      } else if (updatedValue !== null) {
+        listingStatus.src = 'http://localhost:8000/static/x.svg';
+
+        appliedButton.classList.add('button_disabled');
+        if (dismissButton.classList.contains('button_disabled')) {
+          dismissButton.classList.remove('button_disabled');
+        }
+      } else {
+        listingStatus.src = 'http://localhost:8000/static/transparent.svg';
+
+        if (appliedButton.classList.contains('button_disabled')) {
+          appliedButton.classList.remove('button_disabled');
+        }
+        if (dismissButton.classList.contains('button_disabled')) {
+          dismissButton.classList.remove('button_disabled');
+        }
+      }
+    });
 }
 
 function updateListingDetails() {
@@ -64,17 +64,17 @@ function updateListingDetails() {
   // eslint-disable-next-line max-len
   fetch(`http://localhost:8000/extractor/update_listing_details?id=${currentListing.platform_id}&platform=${currentListing.platform}`,
       {method: 'GET'})
-      .then((response) => response.json())
-      .then((data) => {
-        listings[indexAtTime] = data['listing'];
+    .then((response) => response.json())
+    .then((data) => {
+      listings[indexAtTime] = data['listing'];
 
-        if (currentIndex === indexAtTime) {
-          currentListing = data['listing'];
-          show(currentIndex);
-        } else {
-          updateUI(data['listing'], indexAtTime);
-        }
-      });
+      if (currentIndex === indexAtTime) {
+        currentListing = data['listing'];
+        show(currentIndex);
+      } else {
+        updateUI(data['listing'], indexAtTime);
+      }
+    });
 }
 
 function updateUI(listing, index) {
@@ -118,23 +118,23 @@ function applyNewFilterByHighlight(filterType) {
   if (confirm('Deseja adicionar isto aos filtros mesmo? As vagas com estas características já presentes no banco de dados serão marcadas como "Dispensada" automaticamente.')) {
     const type = highlightMode + '_' + filterType;
 
-    fetch(`http://localhost:8000/extractor/update_filter_list?filter_value=${lastText}&filter_type=${type}`,
-        {method: 'POST'})
-        .then((response) => response.json())
-        .then((data) => {
-          if (data.status != 409) {
+    fetch(`http://localhost:8000/extractor/update_extraction_filters?filter_value=${lastText}&filter_type=${type}`,
+      {method: 'POST'})
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.status != 409) {
           // eslint-disable-next-line max-len
-            document.getElementById(type + '_container').innerHTML += `<span class="query_multivalue_option" onclick="removeMultiValueFilter('${data.asciified_text}', '${type}')">${data.asciified_text}</span>`;
-          }
-        });
+          document.getElementById(type + '_container').innerHTML += `<span class="query_multivalue_option" onclick="removeMultiValueFilter('${data.added_filter}', '${type}')">${data.added_filter}</span>`;
+        }
+      });
   }
 }
 
 function removeMultiValueFilter(removedValue, type) {
   filters[type] = filters[type].filter((value) => value != removedValue);
 
-  fetch(`http://localhost:8000/extractor/update_filter_list?filter_value=${removedValue}&filter_type=${type}`,
-      {method: 'DELETE'});
+  fetch(`http://localhost:8000/extractor/update_extraction_filters?filter_value=${removedValue}&filter_type=${type}`,
+    {method: 'DELETE'});
 
   container = document.getElementById(type + '_container');
   newContent = '';
@@ -147,25 +147,26 @@ function removeMultiValueFilter(removedValue, type) {
 
 function extractListings() {
   fetch('http://localhost:8000/extractor/start_listing_extraction',
-      {method: 'POST'})
-      .then((response) => response.json())
-      .then((data) => {
-        updateFunc = window.setInterval(getListingExtractionStatus, 1000);
-      });
+    {method: 'POST'})
+    .then((response) => response.json())
+    .then((data) => {
+      updateFunc = window.setInterval(getListingExtractionStatus, 1000);
+    });
 }
 
 function getListingExtractionStatus() {
   const progressBarOverall = document.getElementById('progress_bar_overall');
 
   fetch('http://localhost:8000/extractor/get_listing_extraction_status')
-      .then((response) => response.json())
-      .then((data) => {
-        results = data['results'];
+    .then((response) => response.json())
+    .then((data) => {
+      results = data['results'];
 
-        let total = 0;
-        let alive = false;
-        for (const platform of Object.keys(results)) {
-          if (results[platform]['status']) {
+      let total = 0;
+      let alive = false;
+      for (const platform of Object.keys(results)) {
+        if (Object.keys(results[platform]).length != 0) {
+          if (results[platform]['status'] == 'ACTIVE') {
             alive = true;
             if (!updateFunc) {
               updateFunc = window.setInterval(getListingExtractionStatus, 1000);
@@ -178,43 +179,43 @@ function getListingExtractionStatus() {
               progressBarOverall.classList.remove('disabled');
             }
           }
-          total += results[platform]['new_listings'];
-          document.getElementById('new_listings_' + platform).textContent = '+' + results[platform]['new_listings'];
+          total += results[platform]['execution_log']['amount_extracted'];
           alternateProgressBar(results, platform, document.getElementById('progress_' + platform));
         }
+        document.getElementById('new_listings_' + platform).textContent = '+' + (results[platform]['execution_log'] ? results[platform]['execution_log']['amount_extracted'] : 0);
+      }
 
-        if (alive) {
-          document.getElementById('extraction_results').textContent = '+' + total;
-        } else {
-          progressBarOverall.classList.add('disabled');
-          clearTimeout(updateFunc);
-        }
-      }).catch((rejected) => {
-        progressBarOverall.classList.add('disabled', 'errored');
-        progressBarOverall.title = 'conexão interrompida';
+      if (alive) {
+        document.getElementById('extraction_results').textContent = '+' + total;
+      } else {
+        progressBarOverall.classList.add('disabled');
         clearTimeout(updateFunc);
-        for (const platform of ['linkedin', 'glassdoor', 'catho', 'vagas_com']) {
-          progressBar = document.getElementById('progress_' + platform);
-          if (!progressBar.classList.contains('disabled')) {
-            progressBar.classList.add('disabled', 'errored');
-            progressBar.title = 'conexão interrompida';
-          }
+      }
+    }).catch((rejected) => {
+      progressBarOverall.classList.add('disabled', 'errored');
+      progressBarOverall.title = 'conexão interrompida';
+      clearTimeout(updateFunc);
+      for (const platform of ['linkedin', 'glassdoor', 'catho', 'vagas_com']) {
+        progressBar = document.getElementById('progress_' + platform);
+        if (!progressBar.classList.contains('disabled')) {
+          progressBar.classList.add('disabled', 'errored');
+          progressBar.title = 'conexão interrompida';
         }
-      });
+      }
+    });
 }
 
 function alternateProgressBar(results, platform, progressElement) {
-  if (results[platform]['status'] && progressElement.classList.contains('disabled')) {
+  if (results[platform]['status'] == 'ACTIVE' && progressElement.classList.contains('disabled')) {
     progressElement.classList.remove('disabled');
-  } else if (!results[platform]['status']) {
+  } else if (results[platform]['status'] != 'ACTIVE') {
     progressElement.classList.add('disabled');
   }
 
-  if ('exception' in results[platform] && !progressElement.classList.contains('errored')) {
-    console.log(platform + ':\n' + results[platform]['exception']);
+  if (Object.keys(results[platform]).length != 0 && results[platform]['execution_log']['result'] == 'EXCEPTION' && !progressElement.classList.contains('errored')) {
     progressElement.classList.add('errored');
-    progressElement.title = results[platform]['exception'];
-  } else if (!'exception' in results[platform] && progressElement.classList.contains('errored')) {
+    progressElement.title = results[platform]['execution_log']['message'];
+  } else if (results[platform]['execution_log']['result'] != 'EXCEPTION' && progressElement.classList.contains('errored')) {
     progressElement.classList.remove('errored');
     progressElement.removeAttribute('title');
   }
@@ -483,15 +484,15 @@ function addMultiValueFilter(e) {
       return;
     }
 
-    fetch('http://localhost:8000/extractor/update_filter_list?filter_value=' + value + '&filter_type=' + type,
-        {method: 'POST'})
-        .then((response) => response.json())
-        .then((data) => {
-          if (data.status != 409) {
+    fetch('http://localhost:8000/extractor/update_extraction_filters?filter_value=' + value + '&filter_type=' + type,
+      {method: 'POST'})
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.status != 409) {
           // eslint-disable-next-line max-len
-            document.getElementById(type + '_container').innerHTML += `<span class="query_multivalue_option" onclick="removeMultiValueFilter('${data.asciified_text}', '${type}')">${data.asciified_text}</span>`;
-          }
-        });
+          document.getElementById(type + '_container').innerHTML += `<span class="query_multivalue_option" onclick="removeMultiValueFilter('${data.added_filter}', '${type}')">${data.added_filter}</span>`;
+        }
+      });
   }
 };
 

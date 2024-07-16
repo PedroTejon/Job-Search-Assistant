@@ -1,22 +1,19 @@
 from __future__ import annotations
 
-from json import dump, load, loads
-from queue import Queue
+from itertools import groupby
+from json import load, loads
 from re import sub
-from threading import Thread
-from threading import enumerate as enum_threads
-from typing import TypedDict
 
 from django.db.models import F
 from django.db.models.query_utils import Q
-from django.forms.models import model_to_dict
-from django.http import HttpRequest, HttpResponse, JsonResponse
+from django.http import HttpRequest, HttpResponse
 from django.template import loader
-from django.views.decorators.csrf import csrf_exempt
 from numpy import arange, split
 from unidecode import unidecode
 
 from src.api.models import Listing
+from src.extractor.models import ExtractionFilter
+
 
 def index(request: HttpRequest) -> HttpResponse:
     template = loader.get_template('vagas.html')
@@ -51,9 +48,12 @@ def get_listings(
     cities: list[str],
     platforms: list[str],
 ) -> dict:
-    with open('src/data/filters.json', encoding='utf-8') as f:
-        filters = load(f)
-
+    filters = {
+        key: [value['value'] for value in values]
+        for key, values in groupby(
+            ExtractionFilter.objects.all().values('category', 'value'), key=lambda x: x['category']
+        )
+    }
     search_queries = unidecode(search_queries_str).lower().split()
     listings_query = Q()
     workplace_type_query = Q()
@@ -155,4 +155,3 @@ def get_listings(
             'filters': filters,
             'listing_count': 0,
         }
-

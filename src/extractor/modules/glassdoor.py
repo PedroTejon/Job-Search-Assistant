@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from json import load
-from queue import Queue
 from traceback import format_exc
 from typing import TYPE_CHECKING
 
@@ -9,6 +8,7 @@ from cloudscraper import CloudScraper, create_scraper  # type: ignore[import-unt
 from django.utils.timezone import now
 
 from src.api.models import Company, Listing
+from src.extractor.models import ExtractionLog
 from src.extractor.modules.utils import (
     DEFAULT_HEADERS,
     asciify_text,
@@ -17,7 +17,6 @@ from src.extractor.modules.utils import (
     get_company_by_name,
     listing_exists,
     post,
-    reload_filters,
     sleep_r,
 )
 
@@ -30,25 +29,13 @@ with open('src/data/cookies.json', 'rb') as cookies_f:
     cookies_json: list[dict[str, str]] = load(cookies_f)['glassdoor']
 with open('src/data/local_storage.json', 'rb') as token_f:
     token: str = load(token_f)['glassdoor_csrf']
-queue: Queue[int] = Queue()
-log_queue: Queue[dict] = Queue()
+log = None
 
 COOKIES = ';'.join([f"{cookie['name']}={cookie['value']}" for cookie in cookies_json])
 MODULE_HEADERS = DEFAULT_HEADERS | {
     'cookie': COOKIES,
     'gd-csrf-token': token,
 }
-
-
-def reload_if_configs_changed() -> None:
-    if log_queue.qsize() > 0:
-        temp_logs = []
-        for _ in range(log_queue.qsize()):
-            log = log_queue.get()
-            if log['type'] == 'reload_request':
-                reload_filters()
-            else:
-                temp_logs.append(log)
 
 
 def job_listings_request(cursor: dict, request_body: list[dict]) -> Response:
@@ -79,7 +66,6 @@ def extract_job_listings(job_listings: list[dict]) -> None:
         listing_worktype = 'Remoto' if 'remoto' in listing_location else 'Presencial/Hibrido'
 
         company_name = listing_header['employerNameFromSearch']
-        reload_if_configs_changed()
         if filter_listing(asciify_text(listing_title), listing_location, listing_worktype, asciify_text(company_name)):
             if (company := get_company_by_name(company_name, 'glassdoor')).platforms['glassdoor']['name'] is None:
                 company.platforms['glassdoor']['name'] = company_name
@@ -172,6 +158,7 @@ def get_recommended_listings() -> None:
 
 
 def get_listing_details(listing: Listing) -> None:
+    global log
     content = job_listings_request(
         {},
         [
@@ -193,11 +180,13 @@ def get_listing_details(listing: Listing) -> None:
         listing.applies = None
         listing.description = content['job']['description']
         listing.publication_date = content['job']['discoverDate']
-        queue.put(1)
+        log.amount_extracted += 1
+        log.save()
 
     elif content['header'] is None or content['header']['applyButtonDisabled']:
         listing.closed = True
 
+    listing.execution_id = log.id
     listing.save()
 
     sleep_r(0.5)
@@ -227,21 +216,21 @@ def get_followed_companies() -> None:
         sleep_r(0.5)
 
 
-def get_jobs(curr_queue: Queue, curr_log_queue: Queue) -> None:
-    global queue, log_queue
-    queue = curr_queue
-    log_queue = curr_log_queue
+def run_pipeline(execution_id) -> None:
+    global log
+    pipeline = [get_companies_listings, get_recommended_listings]
 
+    log = ExtractionLog(id=execution_id, platform='Glassdoor')
+    log.save()
     try:
         get_followed_companies()
-
-        get_companies_listings()
-
-        get_recommended_listings()
+        for function in pipeline:
+            function()
     except Exception:
         traceback = format_exc()
 
-        log_queue.put({
-            'type': 'error',
-            'exception': traceback,
-        })
+        log.result = 'EXCEPTION'
+        log.message = traceback
+    finally:
+        log.end_time = now()
+        log.save()

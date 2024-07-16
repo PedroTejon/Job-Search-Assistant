@@ -9,6 +9,7 @@ def main() -> None:
 
     if 'runserver' in argv:
         execute_from_command_line([argv[0], 'makemigrations', 'api', '--verbosity', '0'])
+        execute_from_command_line([argv[0], 'makemigrations', 'extractor', '--verbosity', '0'])
         execute_from_command_line([argv[0], 'migrate', '--verbosity', '0'])
     execute_from_command_line(argv)
 

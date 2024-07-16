@@ -1,3 +1,6 @@
 from django.contrib import admin
 
-# Register your models here.
+from .models import ExtractionFilter, ExtractionLog
+
+admin.site.register(ExtractionFilter)
+admin.site.register(ExtractionLog)

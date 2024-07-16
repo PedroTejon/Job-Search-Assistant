@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from itertools import groupby
 from json import dump, load
 from os import listdir
 from random import randint
@@ -10,28 +11,13 @@ from typing import TYPE_CHECKING
 from unidecode import unidecode
 
 from src.api.models import Company, Listing
+from src.extractor.models import ExtractionFilter
 from src.extractor.modules import PLATFORM_IDS
 from src.extractor.modules.exceptions import InvalidPlatformError, PossibleAuthError
 
 if TYPE_CHECKING:
     from cloudscraper import CloudScraper  # type: ignore[import-untyped]
     from requests import Response
-
-if 'filters.json' not in listdir('src/data'):
-    filters: dict[str, list[str]] = {
-        'title_exclude_words': [],
-        'title_exclude_terms': [],
-        'company_exclude_words': [],
-        'company_exclude_terms': [],
-        'cities': [],
-        'states': [],
-        'countries': [],
-    }
-    with open('src/data/filters.json', 'w', encoding='utf-8') as filters_f:
-        dump(filters, filters_f, ensure_ascii=False)
-else:
-    with open('src/data/filters.json', encoding='utf-8') as filters_f:
-        filters = load(filters_f)
 
 DEFAULT_HEADERS = {
     'accept-language': 'pt-BR,pt;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
@@ -48,12 +34,6 @@ DEFAULT_HEADERS = {
 
 def sleep_r(time: float) -> None:
     sleep(time * (1 + randint(1, 20) / 100))
-
-
-def reload_filters() -> None:
-    global filters
-    with open('src/data/filters.json', encoding='utf-8') as filters_f:
-        filters = load(filters_f)
 
 
 def company_exists_by_id(c_id: str, platform: str) -> bool:
@@ -111,7 +91,18 @@ def listing_exists(c_id: str) -> bool:
     return Listing.objects.filter(platform_id__exact=c_id).exists()
 
 
+def get_filters():
+    return {
+        key: [value['value'] for value in values]
+        for key, values in groupby(
+            ExtractionFilter.objects.all().values('category', 'value'), key=lambda x: x['category']
+        )
+    }
+
+
 def filter_listing(title: str, location: str, workplace_type: str, company_name: str) -> bool:
+    filters = get_filters()
+
     location = asciify_text(location)
     if location.count(',') == 2:
         city, state, country = location.split(', ')
@@ -121,27 +112,24 @@ def filter_listing(title: str, location: str, workplace_type: str, company_name:
         city = location.split(', ')[0]
 
     if workplace_type == 'Presencial/Hibrido':
-        if 'city' in locals() and len(filters['cities']) > 0 and not any(x == city for x in filters['cities']):
+        if 'city' in locals() and len(filters.get('cities', [])) > 0 and not any(x == city for x in filters.get('cities', [])):
             return False
-        if 'state' in locals() and len(filters['states']) > 0 and not any(x == state for x in filters['states']):
+        if 'state' in locals() and len(filters.get('states', [])) > 0 and not any(x == state for x in filters.get('states', [])):
             return False
         if (
             'country' in locals()
-            and len(filters['country']) > 0
-            and not any(x == country for x in filters['countries'])
+            and len(filters.get('countries', [])) > 0
+            and not any(x == country for x in filters.get('countries', []))
         ):
             return False
 
-    if any(x in title.split() for x in filters['title_exclude_words']):
+    if any(x in title.split() for x in filters.get('title_exclude_words', [])):
         return False
 
-    if any(x in title for x in filters['title_exclude_terms']):
+    if any(x in title for x in filters.get('title_exclude_terms', [])):
         return False
 
-    if any(x in company_name.split() for x in filters['company_exclude_words']):
+    if any(x in company_name.split() for x in filters.get('company_exclude_words', [])):
         return False
 
-    if any(x in company_name for x in filters['company_exclude_terms']):
-        return False
-
-    return True
+    return not any(x in company_name for x in filters.get('company_exclude_terms', []))

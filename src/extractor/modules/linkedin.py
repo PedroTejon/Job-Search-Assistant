@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from datetime import datetime
 from json import load
-from queue import Queue
 from re import sub
 from traceback import format_exc
 from typing import TYPE_CHECKING
@@ -11,6 +10,7 @@ from cloudscraper import CloudScraper, create_scraper  # type: ignore[import-unt
 from django.utils.timezone import now
 
 from src.api.models import Company, Listing
+from src.extractor.models import ExtractionLog
 from src.extractor.modules.utils import (
     DEFAULT_HEADERS,
     asciify_text,
@@ -19,7 +19,6 @@ from src.extractor.modules.utils import (
     get,
     get_company_by_name,
     listing_exists,
-    reload_filters,
     sleep_r,
 )
 
@@ -40,8 +39,7 @@ def get_csrf_token() -> str:
 with open('src/data/cookies.json', 'rb') as f:
     cookies_json: list[dict[str, str]] = load(f)['linkedin']
 token = get_csrf_token()
-queue: Queue[int] = Queue()
-log_queue: Queue[dict] = Queue()
+log = None
 
 COOKIES = ';'.join([f"{cookie['name']}={cookie['value']}" for cookie in cookies_json])
 MODULE_HEADERS = DEFAULT_HEADERS | {
@@ -53,17 +51,6 @@ MODULE_HEADERS = DEFAULT_HEADERS | {
     'x-li-track': '{"clientVersion":"1.13.7689","mpVersion":"1.13.7689","osName":"web","timezoneOffset":-3,"timezone":"America/Sao_Paulo","deviceFormFactor":"DESKTOP","mpName":"voyager-web","displayDensity":1.25,"displayWidth":1920,"displayHeight":1080}',  # noqa: E501
     'x-restli-protocol-version': '2.0.0',
 }
-
-
-def reload_if_configs_changed() -> None:
-    if log_queue.qsize() > 0:
-        temp_logs = []
-        for _ in range(log_queue.qsize()):
-            log = log_queue.get()
-            if log['type'] == 'reload_request':
-                reload_filters()
-            else:
-                temp_logs.append(log)
 
 
 def get_companies_pfps(companies_json: Generator[dict, None, None]) -> dict[str, str]:
@@ -85,7 +72,7 @@ def get_companies_pfps(companies_json: Generator[dict, None, None]) -> dict[str,
     return companies_pfps
 
 
-def get_job_listings(url: str) -> None:
+def get_job_listings(url: str, log) -> None:
     total_job_listings = 0
     page = 0
 
@@ -134,7 +121,6 @@ def get_job_listings(url: str) -> None:
                 listing_location.split(',')[0].strip(),
             )
 
-            reload_if_configs_changed()
             if filter_listing(
                 asciify_text(listing_title), listing_location, workplace_type, asciify_text(company_name)
             ):
@@ -160,10 +146,12 @@ def get_job_listings(url: str) -> None:
                         workplace_type=workplace_type,
                         platform_id=listing_id,
                         platform='LinkedIn',
+                        execution_id=log.id
                     )
                 )
 
-                queue.put(1)
+                log.amount_extracted += 1
+                log.save()
 
         if curr_count >= total_job_listings:
             break
@@ -172,9 +160,10 @@ def get_job_listings(url: str) -> None:
         page += 1
 
 
-def get_recommended_listings() -> None:
+def get_recommended_listings(log) -> None:
     get_job_listings(
-        'https://www.linkedin.com/voyager/api/graphql?variables=(count:25,jobCollectionSlug:recommended,query:(origin:GENERIC_JOB_COLLECTIONS_LANDING),includeJobState:true)&queryId=voyagerJobsDashJobCards.da56c4e71afbd3bcdb0a53b4ebd509c4'
+        'https://www.linkedin.com/voyager/api/graphql?variables=(count:25,jobCollectionSlug:recommended,query:(origin:GENERIC_JOB_COLLECTIONS_LANDING),includeJobState:true)&queryId=voyagerJobsDashJobCards.da56c4e71afbd3bcdb0a53b4ebd509c4',
+        log
     )
 
 
@@ -190,9 +179,10 @@ def get_companies_listings() -> None:
             company.save()
 
 
-def get_remote_listings() -> None:
+def get_remote_listings(log) -> None:
     get_job_listings(
-        'https://www.linkedin.com/voyager/api/voyagerJobsDashJobCards?decorationId=com.linkedin.voyager.dash.deco.jobs.search.JobSearchCardsCollection-191&count=25&q=jobSearch&query=(origin:JOBS_HOME_REMOTE_JOBS,locationUnion:(geoId:106057199),selectedFilters:(timePostedRange:List(r604800),workplaceType:List(2)),spellCorrectionEnabled:true)'
+        'https://www.linkedin.com/voyager/api/voyagerJobsDashJobCards?decorationId=com.linkedin.voyager.dash.deco.jobs.search.JobSearchCardsCollection-191&count=25&q=jobSearch&query=(origin:JOBS_HOME_REMOTE_JOBS,locationUnion:(geoId:106057199),selectedFilters:(timePostedRange:List(r604800),workplaceType:List(2)),spellCorrectionEnabled:true)',
+        log
     )
 
 
@@ -312,23 +302,21 @@ def get_followed_companies() -> None:
         curr_index += 100
 
 
-def get_jobs(curr_queue: Queue, curr_log_queue: Queue) -> None:
-    global queue, log_queue
-    queue = curr_queue
-    log_queue = curr_log_queue
+def run_pipeline(execution_id) -> None:
+    global log
+    pipeline = [get_companies_listings, get_recommended_listings, get_remote_listings]
 
+    log = ExtractionLog(id=execution_id, platform='LinkedIn')
+    log.save()
     try:
         get_followed_companies()
-
-        get_companies_listings()
-
-        get_recommended_listings()
-
-        get_remote_listings()
+        for function in pipeline:
+            function(log)
     except Exception:
         traceback = format_exc()
 
-        log_queue.put({
-            'type': 'error',
-            'exception': traceback,
-        })
+        log.result = 'EXCEPTION'
+        log.message = traceback
+    finally:
+        log.end_time = now()
+        log.save()
